@@ -26,6 +26,12 @@ export function Atualizado({ className }: { className?: string }) {
   );
 }
 
+/** "13 comandas abertas em 5 mesas": a mesa é onde se senta, a comanda é o que se cobra. */
+export function textoComandas(r: Resumo) {
+  const c = `${r.comandas} ${r.comandas === 1 ? "comanda aberta" : "comandas abertas"}`;
+  return `${c} em ${r.ocupadas} ${r.ocupadas === 1 ? "mesa" : "mesas"}`;
+}
+
 const Rotulo = ({ children }: { children: string }) => (
   <span className="block text-[11px] font-semibold uppercase leading-4 tracking-[0.06em] text-(--color-ink-3)">{children}</span>
 );

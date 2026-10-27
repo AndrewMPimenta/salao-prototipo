@@ -20,7 +20,7 @@ interface BarraMovelProps {
   medir: (el: HTMLElement | null) => void;
 }
 
-/** Barra única de vidro com o nome e as ações; os ambientes rolam logo abaixo, sem moldura. */
+/** Barra única de vidro com o nome e as ações; o seletor de salões fica logo abaixo. */
 export function BarraMovel({ salao, aberto, telaCheia, medir }: BarraMovelProps) {
   const [buscando, setBuscando] = useState(false);
 
@@ -69,14 +69,13 @@ export function BarraMovel({ salao, aberto, telaCheia, medir }: BarraMovelProps)
         )}
       </div>
 
-      {/* A folga inferior abriga a sombra do vidro, que o overflow da rolagem cortaria. */}
       <SeletorAmbiente
-        variante="chips"
+        variante="movel"
         ambientes={salao.ambientes}
         mesas={salao.todas}
         ativo={salao.ambienteId}
         onChange={salao.mudarAmbiente}
-        className="pointer-events-auto -mx-4 -mb-3 px-4 pb-3 pt-1"
+        className="pointer-events-auto"
       />
     </header>
   );

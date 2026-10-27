@@ -4,7 +4,7 @@ import type { Ref } from "react";
 import type { Salao } from "@/hooks/use-salao";
 import { OccupancyBar } from "../occupancy-bar";
 import { FiltrosRapidos } from "./filtros-rapidos";
-import { Atualizado, EstatisticasLinha, Lotacao } from "./resumo";
+import { Atualizado, EstatisticasLinha, Lotacao, textoComandas } from "./resumo";
 import { materializar } from "./materializar";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +37,7 @@ export function PainelOcupacao({ salao, nomeAmbiente, aberto, medir }: PainelOcu
         <Atualizado className="flex-none" />
       </header>
 
+      <p className="tnum m-0 mb-3 text-[13px] leading-4 text-(--color-ink-2)">{textoComandas(resumo)}</p>
       <EstatisticasLinha resumo={resumo} />
       <Lotacao resumo={resumo} className="mt-3" />
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { AMBIENTES } from "@/lib/data";
 import { formatarCentavos, rotuloFracao, valorItem } from "@/lib/conta";
 import type { Comanda, ItemPedido, Mesa } from "@/lib/types";
 import { cn, formatarDuracao } from "@/lib/utils";
@@ -13,6 +14,8 @@ interface AbaComandasProps {
 /** As comandas da mesa, como o cartão do PDV, com os itens sob demanda. */
 export function AbaComandas({ mesa }: AbaComandasProps) {
   const comandas = mesa.comandas ?? [];
+  // O número da mesa repete entre salões; sem o salão a comanda fica ambígua.
+  const salao = AMBIENTES.length > 1 ? AMBIENTES.find((a) => a.id === mesa.ambienteId)?.nome : undefined;
 
   if (comandas.length === 0) {
     return <p className="m-0 py-6 text-center text-[13px] leading-5 text-(--color-ink-2)">Sem comandas abertas nesta mesa.</p>;
@@ -22,14 +25,14 @@ export function AbaComandas({ mesa }: AbaComandasProps) {
     <ul className="m-0 flex list-none flex-col gap-2 p-0">
       {comandas.map((c) => (
         <li key={c.numero}>
-          <CartaoComanda comanda={c} abertaInicial={comandas.length === 1} />
+          <CartaoComanda comanda={c} mesaId={mesa.id} salao={salao} abertaInicial={comandas.length === 1} />
         </li>
       ))}
     </ul>
   );
 }
 
-function CartaoComanda({ comanda, abertaInicial }: { comanda: Comanda; abertaInicial: boolean }) {
+function CartaoComanda({ comanda, mesaId, salao, abertaInicial }: { comanda: Comanda; mesaId: number; salao?: string; abertaInicial: boolean }) {
   const [aberta, setAberta] = useState(abertaInicial);
   const idLista = useId();
   const total = comanda.itens.reduce((s, i) => s + valorItem(i), 0);
@@ -52,7 +55,7 @@ function CartaoComanda({ comanda, abertaInicial }: { comanda: Comanda; abertaIni
       >
         <span className="min-w-0 flex-1">
           <span className="block text-[12px] font-medium leading-4 text-(--color-ink-2)">
-            <span className="tnum">Comanda {comanda.numero}</span>
+            <span className="tnum">Comanda {comanda.numero} · {salao && `${salao} · `}Mesa {mesaId}</span>
             {comanda.titular && <span> · {comanda.titular}</span>}
           </span>
           <span className="font-display tnum mt-1 block text-[28px] leading-none text-(--color-ink)">

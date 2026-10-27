@@ -26,3 +26,84 @@
     animation: none;
   }
 }
+
+/* Seletor de ambiente: o painel nasce do botão e as linhas descem em escada. */
+@keyframes lista-entra {
+  from { opacity: 0; transform: scaleY(0.96); }
+  to { opacity: 1; transform: scaleY(1); }
+}
+
+@keyframes lista-sai {
+  from { opacity: 1; transform: scaleY(1); }
+  to { opacity: 0; transform: scaleY(0.96); }
+}
+
+@keyframes folha-entra {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes folha-sai {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(16px); }
+}
+
+@keyframes linha-entra {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes esmaece {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.lista-ambiente {
+  transform-origin: top;
+}
+
+.lista-ambiente[data-estado="aberto"] {
+  animation: lista-entra 160ms var(--ease-out-soft) both;
+}
+
+.lista-ambiente[data-estado="fechando"] {
+  animation: lista-sai 120ms ease-in both;
+}
+
+.lista-ambiente[data-folha][data-estado="aberto"] {
+  animation-name: folha-entra;
+  animation-duration: 220ms;
+}
+
+.lista-ambiente[data-folha][data-estado="fechando"] {
+  animation-name: folha-sai;
+}
+
+.lista-ambiente[data-estado="aberto"] [role="option"] {
+  animation: linha-entra 180ms var(--ease-out-soft) both;
+  animation-delay: calc(var(--i, 0) * 28ms);
+}
+
+.lista-ambiente-fundo[data-estado="aberto"] {
+  animation: esmaece 160ms ease-out both;
+}
+
+.lista-ambiente-fundo[data-estado="fechando"] {
+  animation: esmaece 120ms ease-in reverse both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lista-ambiente[data-estado="aberto"],
+  .lista-ambiente[data-folha][data-estado="aberto"] {
+    animation: esmaece 120ms linear both;
+  }
+
+  .lista-ambiente[data-estado="fechando"],
+  .lista-ambiente[data-folha][data-estado="fechando"] {
+    animation: esmaece 120ms linear reverse both;
+  }
+
+  .lista-ambiente[data-estado="aberto"] [role="option"] {
+    animation: none;
+  }
+}

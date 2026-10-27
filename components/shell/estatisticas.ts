@@ -7,6 +7,8 @@ export interface Resumo {
   livres: number;
   /** Mesas com comanda aberta, com ou sem conta impressa. */
   ocupadas: number;
+  /** Comandas abertas; mesa ocupada sem lista de comandas conta como uma. */
+  comandas: number;
   /** Mesas com pelo menos um alerta. */
   atencao: number;
   pessoas: number;
@@ -19,8 +21,11 @@ export function resumir(mesas: Mesa[], limiares: Limiares): Resumo {
   let pessoas = 0;
   let lugares = 0;
   let atencao = 0;
+  let comandas = 0;
   for (const m of mesas) {
-    contagem[derivarEstado(m, limiares)]++;
+    const estado = derivarEstado(m, limiares);
+    contagem[estado]++;
+    if (estado === "ocupada" || estado === "conta") comandas += m.comandas?.length || 1;
     if (derivarAlertas(m, limiares).length > 0) atencao++;
     pessoas += m.pessoas;
     lugares += m.lugares;
@@ -30,6 +35,7 @@ export function resumir(mesas: Mesa[], limiares: Limiares): Resumo {
     total: mesas.length,
     livres: contagem.livre,
     ocupadas: contagem.ocupada + contagem.conta,
+    comandas,
     atencao,
     pessoas,
     lotacao: lugares ? Math.round((pessoas / lugares) * 100) : 0,

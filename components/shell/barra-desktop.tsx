@@ -20,7 +20,7 @@ interface BarraDesktopProps {
 
 /**
  * Três cápsulas de vidro: identidade, ambientes e vista/ações. O centro é
- * `flex-1` e rola quando há muitos ambientes; as laterais nunca encolhem.
+ * `flex-1` e abriga o seletor em lista; as laterais nunca encolhem.
  */
 export function BarraDesktop({ salao, aberto, medir, busca, acoes }: BarraDesktopProps) {
   const nomeAmbiente = salao.ambientes.find((a) => a.id === salao.ambienteId)?.nome ?? "";
@@ -30,7 +30,7 @@ export function BarraDesktop({ salao, aberto, medir, busca, acoes }: BarraDeskto
       ref={medir}
       inert={!aberto}
       className={cn(
-        "pointer-events-none absolute inset-x-0 z-20 flex items-center gap-3",
+        "pointer-events-none absolute inset-x-0 z-30 flex items-center gap-3",
         "top-[calc(env(safe-area-inset-top)+16px)] px-[calc(env(safe-area-inset-left)+16px)]",
         materializar(aberto, "cima"),
       )}
@@ -45,15 +45,13 @@ export function BarraDesktop({ salao, aberto, medir, busca, acoes }: BarraDeskto
       </div>
 
       <div className="flex min-w-0 flex-1 justify-center">
-        <div className="glass pointer-events-auto min-w-0 rounded-[22px] p-1.5">
-          <SeletorAmbiente
-            variante="segmentado"
-            ambientes={salao.ambientes}
-            mesas={salao.todas}
-            ativo={salao.ambienteId}
-            onChange={salao.mudarAmbiente}
-          />
-        </div>
+        <SeletorAmbiente
+          variante="painel"
+          ambientes={salao.ambientes}
+          mesas={salao.todas}
+          ativo={salao.ambienteId}
+          onChange={salao.mudarAmbiente}
+        />
       </div>
 
       <div className="glass pointer-events-auto flex flex-none items-center gap-1 rounded-[22px] p-1.5">

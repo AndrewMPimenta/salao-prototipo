@@ -13,7 +13,7 @@ import { exibicaoDe } from "./menu-exibicao";
 import { Cena } from "./cena";
 import { PilulaImersivo } from "./controles-janela";
 import { FiltrosRapidos } from "./filtros-rapidos";
-import { Atualizado, Estatisticas } from "./resumo";
+import { Atualizado, Estatisticas, textoComandas } from "./resumo";
 import type { PropsLayout } from "./tipos";
 
 // Alça do Drawer (h-6); o resto do peek é a altura medida do cabeçalho.
@@ -110,7 +110,7 @@ export function LayoutMovel({ salao, imersivo, telaCheia }: PropsLayout) {
                     {resumo.ocupadas} de {resumo.total}
                   </p>
                   <p className="tnum m-0 truncate text-[13px] leading-4 text-(--color-ink-2)">
-                    mesas ocupadas · {resumo.lotacao}%
+                    {textoComandas(resumo)}
                   </p>
                 </div>
                 <ToggleGroup<"3d" | "lista">
