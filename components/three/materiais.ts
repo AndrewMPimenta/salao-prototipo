@@ -4,20 +4,30 @@ import type { EstadoMesa } from "@/lib/types";
 
 export type Par = { fill: string; stroke: string };
 
-export const CLARO: Record<EstadoMesa, Par> = {
-  livre: { fill: "#ffffff", stroke: "#8a8479" },
-  reservada: { fill: "#ffffff", stroke: "#67625a" },
-  ocupada: { fill: "#cfc8bb", stroke: "#4a463f" },
-  conta: { fill: "#cfe3f5", stroke: "#0043ce" },
+/** O tampo é neutro em todos os estados: quem diz o estado é o aro da borda (`corAro`). */
+export const TAMPO: Record<"claro" | "escuro", Par> = {
+  claro: { fill: "#fbf8f2", stroke: "#8a8479" },
+  escuro: { fill: "#46423b", stroke: "#8f897e" },
 };
 
-export const ESCURO: Record<EstadoMesa, Par> = {
-  // Livre é o único tampo claro no tema escuro: a luminância é o que o destaca, sem nova matiz.
-  livre: { fill: "#ece3d3", stroke: "#8f897e" },
-  reservada: { fill: "#ece3d3", stroke: "#a39d92" },
-  ocupada: { fill: "#3f3b36", stroke: "#cdc6ba" },
-  conta: { fill: "#1c3a5e", stroke: "#64b5f6" },
+export type TipoAro = "solido" | "tracejado" | "fino";
+
+/** Livre e conta usam o traço cheio; reservada é tracejada; ocupada recua num fio. */
+export const TIPO_ARO: Record<EstadoMesa, TipoAro> = {
+  livre: "solido",
+  reservada: "tracejado",
+  ocupada: "fino",
+  conta: "solido",
 };
+
+const ARO_CLARO: Record<EstadoMesa, string> = { livre: "#1b1a17", reservada: "#4a463f", ocupada: "#aaa397", conta: "#0043ce" };
+const ARO_ESCURO: Record<EstadoMesa, string> = { livre: "#f4f1ea", reservada: "#cdc6ba", ocupada: "#7c776d", conta: "#64b5f6" };
+
+/** O realce do hover leva qualquer aro ao contraste máximo com o tampo. */
+export function corAro(estado: EstadoMesa, escuro: boolean, realce: boolean) {
+  const t = escuro ? ARO_ESCURO : ARO_CLARO;
+  return realce ? t.livre : t[estado];
+}
 
 /** Cores do cenário; o fundo acompanha --color-app para a maquete flutuar na página. */
 export interface Cores {
@@ -151,6 +161,69 @@ export const anelTracejado = (ri: number, ro: number) =>
     const partes = Array.from({ length: SEGMENTOS_TRACEJADO }, (_, k) => new THREE.RingGeometry(ri, ro, 3, 1, k * passo, passo * 0.55));
     return mergeGeometries(partes)!;
   });
+
+const TUBO_ARO: Record<TipoAro, number> = { solido: 0.085, tracejado: 0.075, fino: 0.035 };
+const ARCOS_ARO = 20;
+
+/**
+ * Aro de raio 1 deitado no plano xz; a escala uniforme da instância dá o raio da mesa e,
+ * junto, a espessura proporcional. Os tracejados são arcos fundidos numa só geometria.
+ */
+export const aroCircular = (tipo: TipoAro) =>
+  obter(`o${tipo}`, () => {
+    const tubo = TUBO_ARO[tipo];
+    if (tipo !== "tracejado") return new THREE.TorusGeometry(1, tubo, 6, 56).rotateX(Math.PI / 2);
+
+    const passo = (Math.PI * 2) / ARCOS_ARO;
+    const arcos = Array.from({ length: ARCOS_ARO }, (_, k) => new THREE.TorusGeometry(1, tubo, 6, 5, passo * 0.55).rotateZ(k * passo));
+    return mergeGeometries(arcos)!.rotateX(Math.PI / 2);
+  });
+
+const ESPESSURA_ARO = { solido: 0.055, tracejado: 0.05, fino: 0.025 } as const;
+const ALTURA_ARO = 0.02;
+
+/** Moldura da mesa retangular, centrada na origem; o aro reto é feito de caixas porque a escala deformaria a espessura. */
+export const aroRetangular = (largura: number, profundidade: number, tipo: TipoAro) =>
+  obter(`q${largura},${profundidade},${tipo}`, () => {
+    const e = ESPESSURA_ARO[tipo];
+    const partes: THREE.BufferGeometry[] = [];
+
+    // Traço contínuo ou dashes de 14 cm com vão de 10 cm, centrados na aresta.
+    const aresta = (comp: number, cx: number, cz: number, horizontal: boolean) => {
+      const peca = (len: number, off: number) => {
+        const g = horizontal ? new THREE.BoxGeometry(len, ALTURA_ARO, e) : new THREE.BoxGeometry(e, ALTURA_ARO, len);
+        partes.push(g.translate(horizontal ? cx + off : cx, 0, horizontal ? cz : cz + off));
+      };
+      if (tipo !== "tracejado") return peca(comp, 0);
+
+      const dash = 0.14;
+      const passo = dash + 0.1;
+      const n = Math.max(1, Math.floor((comp + 0.1) / passo));
+      const inicio = -((n - 1) * passo) / 2;
+      for (let k = 0; k < n; k++) peca(dash, inicio + k * passo);
+    };
+
+    const x = largura / 2 - e / 2;
+    const z = profundidade / 2 - e / 2;
+    aresta(largura, 0, -z, true);
+    aresta(largura, 0, z, true);
+    aresta(profundidade - e * 2, -x, 0, false);
+    aresta(profundidade - e * 2, x, 0, false);
+    return mergeGeometries(partes)!;
+  });
+
+const basicos = new Map<string, THREE.MeshBasicMaterial>();
+
+/** Sem iluminação: o aro tem de ler a mesma cor sob qualquer luz da cena. */
+export function matBasico(cor: string, opacidade = 1) {
+  const chave = `${cor}|${opacidade}`;
+  let m = basicos.get(chave);
+  if (!m) {
+    m = new THREE.MeshBasicMaterial({ color: cor, transparent: opacidade < 1, opacity: opacidade, depthWrite: opacidade >= 1 });
+    basicos.set(chave, m);
+  }
+  return m;
+}
 
 export function mat(cor: string, opacidade = 1, rugosidade = 0.9) {
   const chave = `${cor}|${opacidade}|${rugosidade}`;

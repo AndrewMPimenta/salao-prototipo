@@ -1,8 +1,9 @@
 "use client";
 
 import type { EstadoMesa } from "@/lib/types";
-import { ORDEM_ESTADOS, ROTULO_ESTADO, TRACO_ESTADO } from "@/lib/state";
+import { ORDEM_ESTADOS, ROTULO_ESTADO } from "@/lib/state";
 import { cn } from "@/lib/utils";
+import { AmostraAro } from "./amostra-aro";
 
 const ROTULO_FAIXA: Record<EstadoMesa, string> = {
   livre: "Livres",
@@ -71,14 +72,7 @@ export function OccupancyBar({
                 ativo ? "bg-(--color-accent) text-(--color-accent-ink)" : "text-(--color-ink-2) hover:bg-(--color-ink)/6",
               )}
             >
-              <span
-                aria-hidden
-                className="size-2.5 flex-none rounded-full"
-                style={{
-                  background: `var(--color-${estado}-fill)`,
-                  boxShadow: `inset 0 0 0 ${Math.min(TRACO_ESTADO[estado], 2)}px var(--color-${estado}-stroke)`,
-                }}
-              />
+              <AmostraAro estado={estado} className="size-3" />
               {ROTULO_FAIXA[estado]}
               <span className="tnum font-[family-name:var(--font-mono)]">{n}</span>
             </button>
@@ -182,18 +176,7 @@ export function OccupancyBar({
                     : "text-(--color-ink) shadow-[inset_0_0_0_1px_var(--color-line)] group-hover:shadow-[inset_0_0_0_1px_var(--color-line-2)]",
                 )}
               >
-                <span
-                  aria-hidden
-                  style={{
-                    background: `var(--color-${estado}-fill)`,
-                    boxShadow: `inset 0 0 0 ${Math.min(TRACO_ESTADO[estado], 2)}px var(--color-${estado}-stroke)`,
-                    backgroundImage:
-                      estado === "conta"
-                        ? "repeating-linear-gradient(45deg, transparent 0 2px, color-mix(in srgb, var(--color-conta-stroke) 35%, transparent) 2px 4px)"
-                        : undefined,
-                  }}
-                  className={cn("flex-none rounded-full", flutuante ? "size-3" : "size-4")}
-                />
+                <AmostraAro estado={estado} className={flutuante ? "size-3.5" : "size-4"} />
                 <span className="tnum font-[family-name:var(--font-mono)] text-sm font-semibold leading-none">
                   {n}
                 </span>

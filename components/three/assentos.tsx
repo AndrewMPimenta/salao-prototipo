@@ -113,7 +113,7 @@ function Instancias({ parte }: { parte: Parte }) {
  * Não projetam nem recebem sombra; a cor por instância faz o esmaecimento do
  * filtro, já que um material compartilhado não varia a opacidade por peça.
  */
-export function Assentos({ itens, cenario, cores }: { itens: ItemAssento[]; cenario: Cenario; cores: Cores }) {
+export function Assentos({ itens, cenario, cores, pessoas }: { itens: ItemAssento[]; cenario: Cenario; cores: Cores; pessoas: boolean }) {
   const partes = useMemo(() => {
     const piso = new THREE.Color(cores.piso);
     const cadeira = new THREE.Color(cores.cadeira);
@@ -134,7 +134,7 @@ export function Assentos({ itens, cenario, cores }: { itens: ItemAssento[]; cena
           cad[k].matrizes.push(base.clone().multiply(p.m));
           cad[k].cores.push(corCadeira);
         });
-        if (!c.ocupada) continue;
+        if (!pessoas || !c.ocupada) continue;
         PECAS_FIGURA.forEach((p, k) => {
           fig[k].matrizes.push(base.clone().multiply(p.m));
           fig[k].cores.push(corFigura);
@@ -143,7 +143,7 @@ export function Assentos({ itens, cenario, cores }: { itens: ItemAssento[]; cena
     }
 
     return [...cad, ...fig];
-  }, [itens, cenario, cores]);
+  }, [itens, cenario, cores, pessoas]);
 
   return (
     <>

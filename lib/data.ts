@@ -123,19 +123,19 @@ function gerarEventos(): Mesa[] {
         mesa.pessoas = inteiro(Math.ceil(lugares / 2), lugares);
         mesa.abertaHa = inteiro(8, 95);
         mesa.semPedido = inteiro(2, 17);
-        if (r >= 0.84 && r < 0.92) mesa.semPedido = inteiro(20, 38);
-        else if (r >= 0.92 && r < 0.96) mesa.semPedido = inteiro(41, 70);
-        else if (r >= 0.96) {
+        if (r >= 0.9 && r < 0.95) mesa.semPedido = inteiro(20, 38);
+        else if (r >= 0.95 && r < 0.97) mesa.semPedido = inteiro(41, 70);
+        else if (r >= 0.97) {
           mesa.contaImpressa = true;
           mesa.contaImpressaHa = inteiro(1, 25);
         }
         // O último pedido não pode ser anterior à abertura da comanda.
         mesa.abertaHa = Math.max(mesa.abertaHa, mesa.semPedido);
         mesa.total = mesa.pessoas * inteiro(55, 190);
-        if (sorteio() < 0.4) {
+        if (sorteio() < 0.25) {
           mesa.pedidosPendentes = inteiro(1, 3);
           // O item mais antigo foi lançado no último pedido ou antes dele.
-          mesa.pendenteHa = Math.min(mesa.abertaHa, mesa.semPedido + inteiro(0, 14));
+          mesa.pendenteHa = Math.min(mesa.abertaHa, mesa.semPedido + inteiro(0, 6));
         }
       } else {
         mesa.livreHa = inteiro(2, 90);

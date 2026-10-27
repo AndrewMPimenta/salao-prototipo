@@ -11,7 +11,10 @@ import { CenarioMezanino } from "./three/mezanino";
 import { Camera } from "./three/camera";
 import { ChaoToque } from "./three/chao";
 import { obterCenario, ALTURA_ROTULO_3D, ms, mx, mz } from "./three/cenarios";
-import { CLARO, ESCURO, coresDoTema } from "./three/materiais";
+import { coresDoTema, TAMPO } from "./three/materiais";
+import type { ArmazemHover } from "@/hooks/use-hover-mesa";
+import type { Exibicao } from "@/lib/exibicao";
+import { Aros } from "./three/aros";
 import { Assentos, type ItemAssento } from "./three/assentos";
 import { Mesa3D } from "./three/mesa-3d";
 import { CamadaRotulos, ProjetorRotulos, type ItemRotulo, type MapaRotulos } from "./three/rotulos";
@@ -45,9 +48,10 @@ export interface Floor3DProps {
   onCameraChange?: (azimuteRad: number) => void;
   /** Folga em px que a interface flutuante ocupa sobre o canvas. */
   folga: { topo: number; base: number; esquerda: number; direita: number };
-  mostrarRotulos: boolean;
-  /** Sem cadeiras, figuras e sombras, para máquinas fracas e salões muito cheios. */
-  modoLeve: boolean;
+  /** Cadeiras, pessoas e sombras pesam na GPU; os rótulos decidem quando o número aparece. */
+  exibicao: Exibicao;
+  /** Mesa sob o ponteiro, compartilhada com as listas do shell. */
+  hover: ArmazemHover;
   className?: string;
 }
 
@@ -102,15 +106,15 @@ export function Floor3D({
   sinalLimparVista,
   onCameraChange,
   folga,
-  mostrarRotulos,
-  modoLeve,
+  exibicao,
+  hover,
   className,
 }: Floor3DProps) {
   const cenario = obterCenario(ambienteId);
   const escuro = useTemaEscuro();
   const reduz = useReduzMovimento();
   const cores = coresDoTema(escuro);
-  const paleta = escuro ? ESCURO : CLARO;
+  const tampo = TAMPO[escuro ? "escuro" : "claro"];
   const els = useRef<MapaRotulos>(new Map());
   const aoSelecionar = useCallback((id: number) => onSelect(id), [onSelect]);
   const aoVazio = useCallback(() => onSelect(null), [onSelect]);
@@ -135,10 +139,10 @@ export function Floor3D({
     () =>
       situacoes.flatMap(({ mesa, estado, alertas, esmaecida }) => {
         if (esmaecida) return [];
-        const [x, z] = posicoes.get(mesa.id)!;
-        return [{ mesa, estado, alertas, par: paleta[estado], x, z, selecionada: selecionada === mesa.id }];
+        const [x, z, raio] = posicoes.get(mesa.id)!;
+        return [{ mesa, estado, alertas, x, z, raio, selecionada: selecionada === mesa.id }];
       }),
-    [situacoes, posicoes, paleta, selecionada],
+    [situacoes, posicoes, selecionada],
   );
 
   const raio = Math.max(cenario.salaL, cenario.salaP) / 2 + 2;
@@ -149,11 +153,11 @@ export function Floor3D({
       <div aria-hidden className="h-full w-full">
         <Canvas
           // Remonta ao trocar: ligar/desligar sombras exige recompilar os materiais.
-          key={modoLeve ? "leve" : "cheio"}
+          key={exibicao.sombras ? "sombras" : "sem-sombras"}
           flat
           frameloop="demand"
-          shadows={!modoLeve}
-          dpr={modoLeve ? [1, 1] : [1, 1.5]}
+          shadows={exibicao.sombras}
+          dpr={exibicao.sombras ? [1, 1.5] : [1, 1]}
           camera={{ fov: 34, near: 0.1, far: 600, position: [12, 14, 16] }}
           onPointerMissed={aoVazio}
         >
@@ -161,11 +165,12 @@ export function Floor3D({
           <fog attach="fog" args={[cores.fundo, 300, 700]} />
 
           <Suspense fallback={null}>
-            <Luzes escuro={escuro} raio={raio} sombras={!modoLeve} />
+            <Luzes escuro={escuro} raio={raio} sombras={exibicao.sombras} />
             <Cena cores={cores} c={cenario} />
             <ChaoToque cenario={cenario} onVazio={aoVazio} />
 
-            {!modoLeve && <Assentos itens={situacoes} cenario={cenario} cores={cores} />}
+            {exibicao.cadeiras && <Assentos itens={situacoes} cenario={cenario} cores={cores} pessoas={exibicao.pessoas} />}
+            <Aros itens={situacoes} cenario={cenario} cores={cores} escuro={escuro} hover={hover} />
 
             {situacoes.map(({ mesa, estado, alertas, esmaecida }) => (
               <Mesa3D
@@ -174,8 +179,8 @@ export function Floor3D({
                 estado={estado}
                 alertas={alertas}
                 progresso={mesa.pessoas > 0 ? (mesa.abertaHa ?? 0) / limiares.permanenciaMedia : null}
-                leve={modoLeve}
-                par={paleta[estado]}
+                hover={hover}
+                par={tampo}
                 cores={cores}
                 escuro={escuro}
                 cenario={cenario}
@@ -201,12 +206,18 @@ export function Floor3D({
               reduzMovimento={reduz}
             />
             {/* Depois da câmera: precisa ler a pose já atualizada deste quadro. */}
-            {mostrarRotulos && <ProjetorRotulos itens={itensRotulo} els={els} priorizarLivres={filtro === "livre" || destacar !== undefined} />}
+            <ProjetorRotulos
+              itens={itensRotulo}
+              els={els}
+              modo={exibicao.rotulos}
+              hover={hover}
+              priorizarLivres={filtro === "livre" || destacar !== undefined}
+            />
           </Suspense>
         </Canvas>
       </div>
 
-      {mostrarRotulos && <CamadaRotulos itens={itensRotulo} corHaste={cores.anel} els={els} />}
+      <CamadaRotulos itens={itensRotulo} corHaste={cores.anel} els={els} />
 
       {/* A cena não é operável por teclado; esta é a via equivalente. */}
       <table className="sr-only">

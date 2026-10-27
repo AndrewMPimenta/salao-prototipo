@@ -109,8 +109,8 @@ export function LayoutDesktop({ salao, imersivo, telaCheia, atalhos }: PropsLayo
             sinalLimparVista={salao.camera.sinalLimparVista}
             zoom={salao.camera.zoom}
             folga={folga}
-            mostrarRotulos={salao.mostrarRotulos}
-            modoLeve={salao.modoLeve}
+            exibicao={salao.exibicao}
+            hover={salao.hover}
             foco={salao.foco}
             onCameraChange={salao.camera.aoMudarCamera}
           />
@@ -137,11 +137,11 @@ export function LayoutDesktop({ salao, imersivo, telaCheia, atalhos }: PropsLayo
               onAbrir={setAjudaAberta}
               atalhosLigados={atalhos.ligados}
               onAtalhos={atalhos.definir}
-              rotulos={salao.mostrarRotulos}
-              onRotulos={salao.setMostrarRotulos}
-              modoLeve={salao.modoLeve}
-              modoLeveAutomatico={salao.modoLeveAutomatico}
-              onModoLeve={salao.definirModoLeve}
+              exibicao={salao.exibicao}
+              onExibicao={salao.definirExibicao}
+              personalizada={salao.exibicaoPersonalizada}
+              onRestaurar={salao.restaurarExibicao}
+              camera={salao.camera}
             />
             <BotaoTelaCheia ativo={telaCheia.ativo} imersivoNoLugar={telaCheia.imersivoNoLugar} onClick={telaCheia.alternar} />
           </>

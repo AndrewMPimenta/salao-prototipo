@@ -1,14 +1,15 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import type { Alerta, EstadoMesa, Mesa } from "@/lib/types";
+import { useHoverMesa, type ArmazemHover } from "@/hooks/use-hover-mesa";
+import { LEVANTE_HOVER } from "./aros";
 import { ALTURA_TAMPO, ESPESSURA_TAMPO, ms, mx, mz, type Cenario } from "./cenarios";
-import { anel, anelTracejado, arco, caixa, cilindro, circulo, mat, matAlvo, matHalo, type Cores, type Par } from "./materiais";
+import { anel, arco, aroRetangular, caixa, cilindro, circulo, corAro, mat, matAlvo, matBasico, matHalo, TIPO_ARO, type Cores, type Par } from "./materiais";
 
 const OPACIDADE_FILTRO = 0.2;
-const LEVANTE_HOVER = 0.03;
 
 // Faixa do anel de tempo: fora das cadeiras (~0,55 m do tampo) e dentro do anel de seleção (0,66 m).
 const ANEL_TEMPO_INTERNO = 0.57;
@@ -20,8 +21,7 @@ interface Props {
   alertas: Alerta[];
   /** Permanência dividida pela média da casa; só faz sentido com comanda aberta. */
   progresso: number | null;
-  /** Sem o halo vermelho, para máquinas fracas. */
-  leve: boolean;
+  hover: ArmazemHover;
   par: Par;
   cores: Cores;
   escuro: boolean;
@@ -33,19 +33,20 @@ interface Props {
 
 /**
  * Só o tampo, a borda e o pedestal: cadeiras e figuras são instanciadas em
- * `assentos.tsx`. Sombra só no que é grande o bastante para ler como sombra.
+ * `assentos.tsx` e o aro de estado das mesas redondas em `aros.tsx`; a retangular
+ * leva o seu aro aqui, no grupo que levanta. Sombra só no que é grande o bastante
+ * para ler como sombra.
  */
-export function Mesa3D({ mesa, estado, alertas, progresso, leve, par, cores, escuro, cenario, esmaecida, selecionada, onSelect }: Props) {
+export function Mesa3D({ mesa, estado, alertas, progresso, hover: armazem, par, cores, escuro, cenario, esmaecida, selecionada, onSelect }: Props) {
   const gl = useThree((s) => s.gl);
   const tampoRef = useRef<THREE.Group>(null);
-  const [hover, setHover] = useState(false);
+  const hover = useHoverMesa(armazem, mesa.id);
 
   const raioX = ms(mesa.largura) / 2;
   const raioZ = ms(mesa.altura) / 2;
   const redonda = mesa.forma === "redonda";
   const op = esmaecida ? OPACIDADE_FILTRO : 1;
   const sombra = !esmaecida;
-  const livre = estado === "livre" && !esmaecida;
   const raioAlvo = Math.max(raioX, raioZ) + 0.55;
 
   // O levante é amortecido; só pede quadro enquanto ainda se move (frameloop sob demanda).
@@ -63,12 +64,14 @@ export function Mesa3D({ mesa, estado, alertas, progresso, leve, par, cores, esc
 
   const aoPassar = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation();
-    setHover(true);
+    // No toque o pointerover vem colado ao toque; hover de verdade é só do mouse.
+    if (e.nativeEvent.pointerType !== "mouse") return;
+    armazem.definir(mesa.id);
     gl.domElement.style.cursor = "pointer";
   };
 
   const aoSair = () => {
-    setHover(false);
+    if (armazem.ler() === mesa.id) armazem.definir(null);
     gl.domElement.style.cursor = "";
   };
 
@@ -81,7 +84,7 @@ export function Mesa3D({ mesa, estado, alertas, progresso, leve, par, cores, esc
 
   const raioAnel = Math.max(raioX, raioZ) + 0.36 + 0.42;
   const raioMaior = Math.max(raioX, raioZ);
-  const critico = !esmaecida && !leve && alertas[0]?.tipo === "semPedidoCritico";
+  const critico = !esmaecida && alertas[0]?.tipo === "semPedidoCritico";
   const completo = progresso !== null && progresso >= 1;
 
   return (
@@ -106,17 +109,6 @@ export function Mesa3D({ mesa, estado, alertas, progresso, leve, par, cores, esc
         rotation={[-Math.PI / 2, 0, 0]}
         scale={[raioX + 0.75, raioZ + 0.75, 1]}
       />
-
-      {/* Halo claro sob a vaga livre: separa por luminância, sem matiz nova. */}
-      {livre && (
-        <mesh
-          geometry={circulo()}
-          material={matHalo(escuro ? "#f1e6d0" : "#ffffff", escuro ? 0.45 : 0.9)}
-          position={[0, 0.008, 0]}
-          rotation={[-Math.PI / 2, 0, 0]}
-          scale={[raioX + 1.1, raioZ + 1.1, 1]}
-        />
-      )}
 
       {/* Halo estático: sem animação, para não forçar quadros no frameloop sob demanda. */}
       {critico && (
@@ -147,16 +139,6 @@ export function Mesa3D({ mesa, estado, alertas, progresso, leve, par, cores, esc
         </>
       )}
 
-      {/* Reserva próxima: anel tracejado, no lugar do arco de tempo. */}
-      {!esmaecida && estado === "reservada" && (
-        <mesh
-          geometry={anelTracejado(raioMaior + ANEL_TEMPO_INTERNO, raioMaior + ANEL_TEMPO_EXTERNO + 0.02)}
-          material={mat(escuro ? "#a39d92" : "#67625a", 0.85)}
-          position={[0, 0.012, 0]}
-          rotation={[-Math.PI / 2, 0, 0]}
-        />
-      )}
-
       <mesh
         geometry={cilindro(0.05, 0.09, ALTURA_TAMPO - ESPESSURA_TAMPO, 14)}
         material={mat(par.stroke, op)}
@@ -183,6 +165,14 @@ export function Mesa3D({ mesa, estado, alertas, progresso, leve, par, cores, esc
           castShadow={sombra}
           receiveShadow
         />
+
+        {!redonda && (
+          <mesh
+            geometry={aroRetangular(raioX * 2, raioZ * 2, TIPO_ARO[estado])}
+            material={matBasico(corAro(estado, escuro, hover && !esmaecida), esmaecida ? 0.2 : 1)}
+            position={[0, ALTURA_TAMPO + ESPESSURA_TAMPO / 2, 0]}
+          />
+        )}
       </group>
 
       {/* Anel estático: o pulso forçaria quadros contínuos no frameloop sob demanda. */}

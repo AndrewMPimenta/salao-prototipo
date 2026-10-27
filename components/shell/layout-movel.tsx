@@ -71,8 +71,8 @@ export function LayoutMovel({ salao, imersivo, telaCheia }: PropsLayout) {
           sinalLimparVista={salao.camera.sinalLimparVista}
           zoom={salao.camera.zoom}
           folga={folga}
-          mostrarRotulos={salao.mostrarRotulos}
-          modoLeve={salao.modoLeve}
+          exibicao={salao.exibicao}
+          hover={salao.hover}
           foco={salao.foco}
           onCameraChange={salao.camera.aoMudarCamera}
         />
@@ -135,6 +135,7 @@ export function LayoutMovel({ salao, imersivo, telaCheia }: PropsLayout) {
             limiares={salao.limiares}
             filtro={salao.filtro}
             onSelect={selecionarDaLista}
+            hover={salao.hover}
           />
         </Drawer>
       </div>

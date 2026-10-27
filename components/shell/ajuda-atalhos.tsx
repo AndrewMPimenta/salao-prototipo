@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import type { Salao } from "@/hooks/use-salao";
+import type { Exibicao, ModoRotulos } from "@/lib/exibicao";
 import { cn } from "@/lib/utils";
+import { ToggleGroup } from "../ui/toggle-group";
 import { BotaoIcone } from "./botao-icone";
 import { IconeAjuda } from "./icones";
 import { materializar } from "./materializar";
@@ -23,14 +26,15 @@ const Tecla = ({ children }: { children: string }) => (
   </kbd>
 );
 
-function Chave({ ligada, onChange, rotulo }: { ligada: boolean; onChange: (v: boolean) => void; rotulo: string }) {
+function Chave({ ligada, onChange, rotulo, desabilitada }: { ligada: boolean; onChange: (v: boolean) => void; rotulo: string; desabilitada?: boolean }) {
   return (
-    <label className="flex min-h-11 cursor-pointer items-center justify-between gap-4 text-[13px] text-(--color-ink)">
+    <label className={cn("flex min-h-11 cursor-pointer items-center justify-between gap-4 text-[13px] text-(--color-ink)", desabilitada && "cursor-default opacity-45")}>
       {rotulo}
       <button
         type="button"
         role="switch"
         aria-checked={ligada}
+        disabled={desabilitada}
         aria-label={rotulo}
         onClick={() => onChange(!ligada)}
         className={cn(
@@ -55,15 +59,29 @@ interface AjudaAtalhosProps {
   onAbrir: (v: boolean) => void;
   atalhosLigados: boolean;
   onAtalhos: (v: boolean) => void;
-  rotulos: boolean;
-  onRotulos: (v: boolean) => void;
-  modoLeve: boolean;
-  modoLeveAutomatico: boolean;
-  /** `null` devolve ao automático. */
-  onModoLeve: (v: boolean | null) => void;
+  exibicao: Exibicao;
+  onExibicao: (patch: Partial<Exibicao>) => void;
+  /** Algum ajuste difere do automático: mostra o "Restaurar padrão". */
+  personalizada: boolean;
+  onRestaurar: () => void;
+  camera: Salao["camera"];
 }
 
-export function AjudaAtalhos({ aberto, onAbrir, atalhosLigados, onAtalhos, rotulos, onRotulos, modoLeve, modoLeveAutomatico, onModoLeve }: AjudaAtalhosProps) {
+const OPCOES_ROTULOS: { valor: ModoRotulos; rotulo: string }[] = [
+  { valor: "auto", rotulo: "Automático" },
+  { valor: "sempre", rotulo: "Sempre" },
+  { valor: "hover", rotulo: "Ao passar o mouse" },
+];
+
+const Secao = ({ children }: { children: string }) => (
+  <h2 className="m-0 mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-(--color-ink-3)">{children}</h2>
+);
+
+const botaoTexto =
+  "flex min-h-9 items-center rounded-[10px] px-2 text-left text-[13px] font-medium text-(--color-ink-2) hover:bg-(--color-ink)/8 hover:text-(--color-ink) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)";
+
+export function AjudaAtalhos({ aberto, onAbrir, atalhosLigados, onAtalhos, exibicao, onExibicao, personalizada, onRestaurar, camera }: AjudaAtalhosProps) {
+  const [vistaSalva, setVistaSalva] = useState(false);
   const raiz = useRef<HTMLDivElement>(null);
   const id = useId();
 
@@ -93,7 +111,7 @@ export function AjudaAtalhos({ aberto, onAbrir, atalhosLigados, onAtalhos, rotul
         aria-label="Atalhos de teclado"
         inert={!aberto}
         className={cn(
-          "absolute right-0 top-full z-50 mt-3 w-80 rounded-(--radius-panel) bg-(--color-glass-strong) p-4",
+          "absolute right-0 top-full z-50 mt-3 max-h-[calc(100dvh-96px)] w-80 overflow-y-auto rounded-(--radius-panel) bg-(--color-glass-strong) p-4",
           "shadow-(--shadow-float) ring-1 ring-(--color-ink)/8 backdrop-blur-xl",
           materializar(aberto, "cima"),
         )}
@@ -111,16 +129,48 @@ export function AjudaAtalhos({ aberto, onAbrir, atalhosLigados, onAtalhos, rotul
         </ul>
         <div className="border-t border-(--color-ink)/10 pt-1">
           <Chave ligada={atalhosLigados} onChange={onAtalhos} rotulo="Atalhos de tecla única" />
-          <Chave ligada={rotulos} onChange={onRotulos} rotulo="Rótulos nas mesas 3D" />
-          <Chave ligada={modoLeve} onChange={onModoLeve} rotulo="Modo leve (sem cadeiras e pessoas)" />
+        </div>
+
+        <div className="border-t border-(--color-ink)/10 pt-3">
+          <Secao>Exibição</Secao>
+          <p className="m-0 mb-1.5 text-[13px] text-(--color-ink)">Rótulos nas mesas</p>
+          <ToggleGroup<ModoRotulos>
+            rotulo="Rótulos nas mesas"
+            tamanho="sm"
+            valor={exibicao.rotulos}
+            onChange={(v) => onExibicao({ rotulos: v })}
+            opcoes={OPCOES_ROTULOS}
+            className="w-full [&>button]:flex-1 [&>button]:whitespace-nowrap [&>button]:px-1 [&>button]:text-[12px]"
+          />
+          <Chave ligada={exibicao.cadeiras} onChange={(v) => onExibicao({ cadeiras: v })} rotulo="Cadeiras" />
+          <Chave ligada={exibicao.pessoas} onChange={(v) => onExibicao({ pessoas: v })} rotulo="Pessoas" desabilitada={!exibicao.cadeiras} />
+          <Chave ligada={exibicao.sombras} onChange={(v) => onExibicao({ sombras: v })} rotulo="Sombras" />
           <p className="m-0 flex items-center justify-between gap-2 pb-1 text-[11px] leading-4 text-(--color-ink-3)">
-            {modoLeveAutomatico ? "Automático: liga em salões grandes ou máquinas fracas." : "Ajuste manual."}
-            {!modoLeveAutomatico && (
-              <button type="button" onClick={() => onModoLeve(null)} className="flex-none font-medium text-(--color-ink-2) underline underline-offset-2">
-                Automático
+            {personalizada ? "Ajuste manual." : "Padrão: cadeiras, pessoas e sombras saem em salões grandes ou máquinas fracas."}
+            {personalizada && (
+              <button type="button" onClick={onRestaurar} className="flex-none font-medium text-(--color-ink-2) underline underline-offset-2">
+                Restaurar padrão
               </button>
             )}
           </p>
+        </div>
+
+        <div className="mt-2 border-t border-(--color-ink)/10 pt-3">
+          <Secao>Câmera</Secao>
+          <button
+            type="button"
+            className={botaoTexto + " w-full"}
+            onClick={() => {
+              camera.salvarVista();
+              setVistaSalva(true);
+              setTimeout(() => setVistaSalva(false), 1200);
+            }}
+          >
+            {vistaSalva ? "Vista salva" : "Salvar vista atual como padrão"}
+          </button>
+          <button type="button" className={botaoTexto + " w-full"} onClick={camera.limparVista}>
+            Restaurar vista de fábrica
+          </button>
         </div>
       </div>
     </div>

@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Ambiente, EstadoMesa, Limiares, Mesa } from "@/lib/types";
+import { criarArmazemHover } from "@/hooks/use-hover-mesa";
+import { exibicaoPadrao, gravarAjustes, lerAjustes, type Exibicao } from "@/lib/exibicao";
 import { derivarAlertas } from "@/lib/state";
 import { resumir } from "@/components/shell/estatisticas";
 import { PRESETS, type FiltroRapido, type Vista, type VistaCamera } from "@/components/shell/tipos";
@@ -23,24 +25,25 @@ export function useSalao(todas: Mesa[], ambientes: Ambiente[], limiares: Limiare
   const [sinalSalvarVista, setSinalSalvarVista] = useState(0);
   const [sinalLimparVista, setSinalLimparVista] = useState(0);
   const [zoom, setZoom] = useState<{ direcao: 1 | -1; n: number } | null>(null);
-  const [mostrarRotulos, setMostrarRotulos] = useState(true);
+  const [hover] = useState(criarArmazemHover);
 
-  // Preferência explícita (localStorage) vence o automático; só é lida no cliente para não divergir da hidratação.
-  const [preferenciaLeve, setPreferenciaLeve] = useState<boolean | null>(null);
+  // Ajustes explícitos (localStorage) vencem o automático; só são lidos no cliente para não divergir da hidratação.
+  const [ajustes, setAjustes] = useState<Partial<Exibicao>>({});
   const [maquinaFraca, setMaquinaFraca] = useState(false);
   useEffect(() => {
-    try {
-      const v = localStorage.getItem("modoLeve");
-      if (v === "1" || v === "0") setPreferenciaLeve(v === "1");
-    } catch {}
+    setAjustes(lerAjustes());
     setMaquinaFraca(typeof navigator !== "undefined" && navigator.hardwareConcurrency <= 4);
   }, []);
-  const definirModoLeve = useCallback((v: boolean | null) => {
-    setPreferenciaLeve(v);
-    try {
-      if (v === null) localStorage.removeItem("modoLeve");
-      else localStorage.setItem("modoLeve", v ? "1" : "0");
-    } catch {}
+  const definirExibicao = useCallback((patch: Partial<Exibicao>) => {
+    setAjustes((a) => {
+      const novo = { ...a, ...patch };
+      gravarAjustes(novo);
+      return novo;
+    });
+  }, []);
+  const restaurarExibicao = useCallback(() => {
+    setAjustes({});
+    gravarAjustes({});
   }, []);
 
   // O azimute chega a ~10Hz; em estado re-renderizaria o shell inteiro. A bússola assina direto.
@@ -57,7 +60,11 @@ export function useSalao(todas: Mesa[], ambientes: Ambiente[], limiares: Limiare
   const lerAzimute = useCallback(() => azimute.current, []);
 
   const mesas = useMemo(() => todas.filter((m) => m.ambienteId === ambienteId), [todas, ambienteId]);
-  const modoLeve = preferenciaLeve ?? (mesas.length > 60 || maquinaFraca);
+  const { rotulos, cadeiras, pessoas, sombras } = { ...exibicaoPadrao(mesas.length, maquinaFraca), ...ajustes };
+  const exibicao = useMemo<Exibicao>(
+    () => ({ rotulos, cadeiras, pessoas: cadeiras && pessoas, sombras }),
+    [rotulos, cadeiras, pessoas, sombras],
+  );
   const resumo = useMemo(() => resumir(mesas, limiares), [mesas, limiares]);
   const mesasVisiveis = useMemo(
     () => (atencao ? mesas.filter((m) => derivarAlertas(m, limiares).length > 0) : mesas),
@@ -90,12 +97,13 @@ export function useSalao(todas: Mesa[], ambientes: Ambiente[], limiares: Limiare
     (id: string) => {
       if (id === ambienteId) return;
       setAmbienteId(id);
+      hover.definir(null);
       setSelecionada(null);
       setFoco(null);
       filtrar(null);
       setSinalReset((n) => n + 1);
     },
-    [ambienteId, filtrar],
+    [ambienteId, filtrar, hover],
   );
 
   const ciclarAmbiente = useCallback(
@@ -127,8 +135,8 @@ export function useSalao(todas: Mesa[], ambientes: Ambiente[], limiares: Limiare
     selecionada, mesaSelecionada, selecionar: setSelecionada,
     alternarSelecao: (id: number) => setSelecionada((s) => (s === id ? null : id)),
     irParaMesa, foco,
-    mostrarRotulos, setMostrarRotulos,
-    modoLeve, modoLeveAutomatico: preferenciaLeve === null, definirModoLeve,
+    hover,
+    exibicao, exibicaoPersonalizada: Object.keys(ajustes).length > 0, definirExibicao, restaurarExibicao,
     camera: {
       vistaCamera, setVistaCamera, sinalReset, sinalNorte, sinalSalvarVista, sinalLimparVista, zoom,
       ciclarPreset: () => setVistaCamera((v) => PRESETS[(PRESETS.indexOf(v) + 1) % PRESETS.length]),

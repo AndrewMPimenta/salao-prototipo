@@ -14,39 +14,51 @@ padrão.
 O padrão que se repete: **cor para o estado** (calmo, poucas cores), **selo para o que pede ação**
 (raro, chamativo) e **anel para o tempo** (lido de relance, sem número). O protótipo adota os três.
 
-## 1. Estado da mesa — a cor do tampo
+## 1. Estado da mesa — o aro do tampo
 
-Um estado por mesa, mutuamente exclusivo:
+Um estado por mesa, mutuamente exclusivo. O tampo é neutro para todos; o estado está no **aro**
+em volta da borda, visível de qualquer distância e sem texto:
 
-| Estado | Regra | Visual |
+| Estado | Regra | Aro |
 |---|---|---|
-| **Livre** | sem comanda e sem reserva nos próximos 30 min | tampo branco, pino preto em destaque (é o que o cliente e a recepção procuram) |
-| **Reservada** | sem comanda, com reserva em até 30 min | tampo branco com anel tracejado e horário no pino ("21:30") |
-| **Ocupada** | comanda aberta | tampo neutro, pino discreto |
-| **Conta** | conta impressa, aguardando pagamento | tampo azul claro, glifo "R$" |
+| **Livre** | sem comanda e sem reserva nos próximos 30 min | preto, grosso — é o que o cliente e a recepção procuram |
+| **Reservada** | sem comanda, com reserva em até 30 min | tracejado |
+| **Ocupada** | comanda aberta | cinza fino, recua para o fundo |
+| **Conta** | conta impressa, aguardando pagamento | azul |
 
-Ocupada **não é alerta**. Uma mesa ocupada em andamento normal não pede nada do operador; pintá-la de
-cor chamativa esconde as que realmente precisam de atenção.
+Ocupada **não é alerta**. Uma mesa ocupada em andamento normal não pede nada do operador; destacá-la
+esconde as que realmente precisam de atenção.
 
-## 2. Alertas — o selo ao lado do número
+## 2. Alertas — o marcador sobre a mesa
 
-Alertas são independentes do estado e uma mesa pode ter mais de um. O pino mostra **só o mais
-urgente** (com um contador "+1" se houver outros); o popup lista todos.
+Alertas são independentes do estado e uma mesa pode ter mais de um. Sobre a mesa fica só um
+**marcador de 14 px com o glifo** do mais urgente, sem número nem minutos: alerta precisa ser visto
+sem interação, mas não pode poluir a visão geral. O rótulo completo (ao passar o mouse ou ao
+selecionar) e o popup mostram todos, com o tempo.
 
-| Alerta | Regra (padrão) | Severidade | Selo |
+| Alerta | Regra (padrão) | Severidade | Marcador |
 |---|---|---|---|
-| **Sem pedido** | mesa ocupada há ≥ 20 min sem lançar nada (desde o último pedido, ou desde a abertura se nunca pediu) | Atenção | vermelho com "!" e minutos |
-| **Sem pedido crítico** | o mesmo, ≥ 40 min | Crítico | vermelho com "!!", halo vermelho no piso |
-| **Entrega atrasada** | item lançado há ≥ 15 min e ainda não entregue | Atenção | âmbar com ícone de relógio e minutos |
-| **Conta parada** | conta impressa há ≥ 10 min sem pagamento | Informativo | azul com "R$" e minutos |
+| **Sem pedido** | mesa ocupada há ≥ 20 min sem lançar nada (desde o último pedido, ou desde a abertura se nunca pediu) | Atenção | vermelho com "!" |
+| **Sem pedido crítico** | o mesmo, ≥ 40 min | Crítico | vermelho com "!!" e halo vermelho no piso |
+| **Entrega atrasada** | item lançado há ≥ 15 min e ainda não entregue | Atenção | âmbar com relógio |
+| **Conta parada** | conta impressa há ≥ 10 min sem pagamento | Informativo | azul com "R$" |
 
-Prioridade do selo: sem pedido crítico → entrega atrasada → sem pedido → conta parada.
+Prioridade: sem pedido crítico → entrega atrasada → sem pedido → conta parada. Mesa com conta
+impressa não recebe "sem pedido": o cliente já está fechando.
 
 Por que "sem pedido" é vermelho e "entrega atrasada" é âmbar: sem pedido é **receita parada e cliente
 esquecido**, o garçom precisa ir à mesa; entrega atrasada é um problema da cozinha/expedição, que o
-salão acompanha. O ícone e o glifo distinguem os dois sem depender da cor.
+salão acompanha. O glifo distingue os dois sem depender da cor.
 
 Pedidos pendentes **dentro** do prazo não são alerta: aparecem só como contagem no popup.
+
+## Número da mesa — sob demanda
+
+O número é o que mais polui um salão grande, então ele não aparece na visão geral. No modo
+**Automático** surge quando o zoom deixa a mesa com pelo menos 34 px na tela; ao passar o mouse (ou
+pela lista de mesas) aparece o rótulo completo na hora. O usuário pode trocar para **Sempre** ou
+**Ao passar o mouse** em Exibição, onde também liga e desliga cadeiras, pessoas e sombras e salva a
+vista padrão da câmera.
 
 ## 3. Tempo — o anel no piso
 

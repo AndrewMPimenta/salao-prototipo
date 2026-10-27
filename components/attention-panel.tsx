@@ -2,17 +2,20 @@
 
 import type { Limiares, Mesa } from "@/lib/types";
 import { PRACAS } from "@/lib/data";
-import { derivarEstado, ROTULO_ALERTA, textoAlerta, TRACO_ESTADO, triarMesas } from "@/lib/state";
+import { derivarEstado, ROTULO_ALERTA, textoAlerta, triarMesas } from "@/lib/state";
 import { cn, formatarDuracao } from "@/lib/utils";
+import type { ArmazemHover } from "@/hooks/use-hover-mesa";
+import { AmostraAro } from "./amostra-aro";
 import { FichaAlerta } from "./selo-alerta";
 
 interface AttentionPanelProps {
   mesas: Mesa[];
   limiares: Limiares;
   onSelect: (id: number) => void;
+  hover?: ArmazemHover;
 }
 
-export function AttentionPanel({ mesas, limiares, onSelect }: AttentionPanelProps) {
+export function AttentionPanel({ mesas, limiares, onSelect, hover }: AttentionPanelProps) {
   const lista = triarMesas(mesas, limiares);
 
   if (lista.length === 0) {
@@ -39,6 +42,8 @@ export function AttentionPanel({ mesas, limiares, onSelect }: AttentionPanelProp
             <button
               type="button"
               onClick={() => onSelect(mesa.id)}
+              onPointerEnter={(e) => e.pointerType === "mouse" && hover?.definir(mesa.id)}
+              onPointerLeave={() => hover?.ler() === mesa.id && hover.definir(null)}
               aria-label={`Mesa ${mesa.id}. ${alertas.map(textoAlerta).join(". ")}`}
               className={cn(
                 "-mx-2 flex min-h-16 w-[calc(100%+1rem)] items-center gap-3 rounded-(--radius-control) px-2 py-3 text-left",
@@ -46,17 +51,9 @@ export function AttentionPanel({ mesas, limiares, onSelect }: AttentionPanelProp
                 "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)",
               )}
             >
-              <span
-                aria-hidden
-                className="grid size-10 flex-none place-items-center rounded-[10px] text-base font-semibold"
-                style={{
-                  background: `var(--color-${estado}-fill)`,
-                  boxShadow: `inset 0 0 0 ${TRACO_ESTADO[estado]}px var(--color-${estado}-stroke)`,
-                  color: `var(--color-${estado}-ink)`,
-                }}
-              >
+              <AmostraAro estado={estado} className="grid size-10 place-items-center text-base font-semibold text-(--color-ink)">
                 {mesa.id}
-              </span>
+              </AmostraAro>
 
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-1.5 text-[15px] font-semibold leading-5">

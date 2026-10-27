@@ -9,10 +9,11 @@ import {
   ROTULO_CURTO,
   ROTULO_ESTADO,
   textoAlerta,
-  TRACO_ESTADO,
   triarMesas,
 } from "@/lib/state";
 import { cn, formatarDuracao } from "@/lib/utils";
+import type { ArmazemHover } from "@/hooks/use-hover-mesa";
+import { AmostraAro } from "./amostra-aro";
 import { FichaAlerta } from "./selo-alerta";
 
 interface MobileListProps {
@@ -20,6 +21,8 @@ interface MobileListProps {
   limiares: Limiares;
   filtro: EstadoMesa | null;
   onSelect: (id: number) => void;
+  /** Passar o mouse numa linha destaca a mesa na cena 3D. */
+  hover?: ArmazemHover;
 }
 
 /**
@@ -28,7 +31,7 @@ interface MobileListProps {
  * grande e a mesa vira lista — ordenada por POSIÇÃO FÍSICA, não alfabética,
  * com as de atenção ancoradas no topo.
  */
-export function MobileList({ mesas, limiares, filtro, onSelect }: MobileListProps) {
+export function MobileList({ mesas, limiares, filtro, onSelect, hover }: MobileListProps) {
   const visiveis = filtro
     ? mesas.filter((m) => derivarEstado(m, limiares) === filtro)
     : mesas;
@@ -41,12 +44,13 @@ export function MobileList({ mesas, limiares, filtro, onSelect }: MobileListProp
 
   return (
     <ul className="m-0 flex list-none flex-col px-4 pb-24 pt-1">
-      <Secao titulo="Precisam de atenção" mesas={atencao} limiares={limiares} onSelect={onSelect} />
+      <Secao titulo="Precisam de atenção" mesas={atencao} limiares={limiares} onSelect={onSelect} hover={hover} />
       <Secao
         titulo={filtro ? ROTULO_CURTO[filtro] : "Demais mesas"}
         mesas={resto}
         limiares={limiares}
         onSelect={onSelect}
+        hover={hover}
       />
       {visiveis.length === 0 && (
         <li className="py-4 text-sm text-(--color-ink-2)">Nenhuma mesa neste filtro.</li>
@@ -65,11 +69,13 @@ function Secao({
   mesas,
   limiares,
   onSelect,
+  hover,
 }: {
   titulo: string;
   mesas: Mesa[];
   limiares: Limiares;
   onSelect: (id: number) => void;
+  hover?: ArmazemHover;
 }) {
   if (mesas.length === 0) return null;
 
@@ -91,24 +97,18 @@ function Secao({
             <button
               type="button"
               onClick={() => onSelect(mesa.id)}
+              onPointerEnter={(e) => e.pointerType === "mouse" && hover?.definir(mesa.id)}
+              onPointerLeave={() => hover?.ler() === mesa.id && hover.definir(null)}
               aria-label={`Mesa ${mesa.id}. ${[ROTULO_ESTADO[estado], ...alertas.map(textoAlerta)].join(". ")}`}
               className={cn(
                 "-mx-2 flex min-h-14 w-[calc(100%+1rem)] items-center gap-3 rounded-(--radius-control) px-2 py-2 text-left",
-                "transition-[background-color,transform] duration-100 active:scale-[0.98] active:bg-(--color-ink)/5",
+                "transition-[background-color,transform] duration-100 hover:bg-(--color-ink)/5 active:scale-[0.98]",
                 "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)",
               )}
             >
-              <span
-                aria-hidden
-                className="grid size-10 flex-none place-items-center rounded-[10px] text-base font-semibold"
-                style={{
-                  background: `var(--color-${estado}-fill)`,
-                  boxShadow: `inset 0 0 0 ${TRACO_ESTADO[estado]}px var(--color-${estado}-stroke)`,
-                  color: `var(--color-${estado}-ink)`,
-                }}
-              >
+              <AmostraAro estado={estado} className="grid size-10 place-items-center text-base font-semibold text-(--color-ink)">
                 {mesa.id}
-              </span>
+              </AmostraAro>
 
               <span className="min-w-0 flex-1">
                 <span className="block text-[15px] font-semibold leading-5">Mesa {mesa.id}</span>
