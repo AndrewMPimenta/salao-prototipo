@@ -1,65 +1,55 @@
 @import "tailwindcss";
 
 /*
-  PALETA
+  DIREÇÃO VISUAL — "MAQUETE"
 
-  Neutros no eixo da Apple: #1D1D1F em vez de preto puro, #6E6E73 como
-  secundário, #D2D2D7 como separador. No escuro, #0A0A0C de fundo com
-  superfícies claramente elevadas (#1C1C1E), porque preto absoluto com
-  superfície idêntica é o que faz uma tela parecer "apagada".
+  O salão é apresentado como uma maquete de arquitetura: piso de papel
+  quente, mobiliário fosco, luz suave de fim de tarde. A interface flutua
+  por cima em vidro fosco, para que a cena seja sempre o protagonista.
+
+  Neutros quentes (pedra/papel) em vez do cinza-azulado de sistema: num
+  restaurante o cinza frio lê como escritório. Tipografia em três vozes:
+  Instrument Serif para nomes de lugar (o que o cliente reconhece), Geist
+  para a interface e Geist Mono para numerais que mudam a cada minuto.
 
   ESTADO DA MESA
 
   Princípio ISA-101 invertido: `livre` e `ocupada` não têm matiz, e toda a cor
   saturada vai para os três estados que pedem ação. Verde e vermelho estão
   fora do sistema — o par convencional amarelo/vermelho dá 2,97:1 e falha a
-  SC 1.4.11 do WCAG 2.2, que pede 3:1 sem arredondar.
-
-  O que separa a mesa do piso é ELEVAÇÃO, não preenchimento. Preenchimento
-  contra piso fica entre 1,12 e 3,30 — fraco por natureza, já que ambos são
-  superfícies claras. Quem cumpre 1.4.11 é o traço (3,10 a 13,26 no claro,
-  5,64 a 12,00 no escuro), e quem faz a mesa parecer um objeto é a sombra.
-
-  A escalada vai de ÂMBAR CLARO a BORDÔ PROFUNDO, e quem a carrega é a
-  luminosidade, não o matiz: no tema claro os dois preenchimentos estão a
-  6,49 de distância, então a diferença sobrevive à escala de cinza e a
-  qualquer tipo de daltonismo. Verde não existe no sistema, então um vinho
-  escuro não corre risco de confusão com nada.
-
-  LIMITAÇÃO CONHECIDA: no tema escuro, com ambos sobre quase-preto, a
-  separação de preenchimento cai para cerca de 2,4. Lá a escalada se apoia
-  mais nos outros carregadores — traço de 3px contra 4px, glifo ! contra !!,
-  e o numeral de minutos.
+  SC 1.4.11 do WCAG 2.2. A escalada vai de âmbar a bordô e é carregada pela
+  luminosidade, então sobrevive à escala de cinza. Cada estado também tem
+  traço, glifo e numeral — a cor nunca está sozinha.
 */
 /*
-  `static` é obrigatório aqui. Por padrão o Tailwind v4 descarta variáveis de
-  @theme que não vê usadas no código — e as cores de estado são montadas em
-  tempo de execução, como `var(--color-${estado}-fill)`. O scanner não lê
-  template literal, então os valores do tema CLARO eram removidos do CSS e as
-  mesas livres, ocupadas e em alerta1 ficavam sem preenchimento nenhum.
-
-  O tema escuro nunca quebrou porque seus valores vivem em blocos CSS comuns,
-  copiados verbatim. Foi por isso que o bug só apareceu ao trocar para claro.
+  `static` é obrigatório: as cores de estado são montadas em tempo de execução
+  (`var(--color-${estado}-fill)`), e sem ele o Tailwind v4 descarta as
+  variáveis que o scanner não vê usadas.
 */
 @theme static {
-  --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
-  --color-app: #f5f5f7;
-  --color-surface: #ffffff;
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-instrument-serif), ui-serif, Georgia, serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, Menlo, monospace;
+
+  --color-app: #efebe4;
+  --color-surface: #fbfaf7;
   --color-raised: #ffffff;
-  --color-floor: #ededf0;
-  --color-sunken: #e8e8ec;
-  --color-ink: #1d1d1f;
-  --color-ink-2: #6e6e73;
-  --color-ink-3: #8e8e93;
-  --color-line: #d2d2d7;
-  --color-line-2: #c6c6cc;
-  --color-focus: #0071e3;
+  --color-floor: #e8e3da;
+  --color-sunken: #e6e1d8;
+  --color-ink: #1b1a17;
+  --color-ink-2: #67625a;
+  --color-ink-3: #8c867c;
+  --color-line: #dcd6cb;
+  --color-line-2: #c8c1b4;
+  --color-focus: #0b6bcb;
+  --color-accent: #1b1a17;
+  --color-accent-ink: #fbfaf7;
+  --color-brand: #0540c5;
 
   --color-livre-fill: #ffffff;
-  --color-livre-stroke: #86868b;
-  --color-ocupada-fill: #d8d8dd;
-  --color-ocupada-stroke: #48484d;
+  --color-livre-stroke: #8a8479;
+  --color-ocupada-fill: #d9d3c8;
+  --color-ocupada-stroke: #4a463f;
   --color-alerta1-fill: #d4941a;
   --color-alerta1-stroke: #5c3f00;
   --color-alerta2-fill: #7b2436;
@@ -67,35 +57,48 @@
   --color-conta-fill: #cfe3f5;
   --color-conta-stroke: #0043ce;
 
-  /* Uma tinta por estado: o bordô é escuro demais para texto escuro. */
-  --color-livre-ink: #1d1d1f;
-  --color-ocupada-ink: #1d1d1f;
-  --color-alerta1-ink: #1d1d1f;
+  --color-livre-ink: #1b1a17;
+  --color-ocupada-ink: #1b1a17;
+  --color-alerta1-ink: #1b1a17;
   --color-alerta2-ink: #ffffff;
-  --color-conta-ink: #1d1d1f;
+  --color-conta-ink: #1b1a17;
 
-  --shadow-table: 0 1px 1px rgba(0, 0, 0, 0.04), 0 2px 6px rgba(0, 0, 0, 0.1);
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px -12px rgba(0, 0, 0, 0.18);
+  --color-glass: rgb(251 250 247 / 0.74);
+  --color-glass-strong: rgb(251 250 247 / 0.9);
+  --color-glass-edge: rgb(255 255 255 / 0.7);
+
+  --radius-chip: 999px;
+  --radius-control: 12px;
+  --radius-panel: 20px;
+
+  --shadow-table: 0 1px 1px rgb(40 30 15 / 0.05), 0 2px 6px rgb(40 30 15 / 0.1);
+  --shadow-card: 0 1px 2px rgb(40 30 15 / 0.05), 0 8px 24px -12px rgb(40 30 15 / 0.2);
+  --shadow-float: 0 1px 1px rgb(40 30 15 / 0.04), 0 12px 32px -8px rgb(40 30 15 / 0.22);
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --color-app: #0a0a0c;
-    --color-surface: #1c1c1e;
-    --color-raised: #2c2c2e;
-    --color-floor: #141416;
-    --color-sunken: #2c2c2e;
-    --color-ink: #f5f5f7;
-    --color-ink-2: #98989d;
-    --color-ink-3: #78787d;
-    --color-line: #38383a;
-    --color-line-2: #48484a;
-    --color-focus: #0a84ff;
+    --color-app: #0f0e0c;
+    --color-surface: #1a1917;
+    --color-raised: #25231f;
+    --color-floor: #13120f;
+    --color-sunken: #2b2925;
+    --color-ink: #f4f1ea;
+    --color-ink-2: #a39d92;
+    --color-ink-3: #7c776d;
+    --color-line: #34312c;
+    --color-line-2: #48443d;
+    --color-focus: #4ea1ff;
+    --color-accent: #f4f1ea;
+    --color-accent-ink: #1a1917;
+    --color-brand: #fee502;
 
-    --color-livre-fill: #2c2c2e;
-    --color-livre-stroke: #8e8e93;
-    --color-ocupada-fill: #48484a;
-    --color-ocupada-stroke: #c7c7cc;
+    --color-livre-fill: #2c2a26;
+    --color-livre-stroke: #8f897e;
+    --color-ocupada-fill: #4a4640;
+    --color-ocupada-stroke: #cdc6ba;
     --color-alerta1-fill: #8a6700;
     --color-alerta1-stroke: #ffe0a3;
     --color-alerta2-fill: #5e1a28;
@@ -103,48 +106,60 @@
     --color-conta-fill: #1c3a5e;
     --color-conta-stroke: #64b5f6;
 
-    --color-livre-ink: #f5f5f7;
-    --color-ocupada-ink: #f5f5f7;
-    --color-alerta1-ink: #f5f5f7;
-    --color-alerta2-ink: #f5f5f7;
-    --color-conta-ink: #f5f5f7;
+    --color-livre-ink: #f4f1ea;
+    --color-ocupada-ink: #f4f1ea;
+    --color-alerta1-ink: #f4f1ea;
+    --color-alerta2-ink: #f4f1ea;
+    --color-conta-ink: #f4f1ea;
 
-    --shadow-table: 0 1px 1px rgba(0, 0, 0, 0.5), 0 3px 10px rgba(0, 0, 0, 0.55);
-    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 30px -12px rgba(0, 0, 0, 0.7);
+    --color-glass: rgb(26 25 23 / 0.7);
+    --color-glass-strong: rgb(26 25 23 / 0.9);
+    --color-glass-edge: rgb(255 255 255 / 0.08);
+
+    --shadow-table: 0 1px 1px rgb(0 0 0 / 0.5), 0 3px 10px rgb(0 0 0 / 0.55);
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.5), 0 10px 30px -12px rgb(0 0 0 / 0.7);
+    --shadow-float: 0 1px 1px rgb(0 0 0 / 0.4), 0 16px 40px -10px rgb(0 0 0 / 0.75);
 
     color-scheme: dark;
   }
 }
 
 :root[data-theme="dark"] {
-  --color-app: #0a0a0c;
-  --color-surface: #1c1c1e;
-  --color-raised: #2c2c2e;
-  --color-floor: #141416;
-  --color-sunken: #2c2c2e;
-  --color-ink: #f5f5f7;
-  --color-ink-2: #98989d;
-  --color-ink-3: #78787d;
-  --color-line: #38383a;
-  --color-line-2: #48484a;
-  --color-focus: #0a84ff;
-  --color-livre-fill: #2c2c2e;
-  --color-livre-stroke: #8e8e93;
-  --color-ocupada-fill: #48484a;
-  --color-ocupada-stroke: #c7c7cc;
+  --color-app: #0f0e0c;
+  --color-surface: #1a1917;
+  --color-raised: #25231f;
+  --color-floor: #13120f;
+  --color-sunken: #2b2925;
+  --color-ink: #f4f1ea;
+  --color-ink-2: #a39d92;
+  --color-ink-3: #7c776d;
+  --color-line: #34312c;
+  --color-line-2: #48443d;
+  --color-focus: #4ea1ff;
+  --color-accent: #f4f1ea;
+  --color-accent-ink: #1a1917;
+  --color-brand: #fee502;
+  --color-livre-fill: #2c2a26;
+  --color-livre-stroke: #8f897e;
+  --color-ocupada-fill: #4a4640;
+  --color-ocupada-stroke: #cdc6ba;
   --color-alerta1-fill: #8a6700;
   --color-alerta1-stroke: #ffe0a3;
   --color-alerta2-fill: #5e1a28;
   --color-alerta2-stroke: #ff93a6;
   --color-conta-fill: #1c3a5e;
   --color-conta-stroke: #64b5f6;
-  --color-livre-ink: #f5f5f7;
-  --color-ocupada-ink: #f5f5f7;
-  --color-alerta1-ink: #f5f5f7;
-  --color-alerta2-ink: #f5f5f7;
-  --color-conta-ink: #f5f5f7;
-  --shadow-table: 0 1px 1px rgba(0, 0, 0, 0.5), 0 3px 10px rgba(0, 0, 0, 0.55);
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 30px -12px rgba(0, 0, 0, 0.7);
+  --color-livre-ink: #f4f1ea;
+  --color-ocupada-ink: #f4f1ea;
+  --color-alerta1-ink: #f4f1ea;
+  --color-alerta2-ink: #f4f1ea;
+  --color-conta-ink: #f4f1ea;
+  --color-glass: rgb(26 25 23 / 0.7);
+  --color-glass-strong: rgb(26 25 23 / 0.9);
+  --color-glass-edge: rgb(255 255 255 / 0.08);
+  --shadow-table: 0 1px 1px rgb(0 0 0 / 0.5), 0 3px 10px rgb(0 0 0 / 0.55);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.5), 0 10px 30px -12px rgb(0 0 0 / 0.7);
+  --shadow-float: 0 1px 1px rgb(0 0 0 / 0.4), 0 16px 40px -10px rgb(0 0 0 / 0.75);
   color-scheme: dark;
 }
 
@@ -154,12 +169,79 @@ body {
   color: var(--color-ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* A troca de tema não pode ser um clarão: fundo e texto cruzam suavemente. */
+html {
+  transition: background-color 240ms ease;
 }
 
 /* Os numerais mudam a cada minuto; sem isto eles tremem ao atualizar. */
 .tnum {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
+}
+
+/* Nomes de lugar. A serifa só aparece em tamanho grande, com tracking negativo. */
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+}
+
+/*
+  Vidro fosco: a camada funcional que flutua sobre a cena. A borda superior
+  mais clara é a luz batendo no material; sem ela o painel parece recortado.
+*/
+.glass {
+  background: var(--color-glass);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(160%);
+  box-shadow:
+    inset 0 1px 0 var(--color-glass-edge),
+    0 0 0 1px color-mix(in srgb, var(--color-ink) 7%, transparent),
+    var(--shadow-float);
+}
+
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes surgir {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+.animate-surgir {
+  animation: surgir 420ms var(--ease-out-soft) both;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    background: var(--color-glass-strong);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .glass {
+    background: var(--color-surface);
+    box-shadow: 0 0 0 1.5px var(--color-ink);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

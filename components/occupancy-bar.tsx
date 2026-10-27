@@ -17,27 +17,83 @@ interface OccupancyBarProps {
   total: number;
   filtro: EstadoMesa | null;
   onFiltrar: (estado: EstadoMesa | null) => void;
+  variante?: "faixa" | "flutuante" | "legenda";
 }
 
 /**
- * Antes isto era uma barra proporcional com o texto DENTRO de cada faixa. Com
- * 9 livres contra 1 em alerta, a faixa do alerta virava uma lasca de 12px que
- * não cabia nem o numeral — justo o estado mais importante ficava ilegível.
+ * Duas peças com trabalhos separados: um medidor fino que carrega só a
+ * proporção, e uma linha de chips que carrega número, rótulo e o filtro.
+ * Com o texto dentro das faixas, 1 mesa em alerta contra 9 livres virava uma
+ * lasca onde nem o numeral cabia — justo o estado mais importante.
  *
- * Agora são duas peças: um medidor fino que carrega só a proporção, e uma
- * linha de chips que carrega número, rótulo e o filtro. Cada um faz um
- * trabalho, e o chip tem largura própria independente da contagem.
+ * `flutuante` é a mesma composição compacta, para vidro sobre a cena 3D: sem
+ * respiro externo (quem posiciona é o pai) e com rolagem horizontal, porque
+ * cinco chips não cabem em 340px sem quebrar linha e cobrir a cena.
  */
-export function OccupancyBar({ contagem, total, filtro, onFiltrar }: OccupancyBarProps) {
+export function OccupancyBar({
+  contagem,
+  total,
+  filtro,
+  onFiltrar,
+  variante = "faixa",
+}: OccupancyBarProps) {
+  const flutuante = variante === "flutuante";
+
+  /*
+    Legenda: os mesmos filtros como linha que QUEBRA, sem medidor nem rolagem.
+    Onde há largura fixa e pouca (painel de 380px), rolar escondia o último chip.
+  */
+  if (variante === "legenda") {
+    return (
+      <section aria-label="Filtrar por estado" className="flex flex-wrap gap-x-1 gap-y-0.5">
+        {ORDEM_ESTADOS.map((estado) => {
+          const n = contagem[estado] ?? 0;
+          const ativo = filtro === estado;
+          return (
+            <button
+              key={estado}
+              type="button"
+              disabled={n === 0}
+              aria-pressed={ativo}
+              aria-label={`${ROTULO_FAIXA[estado]}: ${n} de ${total} mesas. ${ROTULO_ESTADO[estado]}.`}
+              onClick={() => onFiltrar(ativo ? null : estado)}
+              className={cn(
+                "flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium pointer-coarse:min-h-11",
+                "transition-[background-color,scale] duration-100 active:scale-[0.97]",
+                "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)",
+                "disabled:cursor-default disabled:opacity-35",
+                ativo ? "bg-(--color-accent) text-(--color-accent-ink)" : "text-(--color-ink-2) hover:bg-(--color-ink)/6",
+              )}
+            >
+              <span
+                aria-hidden
+                className="size-2.5 flex-none rounded-full"
+                style={{
+                  background: `var(--color-${estado}-fill)`,
+                  boxShadow: `inset 0 0 0 ${Math.min(TRACO_ESTADO[estado], 2)}px var(--color-${estado}-stroke)`,
+                }}
+              />
+              {ROTULO_FAIXA[estado]}
+              <span className="tnum font-[family-name:var(--font-mono)]">{n}</span>
+            </button>
+          );
+        })}
+      </section>
+    );
+  }
+
   return (
-    <section className="px-7 pb-6 pt-5" aria-label="Composição do salão">
+    <section
+      className={cn(!flutuante && "px-6 pb-5 pt-4")}
+      aria-label="Composição do salão"
+    >
       {/*
         Borda real por segmento, não sombra interna. No tema claro o segmento
-        `livre` é branco sobre superfície branca: sem a borda ele simplesmente
-        desaparecia, e o medidor parecia começar no meio.
+        `livre` é branco sobre superfície clara: sem a borda ele desaparecia,
+        e o medidor parecia começar no meio.
       */}
       <div
-        className="flex h-3 gap-[3px]"
+        className={cn("flex gap-0.5", flutuante ? "h-1.5" : "h-2")}
         role="img"
         aria-label={ORDEM_ESTADOS.filter((e) => contagem[e])
           .map((e) => `${contagem[e]} ${ROTULO_FAIXA[e]}`)
@@ -50,10 +106,10 @@ export function OccupancyBar({ contagem, total, filtro, onFiltrar }: OccupancyBa
               style={{
                 flex: `${contagem[estado]} 1 0`,
                 background: `var(--color-${estado}-fill)`,
-                border: `1.5px solid var(--color-${estado}-stroke)`,
+                border: `1px solid var(--color-${estado}-stroke)`,
               }}
               className={cn(
-                "rounded-full transition-opacity",
+                "rounded-full transition-opacity duration-150",
                 filtro && filtro !== estado && "opacity-25",
               )}
             />
@@ -61,7 +117,14 @@ export function OccupancyBar({ contagem, total, filtro, onFiltrar }: OccupancyBa
         )}
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div
+        className={cn(
+          "flex gap-1",
+          flutuante
+            ? "scrollbar-none -mx-1 mt-1 overflow-x-auto px-1"
+            : "mt-3 flex-wrap",
+        )}
+      >
         {ORDEM_ESTADOS.map((estado) => {
           const n = contagem[estado] ?? 0;
           const ativo = filtro === estado;
@@ -74,38 +137,50 @@ export function OccupancyBar({ contagem, total, filtro, onFiltrar }: OccupancyBa
               aria-pressed={ativo}
               aria-label={`${ROTULO_FAIXA[estado]}: ${n} de ${total} mesas. ${ROTULO_ESTADO[estado]}.`}
               onClick={() => onFiltrar(ativo ? null : estado)}
+              /*
+                Em `flutuante` o botão tem a altura de toque (44px) e o chip
+                visível é o filho: a área clicável cresce sem engordar o vidro.
+              */
               className={cn(
-                "group flex min-h-11 items-center gap-2.5 rounded-full py-1.5 pl-2 pr-4",
-                "transition-colors duration-150",
-                "focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)",
+                "group flex flex-none items-center rounded-full",
+                "transition-transform duration-100 active:scale-[0.97]",
+                "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)",
                 "disabled:cursor-default disabled:opacity-35",
-                ativo
-                  ? "bg-(--color-ink) text-(--color-app)"
-                  : "bg-(--color-sunken)/70 hover:bg-(--color-sunken)",
+                "min-h-11",
               )}
             >
               <span
-                aria-hidden
-                style={{
-                  background: `var(--color-${estado}-fill)`,
-                  boxShadow: `inset 0 0 0 ${Math.min(TRACO_ESTADO[estado], 2.5)}px var(--color-${estado}-stroke)`,
-                  backgroundImage:
-                    estado === "conta"
-                      ? "repeating-linear-gradient(45deg, transparent 0 3px, color-mix(in srgb, var(--color-conta-stroke) 30%, transparent) 3px 6px)"
-                      : undefined,
-                }}
-                className="size-7 flex-none rounded-full"
-              />
-              <span className="tnum font-[family-name:var(--font-mono)] text-[17px] font-semibold leading-none">
-                {n}
-              </span>
-              <span
                 className={cn(
-                  "text-[13px] font-medium leading-none",
-                  ativo ? "opacity-90" : "text-(--color-ink-2)",
+                  "flex items-center gap-2 rounded-full transition-colors duration-150",
+                  flutuante ? "h-8 pl-2 pr-3" : "h-10 pl-2.5 pr-4",
+                  ativo
+                    ? "bg-(--color-accent) text-(--color-accent-ink)"
+                    : "text-(--color-ink) shadow-[inset_0_0_0_1px_var(--color-line)] group-hover:shadow-[inset_0_0_0_1px_var(--color-line-2)]",
                 )}
               >
-                {ROTULO_FAIXA[estado]}
+                <span
+                  aria-hidden
+                  style={{
+                    background: `var(--color-${estado}-fill)`,
+                    boxShadow: `inset 0 0 0 ${Math.min(TRACO_ESTADO[estado], 2)}px var(--color-${estado}-stroke)`,
+                    backgroundImage:
+                      estado === "conta"
+                        ? "repeating-linear-gradient(45deg, transparent 0 2px, color-mix(in srgb, var(--color-conta-stroke) 35%, transparent) 2px 4px)"
+                        : undefined,
+                  }}
+                  className={cn("flex-none rounded-full", flutuante ? "size-3" : "size-4")}
+                />
+                <span className="tnum font-[family-name:var(--font-mono)] text-sm font-semibold leading-none">
+                  {n}
+                </span>
+                <span
+                  className={cn(
+                    "text-xs font-medium leading-none",
+                    ativo ? "opacity-85" : "text-(--color-ink-2)",
+                  )}
+                >
+                  {ROTULO_FAIXA[estado]}
+                </span>
               </span>
             </button>
           );

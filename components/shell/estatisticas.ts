@@ -1,0 +1,36 @@
+import type { EstadoMesa, Limiares, Mesa } from "@/lib/types";
+import { derivarEstado, ORDEM_ESTADOS } from "@/lib/state";
+
+export interface Resumo {
+  contagem: Record<EstadoMesa, number>;
+  total: number;
+  livres: number;
+  emAtendimento: number;
+  atencao: number;
+  /** Mesas com gente sentada, qualquer estado. */
+  ocupadas: number;
+  pessoas: number;
+  /** Pessoas sobre lugares, em %. É lotação de cadeiras, não de mesas. */
+  lotacao: number;
+}
+
+export function resumir(mesas: Mesa[], limiares: Limiares): Resumo {
+  const contagem = Object.fromEntries(ORDEM_ESTADOS.map((e) => [e, 0])) as Record<EstadoMesa, number>;
+  let pessoas = 0;
+  let lugares = 0;
+  for (const m of mesas) {
+    contagem[derivarEstado(m, limiares)]++;
+    pessoas += m.pessoas;
+    lugares += m.lugares;
+  }
+  return {
+    contagem,
+    total: mesas.length,
+    livres: contagem.livre,
+    emAtendimento: contagem.ocupada,
+    atencao: contagem.alerta1 + contagem.alerta2 + contagem.conta,
+    ocupadas: mesas.length - contagem.livre,
+    pessoas,
+    lotacao: lugares ? Math.round((pessoas / lugares) * 100) : 0,
+  };
+}

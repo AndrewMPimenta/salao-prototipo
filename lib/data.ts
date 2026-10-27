@@ -13,6 +13,8 @@ export const PRACAS: Praca[] = [
   { id: "D", ambienteId: "principal", garcom: "Bia" },
   { id: "A", ambienteId: "varanda", garcom: "Tati" },
   { id: "B", ambienteId: "varanda", garcom: "Jô" },
+  { id: "A", ambienteId: "mezanino", garcom: "Nando" },
+  { id: "B", ambienteId: "mezanino", garcom: "Lu" },
 ];
 
 /** Dados de exemplo — um serviço de quarta à noite, salão quase cheio. */
@@ -45,6 +47,15 @@ export const MESAS: Mesa[] = [
   { id: 26, ambienteId: "varanda", pracaId: "B", forma: "redonda", x: 50, y: 70, largura: 62, altura: 62, lugares: 2, pessoas: 2, semPedido: 5, abertaHa: 17 },
   { id: 27, ambienteId: "varanda", pracaId: "B", forma: "redonda", x: 70, y: 70, largura: 62, altura: 62, lugares: 4, pessoas: 0 },
   { id: 28, ambienteId: "varanda", pracaId: "B", forma: "redonda", x: 88, y: 70, largura: 62, altura: 62, lugares: 4, pessoas: 0 },
+  { id: 29, ambienteId: "mezanino", pracaId: "A", forma: "redonda", x: 14, y: 18, largura: 56, altura: 56, lugares: 2, pessoas: 2, semPedido: 5, abertaHa: 12 },
+  { id: 30, ambienteId: "mezanino", pracaId: "A", forma: "redonda", x: 32, y: 18, largura: 56, altura: 56, lugares: 2, pessoas: 0 },
+  { id: 31, ambienteId: "mezanino", pracaId: "A", forma: "redonda", x: 50, y: 18, largura: 56, altura: 56, lugares: 2, pessoas: 0 },
+  { id: 32, ambienteId: "mezanino", pracaId: "A", forma: "redonda", x: 68, y: 18, largura: 56, altura: 56, lugares: 2, pessoas: 0 },
+  { id: 33, ambienteId: "mezanino", pracaId: "B", forma: "redonda", x: 88, y: 22, largura: 62, altura: 62, lugares: 4, pessoas: 4, semPedido: 26, abertaHa: 48 },
+  { id: 34, ambienteId: "mezanino", pracaId: "B", forma: "redonda", x: 16, y: 70, largura: 62, altura: 62, lugares: 4, pessoas: 3, semPedido: 7, abertaHa: 25 },
+  { id: 35, ambienteId: "mezanino", pracaId: "B", forma: "redonda", x: 40, y: 74, largura: 62, altura: 62, lugares: 4, pessoas: 4, semPedido: 10, abertaHa: 40 },
+  { id: 36, ambienteId: "mezanino", pracaId: "B", forma: "retangular", x: 68, y: 76, largura: 116, altura: 54, lugares: 6, pessoas: 5, semPedido: 14, abertaHa: 30 },
+  { id: 37, ambienteId: "mezanino", pracaId: "B", forma: "redonda", x: 91, y: 68, largura: 62, altura: 62, lugares: 4, pessoas: 2, semPedido: 2, abertaHa: 55, contaImpressa: true, total: "R$ 96,00" },
 ];
 
 export interface Fixture {
@@ -63,4 +74,8 @@ export const FIXTURES: Record<string, Fixture[]> = {
     { x: 66, y: 97, largura: 24, altura: 5, nome: "Entrada", solido: true },
   ],
   varanda: [{ x: 40, y: 96, largura: 30, altura: 5, nome: "Acesso ao salão", solido: true }],
+  mezanino: [
+    { x: 88, y: -2, largura: 12, altura: 5, nome: "Escada", solido: true },
+    { x: 30, y: 97, largura: 40, altura: 5, nome: "Vista para o salão", solido: true },
+  ],
 };

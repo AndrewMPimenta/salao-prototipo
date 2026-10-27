@@ -1,0 +1,28 @@
+@keyframes brilho {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
+.esqueleto-brilho::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-ink) 5%, transparent), transparent);
+  animation: brilho 2.2s var(--ease-out-soft) infinite;
+}
+
+@keyframes pulso {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 45%, transparent); }
+  70%, 100% { box-shadow: 0 0 0 6px transparent; }
+}
+
+.ponto-vivo {
+  animation: pulso 2s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .esqueleto-brilho::after,
+  .ponto-vivo {
+    animation: none;
+  }
+}

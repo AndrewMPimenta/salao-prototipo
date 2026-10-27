@@ -47,15 +47,15 @@ export function TableShape({
     .join(", ");
 
   /*
-    O número da mesa e o glifo ficam numa linha, o numeral grande embaixo.
-    Antes os três empilhavam no centro e se sobrepunham em mesas pequenas.
+    O número da mesa e o glifo ficam numa linha, o numeral grande embaixo:
+    empilhados no centro, os três se sobrepõem em mesas pequenas.
   */
   const conteudo = (
     <>
       <span className="flex items-center gap-[3px] leading-none">
-        <span className="text-[12px] font-semibold tracking-tight opacity-90">{mesa.id}</span>
+        <span className="text-xs font-semibold opacity-90">{mesa.id}</span>
         {densidade !== "minimo" && glifo && (
-          <span aria-hidden className="text-[10px] font-bold leading-none -tracking-[0.08em]">
+          <span aria-hidden className="text-[11px] font-bold leading-none -tracking-[0.08em]">
             {glifo}
           </span>
         )}
@@ -72,7 +72,7 @@ export function TableShape({
         </span>
       )}
       {densidade === "completo" && mesa.abertaHa && (
-        <span className="tnum text-[9px] font-medium leading-none opacity-65">
+        <span className="tnum text-[11px] font-medium leading-none opacity-65">
           {formatarDuracao(mesa.abertaHa)}
         </span>
       )}
@@ -99,8 +99,8 @@ export function TableShape({
 
   const classes = cn(
     "absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-[2px]",
-    "transition-[transform,opacity] duration-150 ease-out",
-    mesa.forma === "redonda" ? "rounded-full" : "rounded-[7px]",
+    "transition-[transform,opacity] duration-100 ease-out",
+    mesa.forma === "redonda" ? "rounded-full" : "rounded-lg",
     atenuada && "opacity-20",
     selecionada && "z-20",
   );
@@ -123,9 +123,9 @@ export function TableShape({
       onClick={() => onSelect?.(mesa.id)}
       className={cn(
         classes,
-        "cursor-pointer hover:z-10 hover:scale-[1.06]",
-        selecionada && "scale-[1.06] ring-3 ring-(--color-focus) ring-offset-2 ring-offset-(--color-floor)",
-        "focus-visible:z-20 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)",
+        "cursor-pointer hover:z-10 hover:scale-[1.04] active:scale-[0.97]",
+        selecionada && "scale-[1.04] ring-2 ring-(--color-focus) ring-offset-2 ring-offset-(--color-floor)",
+        "focus-visible:z-20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)",
       )}
       style={estilo}
     >

@@ -42,13 +42,12 @@ export function FloorPlan({
       role="group"
       aria-label="Planta do salão. As setas percorrem as mesas e Enter abre os detalhes."
       /*
-        O piso é uma superfície lisa e rebaixada. A grade de 36px que havia
-        aqui antes dava aparência de papel milimetrado e competia com as mesas.
+        O piso é uma superfície lisa e rebaixada, sem grade: linhas de papel
+        milimetrado competiriam com as mesas pela atenção.
       */
       className={cn(
-        "relative aspect-16/10 w-full overflow-hidden rounded-2xl bg-(--color-floor)",
-        "shadow-[inset_0_1px_3px_rgba(0,0,0,0.07),inset_0_0_0_1px_rgba(0,0,0,0.05)]",
-        "dark:shadow-[inset_0_1px_3px_rgba(0,0,0,0.6),inset_0_0_0_1px_rgba(255,255,255,0.04)]",
+        "relative aspect-16/10 w-full overflow-hidden rounded-(--radius-panel) bg-(--color-floor)",
+        "shadow-[inset_0_1px_3px_rgb(40_30_15/0.08),inset_0_0_0_1px_var(--color-line)]",
       )}
     >
       {fixtures.map((f) => (
@@ -56,11 +55,9 @@ export function FloorPlan({
           key={f.nome}
           aria-hidden
           className={cn(
-            "absolute flex items-center justify-center text-[9.5px] font-semibold",
-            "uppercase tracking-[0.14em]",
-            f.solido
-              ? "rounded-[3px] bg-(--color-ink)/12 text-(--color-ink-3)"
-              : "rounded-lg bg-(--color-ink)/6 text-(--color-ink-3)",
+            "absolute flex items-center justify-center text-[10px] font-medium",
+            "uppercase tracking-[0.06em] text-(--color-ink-3)",
+            f.solido ? "rounded-[4px] bg-(--color-ink)/8" : "rounded-lg bg-(--color-ink)/4",
           )}
           style={{
             left: `${f.x}%`,

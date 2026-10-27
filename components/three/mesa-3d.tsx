@@ -1,0 +1,148 @@
+"use client";
+
+import { useRef, useState } from "react";
+import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
+import * as THREE from "three";
+import type { EstadoMesa, Mesa } from "@/lib/types";
+import { ALTURA_TAMPO, ESPESSURA_TAMPO, ms, mx, mz, type Cenario } from "./cenarios";
+import { anel, caixa, cilindro, circulo, mat, matAlvo, matHalo, type Cores, type Par } from "./materiais";
+
+const OPACIDADE_FILTRO = 0.2;
+const LEVANTE_HOVER = 0.03;
+
+interface Props {
+  mesa: Mesa;
+  estado: EstadoMesa;
+  par: Par;
+  cores: Cores;
+  escuro: boolean;
+  cenario: Cenario;
+  esmaecida: boolean;
+  selecionada: boolean;
+  onSelect: (id: number) => void;
+}
+
+/**
+ * Só o tampo, a borda e o pedestal: cadeiras e figuras são instanciadas em
+ * `assentos.tsx`. Sombra só no que é grande o bastante para ler como sombra.
+ */
+export function Mesa3D({ mesa, estado, par, cores, escuro, cenario, esmaecida, selecionada, onSelect }: Props) {
+  const gl = useThree((s) => s.gl);
+  const tampoRef = useRef<THREE.Group>(null);
+  const [hover, setHover] = useState(false);
+
+  const raioX = ms(mesa.largura) / 2;
+  const raioZ = ms(mesa.altura) / 2;
+  const redonda = mesa.forma === "redonda";
+  const op = esmaecida ? OPACIDADE_FILTRO : 1;
+  const sombra = !esmaecida;
+  const livre = estado === "livre" && !esmaecida;
+  const raioAlvo = Math.max(raioX, raioZ) + 0.55;
+
+  // O levante é amortecido; só pede quadro enquanto ainda se move (frameloop sob demanda).
+  useFrame(({ invalidate }, delta) => {
+    const g = tampoRef.current;
+    if (!g) return;
+    const alvo = hover && !esmaecida ? LEVANTE_HOVER : 0;
+    if (Math.abs(g.position.y - alvo) < 0.0004) {
+      g.position.y = alvo;
+      return;
+    }
+    g.position.y = THREE.MathUtils.damp(g.position.y, alvo, 14, delta);
+    invalidate();
+  });
+
+  const aoPassar = (e: ThreeEvent<PointerEvent>) => {
+    e.stopPropagation();
+    setHover(true);
+    gl.domElement.style.cursor = "pointer";
+  };
+
+  const aoSair = () => {
+    setHover(false);
+    gl.domElement.style.cursor = "";
+  };
+
+  const aoClicar = (e: ThreeEvent<MouseEvent>) => {
+    // Arrastar para girar a câmera termina em click; só toque curto seleciona.
+    if (e.delta > 6) return;
+    e.stopPropagation();
+    onSelect(mesa.id);
+  };
+
+  const raioAnel = Math.max(raioX, raioZ) + 0.36 + 0.42;
+
+  return (
+    <group
+      position={[mx(mesa.x, cenario), 0, mz(mesa.y, cenario)]}
+      onPointerOver={aoPassar}
+      onPointerOut={aoSair}
+      onClick={aoClicar}
+    >
+      {/* Área de toque generosa, cobrindo cadeiras e figuras: um dedo não acerta um tampo de 80 cm. */}
+      <mesh
+        geometry={redonda ? cilindro(raioAlvo, raioAlvo, 1.3, 16) : caixa(raioX * 2 + 1.1, 1.3, raioZ * 2 + 1.1)}
+        material={matAlvo}
+        position={[0, 0.65, 0]}
+      />
+
+      {/* Mancha de contato no lugar da sombra das cadeiras, que não projetam. */}
+      <mesh
+        geometry={circulo()}
+        material={mat("#000000", esmaecida ? 0.04 : 0.1)}
+        position={[0, 0.004, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        scale={[raioX + 0.75, raioZ + 0.75, 1]}
+      />
+
+      {/* Halo claro sob a vaga livre: separa por luminância, sem matiz nova. */}
+      {livre && (
+        <mesh
+          geometry={circulo()}
+          material={matHalo(escuro ? "#f1e6d0" : "#ffffff", escuro ? 0.45 : 0.9)}
+          position={[0, 0.008, 0]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          scale={[raioX + 1.1, raioZ + 1.1, 1]}
+        />
+      )}
+
+      <mesh
+        geometry={cilindro(0.05, 0.09, ALTURA_TAMPO - ESPESSURA_TAMPO, 14)}
+        material={mat(par.stroke, op)}
+        position={[0, (ALTURA_TAMPO - ESPESSURA_TAMPO) / 2, 0]}
+        castShadow={sombra}
+      />
+
+      <group ref={tampoRef}>
+        {/* Bisel de 1,5 cm na cor do traço, um fio abaixo do tampo para não brigar com ele na face de cima. */}
+        <mesh
+          geometry={
+            redonda
+              ? cilindro(raioX + 0.015, raioX + 0.015, ESPESSURA_TAMPO - 0.004, 24)
+              : caixa(raioX * 2 + 0.03, ESPESSURA_TAMPO - 0.004, raioZ * 2 + 0.03)
+          }
+          material={mat(par.stroke, op)}
+          position={[0, ALTURA_TAMPO - 0.002, 0]}
+          castShadow={sombra}
+        />
+        <mesh
+          geometry={redonda ? cilindro(raioX, raioX, ESPESSURA_TAMPO, 24) : caixa(raioX * 2, ESPESSURA_TAMPO, raioZ * 2)}
+          material={mat(par.fill, op)}
+          position={[0, ALTURA_TAMPO, 0]}
+          castShadow={sombra}
+          receiveShadow
+        />
+      </group>
+
+      {/* Anel estático: o pulso forçaria quadros contínuos no frameloop sob demanda. */}
+      {selecionada && (
+        <mesh
+          geometry={anel(raioAnel - 0.12, raioAnel)}
+          material={mat(cores.anel, 0.55)}
+          position={[0, 0.015, 0]}
+          rotation={[-Math.PI / 2, 0, 0]}
+        />
+      )}
+    </group>
+  );
+}

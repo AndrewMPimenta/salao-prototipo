@@ -29,16 +29,16 @@ export function TimelineView({ mesas, limiares }: TimelineViewProps) {
 
   return (
     <div className="p-4">
-      <div className="mb-1.5 grid grid-cols-[62px_1fr] gap-2.5">
+      <div className="mb-2 grid grid-cols-[64px_1fr] gap-3">
         <div />
-        <div className="flex justify-between font-mono text-[10.5px] text-(--color-ink-3)">
+        <div className="flex justify-between font-[family-name:var(--font-mono)] text-[11px] text-(--color-ink-3)">
           {ticks.map((t) => (
             <span key={t}>+{t}′</span>
           ))}
         </div>
       </div>
 
-      <div className="grid grid-cols-[62px_1fr] items-center gap-x-2.5 gap-y-[3px] text-xs">
+      <div className="grid grid-cols-[64px_1fr] items-center gap-x-3 gap-y-1 text-xs">
         {livres.map((m) => (
           <Linha key={m.id} mesa={m} livre />
         ))}
@@ -68,11 +68,11 @@ function Linha({
 
   return (
     <>
-      <div className="tnum flex items-center justify-end gap-1.5 font-semibold">
+      <div className="tnum flex items-center justify-end gap-1 text-sm font-semibold">
         {mesa.id}
-        <span className="font-normal text-(--color-ink-3)">{mesa.lugares}p</span>
+        <span className="text-[11px] font-normal text-(--color-ink-3)">{mesa.lugares}p</span>
       </div>
-      <div className="relative h-6.5 overflow-hidden rounded-md bg-(--color-sunken)">
+      <div className="relative h-7 overflow-hidden rounded-lg bg-(--color-ink)/6">
         {livre ? (
           <Barra largura={100} estado="livre" texto="livre agora" />
         ) : passou ? (
@@ -82,7 +82,7 @@ function Linha({
             <Barra largura={largura} estado={estado!} texto={`libera ~${restam}′`} />
             <div
               aria-hidden
-              className="absolute inset-y-0 rounded-md border-2 border-dashed border-(--color-line-2)"
+              className="absolute inset-y-0 rounded-lg border-2 border-dashed border-(--color-line-2)"
               style={{ left: `${largura}%`, width: `${Math.min(28, 100 - largura)}%` }}
             />
           </>
@@ -97,8 +97,8 @@ function Barra({ largura, estado, texto }: { largura: number; estado: string; te
   return (
     <div
       className={cn(
-        "absolute inset-y-0 flex items-center overflow-hidden rounded-md px-1.5",
-        "whitespace-nowrap text-[10.5px] font-semibold",
+        "absolute inset-y-0 flex items-center overflow-hidden rounded-lg px-2",
+        "whitespace-nowrap text-[11px] font-semibold",
       )}
       style={{
         left: 0,
