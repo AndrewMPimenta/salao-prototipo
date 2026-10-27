@@ -9,7 +9,8 @@ import type { ModoRotulos } from "@/lib/exibicao";
 import { ROTULO_ALERTA, ROTULO_CURTO } from "@/lib/state";
 import { cn } from "@/lib/utils";
 import { estiloAlerta, GlifoAlerta } from "../selo-alerta";
-import { ALTURA_ROTULO_3D, ALTURA_TAMPO } from "./cenarios";
+import type { Folga } from "./enquadramento";
+import { ALTURA_TAMPO, type Marco } from "./cenarios";
 
 export interface ItemRotulo {
   mesa: Mesa;
@@ -20,44 +21,31 @@ export interface ItemRotulo {
   z: number;
   /** Raio do tampo em metros, para medir o tamanho dele na tela. */
   raio: number;
+  /** Fora do foco ou do filtro: o número some, mas o hover ainda explica a mesa. */
+  esmaecida: boolean;
   selecionada: boolean;
 }
 
-/** Pino só com o número: livre é tinta cheia (é o que a recepção procura), ocupada recua. */
-function PinoCompacto({ i }: { i: ItemRotulo }) {
-  const { mesa, estado } = i;
-
+/** Só o número, no modo "Sempre": discreto, centrado no tampo. */
+function Numero({ i }: { i: ItemRotulo }) {
   return (
     <span
-      style={{ transform: "translate(-13px, -50%)" }}
-      className={cn(
-        "tnum absolute top-0 left-0 grid size-[26px] place-items-center rounded-full border text-[13px] font-bold shadow-[0_1px_5px_rgba(0,0,0,0.22)]",
-        estado === "livre" && "border-(--color-ink) bg-(--color-ink) text-(--color-surface)",
-        estado === "reservada" && "border-[1.5px] border-(--color-ink-2) bg-(--color-surface) text-(--color-ink)",
-        estado === "ocupada" && "border-(--color-line-2) bg-(--color-surface) text-(--color-ink-2) opacity-85",
-        estado === "conta" && "border-2 border-(--color-conta-stroke) bg-(--color-surface) text-(--color-ink)",
-      )}
+      style={{ transform: "translate(-50%, -50%)" }}
+      className="tnum absolute top-0 left-0 grid h-[22px] min-w-[22px] place-items-center rounded-full bg-(--color-surface)/92 px-1.5 text-[12px] font-semibold text-(--color-ink) shadow-[0_1px_4px_rgba(0,0,0,0.18)]"
     >
-      {mesa.id}
+      {i.mesa.id}
     </span>
   );
 }
 
-/** Detalhe completo, só no hover e na seleção: número, estado e o alerta com os minutos. */
+/** Pílula do hover: número, estado e o alerta principal com os minutos. */
 function Pilula({ i }: { i: ItemRotulo }) {
-  const { mesa, estado, alertas, selecionada } = i;
+  const { mesa, estado, alertas } = i;
 
   return (
-    <div
-      style={{ transform: "translate(-50%, -50%)" }}
-      className={cn(
-        "absolute top-0 left-0 flex h-8 items-center gap-1.5 overflow-hidden whitespace-nowrap rounded-full border bg-(--color-surface) pl-3 text-[13px] font-semibold text-(--color-ink) shadow-[0_4px_14px_rgba(0,0,0,0.3)]",
-        selecionada ? "border-[1.5px] border-(--color-ink)" : "border-(--color-line-2)",
-        alertas.length === 0 && "pr-3",
-      )}
-    >
-      <span className="tnum">Mesa {mesa.id}</span>
-      <span className="font-medium text-(--color-ink-2)">· {ROTULO_CURTO[estado]}</span>
+    <div className="absolute top-0 left-0 flex h-8 items-center gap-1.5 overflow-hidden whitespace-nowrap rounded-full border border-(--color-line-2) bg-(--color-surface) pl-3 text-[13px] font-semibold text-(--color-ink) shadow-[0_4px_14px_rgba(0,0,0,0.22)]">
+      <span className={cn("tnum", alertas.length === 0 && "pr-0")}>Mesa {mesa.id}</span>
+      <span className={cn("font-medium text-(--color-ink-2)", alertas.length === 0 && "pr-3")}>· {ROTULO_CURTO[estado]}</span>
       {alertas[0] && (
         <span className="tnum ml-0.5 flex h-8 items-center gap-1 pr-3 pl-2 text-[12px] font-bold" style={estiloAlerta(alertas[0].tipo)}>
           <GlifoAlerta tipo={alertas[0].tipo} />
@@ -69,39 +57,45 @@ function Pilula({ i }: { i: ItemRotulo }) {
   );
 }
 
-/** Só o glifo do alerta mais urgente: o texto e os minutos ficam para a pílula. */
-function Marcador({ alerta }: { alerta: Alerta }) {
-  return (
-    <span
-      aria-hidden
-      style={{ ...estiloAlerta(alerta.tipo), transform: "translate(-50%, -50%)" }}
-      className="absolute top-0 left-0 grid size-3.5 place-items-center rounded-full text-[8.5px] shadow-[0_0_0_1.5px_rgba(255,255,255,0.85)]"
-    >
-      <GlifoAlerta tipo={alerta.tipo} className="size-2.5 tracking-tighter" />
-    </span>
-  );
-}
-
 export type MapaRotulos = Map<number, HTMLDivElement>;
 
 /*
-  Os rótulos são DOM comum sobre o canvas, posicionados por projeção só quando
-  a câmera muda. O <Html> do drei criava uma raiz React por rótulo, e o
-  desmonte dessas raízes durante a renderização quebrava o StrictMode.
-
-  Cada item tem três camadas, e o projetor mostra o que a situação pede:
-  [0] pino com o número (só com o tampo grande na tela), [1] pílula de detalhe
-  (hover e seleção) e [2] marcador do alerta (sempre). Cada camada flutua acima
-  da mesa, ligada ao tampo por um fio de 1px.
+  Os rótulos são DOM comum sobre o canvas, posicionados por projeção no mesmo quadro da
+  câmera. Cada item tem duas camadas: [0] o número (só no modo "Sempre") e [1] a pílula
+  do hover, que fica acima da mesa, nunca sobre o tampo. A mesa em foco não tem rótulo:
+  o holofote a identifica e o número está no cartão.
 */
 const FADE = "opacity 150ms ease";
 const OCULTO = { opacity: 0, visibility: "hidden" as const, pointerEvents: "none" as const };
 
-export function CamadaRotulos({ itens, corHaste, els }: { itens: ItemRotulo[]; corHaste: string; els: React.RefObject<MapaRotulos> }) {
-  const haste = <div className="absolute top-0 left-0 w-px" style={{ background: corHaste, opacity: 0.45 }} />;
-
+export function CamadaRotulos({
+  itens,
+  marcos,
+  corHaste,
+  els,
+  elsMarcos,
+}: {
+  itens: ItemRotulo[];
+  marcos: Marco[];
+  corHaste: string;
+  els: React.RefObject<MapaRotulos>;
+  elsMarcos: React.RefObject<(HTMLDivElement | null)[]>;
+}) {
   return (
     <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
+      {/* Nome dos marcos do cenário: a voz mais baixa da cena, sob as mesas na disputa por espaço. */}
+      {marcos.map((m, k) => (
+        <div
+          key={m.nome}
+          ref={(el) => {
+            elsMarcos.current[k] = el;
+          }}
+          style={{ ...OCULTO, transition: FADE }}
+          className="absolute top-0 left-0 whitespace-nowrap rounded-full bg-(--color-surface)/72 px-2 py-0.5 text-[10.5px] font-semibold tracking-[0.06em] text-(--color-ink-2) uppercase shadow-[0_1px_3px_rgba(0,0,0,0.12)]"
+        >
+          {m.nome}
+        </div>
+      ))}
       {itens.map((i) => (
         <div
           key={i.mesa.id}
@@ -112,16 +106,11 @@ export function CamadaRotulos({ itens, corHaste, els }: { itens: ItemRotulo[]; c
           className="absolute top-0 left-0 will-change-transform"
         >
           <div style={{ ...OCULTO, transition: FADE }}>
-            {haste}
-            <PinoCompacto i={i} />
+            <Numero i={i} />
           </div>
           <div style={{ ...OCULTO, transition: FADE }}>
-            {haste}
+            <div className="absolute left-0 w-px" style={{ background: corHaste, opacity: 0.4 }} />
             <Pilula i={i} />
-          </div>
-          <div style={{ ...OCULTO, transition: FADE }}>
-            {haste}
-            {i.alertas[0] && <Marcador alerta={i.alertas[0]} />}
           </div>
         </div>
       ))}
@@ -131,22 +120,15 @@ export function CamadaRotulos({ itens, corHaste, els }: { itens: ItemRotulo[]; c
 
 const FOLGA = 4;
 const CELULA = 64;
-/** Diâmetro do tampo, em px, a partir do qual o pino com o número deixa de ser ruído. */
-const DIAMETRO_MINIMO_PINO = 34;
-const LADO_PINO = 26;
-const LADO_MARCADOR = 14;
-const DESLOCA_MARCADOR = 20;
-
-/** Menor vence a disputa por espaço: alerta pela prioridade do selo, depois livre/reservada, conta e ocupada. */
-function prioridade(i: ItemRotulo) {
-  const a = i.alertas[0];
-  if (a) return { semPedidoCritico: 1, entregaAtrasada: 2, semPedido: 3, contaParada: 4 }[a.tipo];
-  return { livre: 5, reservada: 5, conta: 6, ocupada: 7 }[i.estado];
-}
+/** Diâmetro do tampo, em px, abaixo do qual o número vira ruído. */
+const DIAMETRO_MINIMO_NUMERO = 16;
+const LADO_NUMERO = 22;
+const VAO = 12;
+/** Raio que envolve o tampo e as cadeiras, além do raio do tampo. */
+const ALEM_DO_TAMPO = 0.55;
 
 type Retangulo = { x0: number; y0: number; x1: number; y1: number };
-type Candidato = { i: ItemRotulo; el: HTMLDivElement; x: number; y: number; yBase: number; diam: number; prof: number; rank: number };
-type Estado = { pino: boolean | null; pilula: boolean | null; marcador: boolean | null; w: number; h: number };
+type Estado = { numero: boolean | null; pilula: boolean | null; w: number; h: number };
 
 /** Grade de buckets: consulta e inserção só tocam as células que o retângulo cobre. */
 class Grade {
@@ -178,173 +160,173 @@ class Grade {
   }
 }
 
-function dentroDaTela(r: Retangulo, w: number, h: number) {
-  return r.x1 > 0 && r.y1 > 0 && r.x0 < w && r.y0 < h;
+/** Menor vence a disputa por espaço: mesa com alerta, depois livre/reservada, conta e ocupada. */
+function prioridade(i: ItemRotulo) {
+  if (i.alertas[0]) return 0;
+  return { livre: 1, reservada: 1, conta: 2, ocupada: 3 }[i.estado];
 }
 
 /**
- * Roda dentro do Canvas, onde a câmera está, e escreve a posição de cada rótulo direto no DOM.
- * Hover e seleção sempre mostram a pílula; o pino com o número segue o modo e disputa espaço
- * por prioridade (o que não cabe some); o marcador de alerta nunca disputa.
+ * Roda dentro do Canvas, depois do controle de câmera (prioridade 0, o controle atualiza em -1),
+ * e escreve a posição de cada rótulo direto no DOM no mesmo quadro em que a cena é desenhada.
  */
 export function ProjetorRotulos({
   itens,
   els,
   modo,
   hover,
-  priorizarLivres = false,
+  folga,
+  marcos,
+  elsMarcos,
+  foco,
 }: {
   itens: ItemRotulo[];
+  marcos: Marco[];
+  elsMarcos: React.RefObject<(HTMLDivElement | null)[]>;
+  /** Com uma mesa em foco, os marcos recuam junto com o resto da sala. */
+  foco: boolean;
   els: React.RefObject<MapaRotulos>;
   modo: ModoRotulos;
   hover: ArmazemHover;
-  priorizarLivres?: boolean;
+  folga: Folga;
 }) {
   const { camera, size, invalidate } = useThree();
-  const atual = useRef(itens);
-  atual.current = itens;
-  const livres = useRef(priorizarLivres);
-  livres.current = priorizarLivres;
-  const modoAtual = useRef(modo);
-  modoAtual.current = modo;
-  const ultimo = useRef<{ m: number[]; w: number; h: number; l: boolean; modo: ModoRotulos; hov: number | null } | null>(null);
-  // Ler offsetWidth força layout, então a pílula só é medida quando aparece. `null` = DOM em situação desconhecida, a ser reescrito.
+  const atual = useRef({ itens, modo, folga, marcos, foco });
+  atual.current = { itens, modo, folga, marcos, foco };
+  const tamMarcos = useRef(new WeakMap<HTMLDivElement, { w: number; h: number; vis: number }>());
+  const ultimo = useRef<{ m: number[]; hov: number | null } | null>(null);
+  // Ler offsetWidth força layout, então a pílula só é medida quando aparece. `null` = DOM em situação desconhecida.
   const estados = useRef(new WeakMap<HTMLDivElement, Estado>());
 
-  // Mudou a lista (filtro, seleção, dados): os elementos e o conteúdo são novos, então o cache não vale.
+  // Mudou a lista (filtro, foco, dados): os elementos e o conteúdo são novos, então o cache não vale.
   useEffect(() => {
     ultimo.current = null;
     estados.current = new WeakMap();
     invalidate();
-  }, [itens, priorizarLivres, modo, invalidate]);
+  }, [itens, modo, folga.topo, marcos, foco, invalidate]);
 
   useEffect(() => hover.assinar(invalidate), [hover, invalidate]);
 
   useFrame(() => {
     camera.updateMatrixWorld();
-    const m = [...camera.matrixWorld.elements, (camera as THREE.PerspectiveCamera).projectionMatrix.elements[5]];
+    const proj = (camera as THREE.PerspectiveCamera).projectionMatrix.elements;
+    const m = [...camera.matrixWorld.elements, proj[0], proj[5], size.width, size.height];
     const hov = hover.ler();
     const u = ultimo.current;
-    if (
-      u &&
-      u.w === size.width &&
-      u.h === size.height &&
-      u.l === livres.current &&
-      u.modo === modoAtual.current &&
-      u.hov === hov &&
-      u.m.every((v, k) => v === m[k])
-    )
-      return;
-    ultimo.current = { m, w: size.width, h: size.height, l: livres.current, modo: modoAtual.current, hov };
+    if (u && u.hov === hov && u.m.every((v, k) => v === m[k])) return;
+    ultimo.current = { m, hov };
 
-    const topo = new THREE.Vector3();
-    const base = new THREE.Vector3();
-    const lado = new THREE.Vector3();
+    const { itens: lista, modo: modoAtual, folga: f, marcos: listaMarcos, foco: emFoco } = atual.current;
+    const v = new THREE.Vector3();
+    const cima = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
     const direita = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
-    const forcados: Candidato[] = [];
-    const cands: Candidato[] = [];
+    const tela = (p: THREE.Vector3) => ({ x: (p.x * 0.5 + 0.5) * size.width, y: (-p.y * 0.5 + 0.5) * size.height, z: p.z });
+    const grade = new Grade();
 
-    const mostra = (e: HTMLElement, v: boolean) => {
-      e.style.opacity = v ? "1" : "0";
+    const mostra = (e: HTMLElement, vis: boolean) => {
+      e.style.opacity = vis ? "1" : "0";
       // Ao esconder, a visibilidade espera o fade terminar.
-      e.style.transition = v ? `${FADE}, visibility 0s` : `${FADE}, visibility 0s linear 150ms`;
-      e.style.visibility = v ? "visible" : "hidden";
+      e.style.transition = vis ? `${FADE}, visibility 0s` : `${FADE}, visibility 0s linear 150ms`;
+      e.style.visibility = vis ? "visible" : "hidden";
     };
 
-    // Só toca o DOM de uma camada quando ela muda de situação.
-    const aplica = (el: HTMLDivElement, pino: boolean, pilula: boolean, marcador: boolean) => {
-      const e = estados.current.get(el)!;
-      if (e.pino !== pino) mostra(el.children[0] as HTMLElement, (e.pino = pino));
+    const aplica = (el: HTMLDivElement, numero: boolean, pilula: boolean) => {
+      let e = estados.current.get(el);
+      if (!e) estados.current.set(el, (e = { numero: null, pilula: null, w: 0, h: 0 }));
+      if (e.numero !== numero) mostra(el.children[0] as HTMLElement, (e.numero = numero));
       if (e.pilula !== pilula) mostra(el.children[1] as HTMLElement, (e.pilula = pilula));
-      if (e.marcador !== marcador) mostra(el.children[2] as HTMLElement, (e.marcador = marcador));
+      return e;
     };
 
-    const haste = (el: HTMLDivElement, camada: number, h: number) => {
-      ((el.children[camada] as HTMLElement).firstElementChild as HTMLElement).style.height = `${Math.max(0, h)}px`;
-    };
+    // A pílula do hover entra primeiro na grade, para os números desviarem dela.
+    const daVez = hov === null ? undefined : lista.find((i) => i.mesa.id === hov && !i.selecionada);
+    if (daVez) {
+      const el = els.current.get(daVez.mesa.id);
+      const centro = tela(v.set(daVez.x, ALTURA_TAMPO, daVez.z).project(camera));
+      if (el && centro.z <= 1) {
+        const e = aplica(el, false, true);
+        const camada = el.children[1] as HTMLElement;
+        const pilula = camada.children[1] as HTMLElement;
+        if (e.w === 0) {
+          e.w = pilula.offsetWidth;
+          e.h = pilula.offsetHeight;
+        }
 
-    for (const i of atual.current) {
+        // Topo e base da esfera que envolve mesa e cadeiras, na tela.
+        const r = daVez.raio + ALEM_DO_TAMPO;
+        const topo = tela(v.set(daVez.x, ALTURA_TAMPO, daVez.z).addScaledVector(cima, r).project(camera));
+        const base = tela(v.set(daVez.x, ALTURA_TAMPO, daVez.z).addScaledVector(cima, -r).project(camera));
+        const acima = topo.y - VAO - e.h >= f.topo;
+        const y0 = acima ? topo.y - VAO - e.h : base.y + VAO;
+        const x0 = Math.min(Math.max(centro.x - e.w / 2, f.esquerda), size.width - f.direita - e.w);
+
+        el.style.zIndex = "4";
+        el.style.transform = `translate3d(${centro.x}px, ${y0}px, 0)`;
+        pilula.style.transform = `translateX(${x0 - centro.x}px)`;
+        const haste = camada.children[0] as HTMLElement;
+        haste.style.top = acima ? `${e.h}px` : `${-VAO}px`;
+        haste.style.height = `${VAO}px`;
+        grade.insere({ x0, y0, x1: x0 + e.w, y1: y0 + e.h });
+      }
+    }
+
+    const candidatos: { i: ItemRotulo; el: HTMLDivElement; x: number; y: number; prof: number }[] = [];
+    for (const i of lista) {
       const el = els.current.get(i.mesa.id);
-      if (!el) continue;
+      if (!el || i === daVez) continue;
 
-      if (!estados.current.has(el)) estados.current.set(el, { pino: null, pilula: null, marcador: null, w: 0, h: 0 });
-
-      topo.set(i.x, ALTURA_ROTULO_3D, i.z).project(camera);
-      if (topo.z > 1) {
-        aplica(el, false, false, false);
+      const quer = modoAtual === "sempre" && !i.esmaecida && !i.selecionada;
+      if (!quer) {
+        aplica(el, false, false);
         continue;
       }
 
-      base.set(i.x, ALTURA_TAMPO + 0.03, i.z).project(camera);
-      lado.set(i.x + direita.x * i.raio, ALTURA_TAMPO + 0.03 + direita.y * i.raio, i.z + direita.z * i.raio).project(camera);
-
-      const c: Candidato = {
-        i,
-        el,
-        x: (topo.x * 0.5 + 0.5) * size.width,
-        y: (-topo.y * 0.5 + 0.5) * size.height,
-        yBase: (-base.y * 0.5 + 0.5) * size.height,
-        diam: Math.hypot((lado.x - base.x) * size.width * 0.5, (lado.y - base.y) * size.height * 0.5) * 2,
-        prof: topo.z,
-        rank: priorizarLivres && i.estado === "livre" ? -1 : prioridade(i),
-      };
-
-      if (i.selecionada || i.mesa.id === hov) forcados.push(c);
-      else cands.push(c);
-    }
-
-    cands.sort((a, b) => a.rank - b.rank || a.prof - b.prof);
-    const grade = new Grade();
-
-    // A pílula entra primeiro na grade, para os pinos desviarem dela.
-    for (const c of forcados) {
-      const e = estados.current.get(c.el)!;
-      if (e.w === 0) {
-        const pilula = (c.el.children[1] as HTMLElement).children[1] as HTMLElement;
-        e.w = pilula.offsetWidth;
-        e.h = pilula.offsetHeight;
+      const c = tela(v.set(i.x, ALTURA_TAMPO, i.z).project(camera));
+      const lado = tela(v.set(i.x, ALTURA_TAMPO, i.z).addScaledVector(direita, i.raio).project(camera));
+      const diam = Math.hypot(lado.x - c.x, lado.y - c.y) * 2;
+      if (c.z > 1 || diam < DIAMETRO_MINIMO_NUMERO) {
+        aplica(el, false, false);
+        continue;
       }
-
-      grade.insere({ x0: c.x - e.w / 2, y0: c.y - e.h / 2, x1: c.x + e.w / 2, y1: c.y + e.h / 2 });
-      aplica(c.el, false, true, false);
-      c.el.style.zIndex = c.i.mesa.id === hov ? "4" : "3";
-      c.el.style.transform = `translate3d(${c.x}px, ${c.y}px, 0)`;
-      haste(c.el, 1, c.yBase - c.y);
+      candidatos.push({ i, el, x: c.x, y: c.y, prof: c.z });
     }
 
-    const comPino = new Set<Candidato>();
-    for (const c of cands) {
-      const quer = modoAtual.current === "sempre" || (modoAtual.current === "auto" && c.diam >= DIAMETRO_MINIMO_PINO);
-      if (!quer) continue;
-
-      const r = { x0: c.x - LADO_PINO / 2, y0: c.y - LADO_PINO / 2, x1: c.x + LADO_PINO / 2, y1: c.y + LADO_PINO / 2 };
-      if (!dentroDaTela(r, size.width, size.height) || grade.colide(r)) continue;
-
+    candidatos.sort((a, b) => prioridade(a.i) - prioridade(b.i) || a.prof - b.prof);
+    const meio = LADO_NUMERO / 2;
+    for (const c of candidatos) {
+      const r = { x0: c.x - meio, y0: c.y - meio, x1: c.x + meio, y1: c.y + meio };
+      const livre =
+        r.x0 >= f.esquerda && r.y0 >= f.topo && r.x1 <= size.width - f.direita && r.y1 <= size.height - f.base && !grade.colide(r);
+      aplica(c.el, livre, false);
+      if (!livre) continue;
       grade.insere(r);
-      comPino.add(c);
-    }
-
-    const meio = LADO_MARCADOR / 2;
-    for (const c of cands) {
-      const pino = comPino.has(c);
-      const alerta = c.i.alertas[0];
-      const marcador =
-        !!alerta && dentroDaTela({ x0: c.x - meio, y0: c.y - meio, x1: c.x + meio, y1: c.y + meio }, size.width, size.height);
-
-      aplica(c.el, pino, false, marcador);
-      if (!pino && !marcador) continue;
-
       c.el.style.zIndex = "1";
       c.el.style.transform = `translate3d(${c.x}px, ${c.y}px, 0)`;
-      if (pino) haste(c.el, 0, c.yBase - c.y);
-      if (marcador) {
-        const camada = c.el.children[2] as HTMLElement;
-        // Com o pino visível o marcador encosta nele, à direita, e dispensa o fio.
-        camada.style.transform = pino ? `translateX(${DESLOCA_MARCADOR}px)` : "";
-        (camada.firstElementChild as HTMLElement).style.display = pino ? "none" : "";
-        if (!pino) haste(c.el, 2, c.yBase - c.y);
-      }
     }
+
+    // Marcos por último: somem quando colidem com mesa ou saem da área livre.
+    listaMarcos.forEach((mc, k) => {
+      const el = elsMarcos.current[k];
+      if (!el) return;
+      let t = tamMarcos.current.get(el);
+      if (!t) tamMarcos.current.set(el, (t = { w: el.offsetWidth, h: el.offsetHeight, vis: -1 }));
+      const p = tela(v.set(mc.x, mc.y, mc.z).project(camera));
+      const x0 = p.x - t.w / 2;
+      const y0 = p.y - t.h - 6;
+      const r = { x0, y0, x1: x0 + t.w, y1: y0 + t.h };
+      const cabe =
+        p.z <= 1 && r.x0 >= f.esquerda && r.y0 >= f.topo && r.x1 <= size.width - f.direita && r.y1 <= size.height - f.base && !grade.colide(r);
+      const vis = cabe ? (emFoco ? 0.35 : 1) : 0;
+      if (cabe) {
+        grade.insere(r);
+        el.style.transform = `translate3d(${x0}px, ${y0}px, 0)`;
+      }
+      if (t.vis === vis) return;
+      t.vis = vis;
+      el.style.opacity = String(vis);
+      el.style.transition = vis ? `${FADE}, visibility 0s` : `${FADE}, visibility 0s linear 150ms`;
+      el.style.visibility = vis ? "visible" : "hidden";
+    });
   });
 
   return null;

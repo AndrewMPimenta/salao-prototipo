@@ -1,3 +1,4 @@
+import { gerarComandas } from "./gerar-comandas";
 import type { Ambiente, Mesa, Praca, Reserva } from "./types";
 
 export const AMBIENTES: Ambiente[] = [
@@ -21,6 +22,21 @@ export const PRACAS: Praca[] = [
   { id: "C", ambienteId: "eventos", garcom: "Hugo" },
   { id: "D", ambienteId: "eventos", garcom: "Maya" },
 ];
+
+/**
+ * Recurso de posições (US 24360), opcional por estabelecimento. Desligado, a mesa funciona sem
+ * posições; o Salão de Eventos fica desligado para exercitar esse caminho.
+ */
+export const POSICOES_HABILITADAS: Record<string, boolean> = {
+  principal: true,
+  varanda: true,
+  mezanino: true,
+  eventos: false,
+};
+
+export function posicoesHabilitadas(ambienteId: string): boolean {
+  return POSICOES_HABILITADAS[ambienteId] ?? false;
+}
 
 /** Instante dos dados: 21h10 de uma quarta. As reservas são relativas a ele. */
 const AGORA = 21 * 60 + 10;
@@ -66,7 +82,7 @@ const MESAS_BASE: Mesa[] = [
   { id: 31, ambienteId: "mezanino", pracaId: "A", forma: "redonda", x: 50, y: 18, largura: 56, altura: 56, lugares: 2, pessoas: 0, livreHa: 7, reserva: reserva(28, "Teixeira", 2) },
   { id: 32, ambienteId: "mezanino", pracaId: "A", forma: "redonda", x: 68, y: 18, largura: 56, altura: 56, lugares: 2, pessoas: 0, livreHa: 40 },
   { id: 33, ambienteId: "mezanino", pracaId: "B", forma: "redonda", x: 88, y: 22, largura: 62, altura: 62, lugares: 4, pessoas: 4, semPedido: 26, abertaHa: 48, total: 198 },
-  { id: 34, ambienteId: "mezanino", pracaId: "B", forma: "redonda", x: 16, y: 70, largura: 62, altura: 62, lugares: 4, pessoas: 3, semPedido: 7, abertaHa: 25, pedidosPendentes: 1, pendenteHa: 6, total: 133 },
+  { id: 34, ambienteId: "mezanino", pracaId: "B", forma: "redonda", x: 16, y: 70, largura: 62, altura: 62, lugares: 4, pessoas: 3, semPedido: 6, abertaHa: 25, pedidosPendentes: 1, pendenteHa: 6, total: 133 },
   { id: 35, ambienteId: "mezanino", pracaId: "B", forma: "redonda", x: 40, y: 74, largura: 62, altura: 62, lugares: 4, pessoas: 4, semPedido: 10, abertaHa: 40, total: 251 },
   { id: 36, ambienteId: "mezanino", pracaId: "B", forma: "retangular", x: 68, y: 76, largura: 116, altura: 54, lugares: 6, pessoas: 5, semPedido: 14, abertaHa: 30, total: 289 },
   { id: 37, ambienteId: "mezanino", pracaId: "B", forma: "redonda", x: 91, y: 68, largura: 62, altura: 62, lugares: 4, pessoas: 2, semPedido: 2, abertaHa: 55, contaImpressa: true, contaImpressaHa: 3, total: 96 },
@@ -150,7 +166,32 @@ function gerarEventos(): Mesa[] {
   return mesas;
 }
 
-export const MESAS: Mesa[] = [...MESAS_BASE, ...gerarEventos()];
+/** Mesas com nome dado na abertura, como no PDV ("1 - CAIO VI…"). */
+const NOMES_DE_MESA: Record<number, string> = {
+  15: "Aniversário Carla",
+  25: "Despedida do Caio",
+  36: "Equipe Comercial",
+};
+
+/** Mesas com mais de uma comanda aberta (o PDV mostra "3 comandas"). */
+const COMANDAS_POR_MESA: Record<number, number> = { 15: 3, 25: 3, 1: 2, 14: 2, 36: 2, 10: 2, 35: 2, 21: 2 };
+
+/** Aberta antes de ativar o recurso: fica com comandas, mas sem posições. */
+const SEM_POSICOES = new Set([33]);
+
+function comComandas(mesa: Mesa): Mesa {
+  const garcom = PRACAS.find((p) => p.id === mesa.pracaId && p.ambienteId === mesa.ambienteId)?.garcom ?? "Caixa";
+  // Nas mesas de evento a quantidade de comandas sai do id, para não consumir o sorteio do gerador.
+  const evento = mesa.ambienteId === "eventos";
+  return gerarComandas(mesa, {
+    garcom,
+    comPosicoes: posicoesHabilitadas(mesa.ambienteId) && !SEM_POSICOES.has(mesa.id),
+    nome: NOMES_DE_MESA[mesa.id],
+    comandas: COMANDAS_POR_MESA[mesa.id] ?? (evento && mesa.id % 5 === 0 ? 2 : 1),
+  });
+}
+
+export const MESAS: Mesa[] = [...MESAS_BASE, ...gerarEventos()].map(comComandas);
 
 export interface Fixture {
   x: number;

@@ -13,7 +13,6 @@ import {
 } from "@/lib/state";
 import { cn, formatarDuracao } from "@/lib/utils";
 import type { ArmazemHover } from "@/hooks/use-hover-mesa";
-import { AmostraAro } from "./amostra-aro";
 import { FichaAlerta } from "./selo-alerta";
 
 interface MobileListProps {
@@ -106,14 +105,12 @@ function Secao({
                 "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)",
               )}
             >
-              <AmostraAro estado={estado} className="grid size-10 place-items-center text-base font-semibold text-(--color-ink)">
-                {mesa.id}
-              </AmostraAro>
+              <span className="tnum w-8 flex-none text-right text-[16px] font-semibold text-(--color-ink)">{mesa.id}</span>
 
               <span className="min-w-0 flex-1">
                 <span className="block text-[15px] font-semibold leading-5">Mesa {mesa.id}</span>
                 <span className="mt-0.5 flex items-center gap-1.5 text-xs leading-4 text-(--color-ink-2)">
-                  {principal && <FichaAlerta tipo={principal.tipo} className="size-4 text-[10px]" />}
+                  {principal && <FichaAlerta tipo={principal.tipo} className="size-4" />}
                   <span className="truncate">
                     {principal ? ROTULO_ALERTA[principal.tipo] : ROTULO_CURTO[estado]}
                     {alertas.length > 1 ? ` +${alertas.length - 1}` : ""}

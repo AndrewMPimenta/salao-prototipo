@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useThree } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { CameraControls, CameraControlsImpl } from "@react-three/drei";
 import * as THREE from "three";
 import type { VistaCamera } from "@/components/floor-3d";
 import { caixaDaSala, type Cenario } from "./cenarios";
-import { enquadrarCaixa, transladarParaPonto, type Folga } from "./enquadramento";
+import { enquadrarCaixa, regiaoLivre, transladarParaPonto, type Folga } from "./enquadramento";
 
 const { ACTION } = CameraControlsImpl;
 
@@ -54,8 +54,14 @@ interface Props {
   folga: Folga;
   /** Posição de cada mesa no mundo (x, z). */
   posicoes: Map<number, [number, number, number]>;
+  selecionada: number | null;
   reduzMovimento: boolean;
 }
+
+/** Margem, em fração da região livre, que a mesa selecionada guarda das bordas da interface. */
+const MARGEM_LIVRE = 0.14;
+/** Quanto do embalo do arrasto vira deslize depois de soltar, em segundos de velocidade. */
+const EMBALO = 0.22;
 
 export function Camera(p: Props) {
   const ref = useRef<CameraControlsImpl | null>(null);
@@ -84,6 +90,9 @@ export function Camera(p: Props) {
   const ultimaLimpa = useRef(p.sinalLimparVista);
   // Preset escolhido à mão vence a vista salva até o próximo reset ou troca de ambiente.
   const usaPadrao = useRef(true);
+  // Depois que o usuário mexe na câmera ou seleciona uma mesa, a folga da interface não reenquadra: clicar não pode dar zoom.
+  const mexeu = useRef(false);
+  const pendente = useRef<{ id: number; ate: number } | null>(null);
 
   useEffect(() => {
     const c = ref.current;
@@ -131,7 +140,7 @@ export function Camera(p: Props) {
     passo();
   }, [invalidate]);
 
-  const enquadrar = useCallback((instantaneo: boolean, usarSalva: boolean) => {
+  const enquadrar = useCallback((instantaneo: boolean, usarSalva: boolean, entrada = false) => {
     const c = ref.current;
     const a = atual.current;
     if (!c || a.w <= 0) return;
@@ -158,7 +167,15 @@ export function Camera(p: Props) {
     const [pp, tt] = salva ? [salva.p, salva.t] : [pos.toArray(), alvo.toArray()];
 
     aspectoEnquadrado.current = aspecto;
-    void c.setLookAt(pp[0], pp[1], pp[2], tt[0], tt[1], tt[2], !instantaneo && !a.reduzMovimento);
+    mexeu.current = false;
+    if (entrada && !a.reduzMovimento) {
+      // Entrada no ambiente: parte 8% mais longe e 4° girada e assenta na pose, sob o fade-in da cena.
+      const de = new THREE.Vector3(pp[0] - tt[0], pp[1] - tt[1], pp[2] - tt[2])
+        .applyAxisAngle(new THREE.Vector3(0, 1, 0), THREE.MathUtils.degToRad(4))
+        .multiplyScalar(1.08);
+      void c.setLookAt(tt[0] + de.x, tt[1] + de.y, tt[2] + de.z, tt[0], tt[1], tt[2], false);
+    }
+    void c.setLookAt(pp[0], pp[1], pp[2], tt[0], tt[1], tt[2], entrada ? !a.reduzMovimento : !instantaneo && !a.reduzMovimento);
     renderizarPor(1800);
   }, [camera, gl, renderizarPor]);
 
@@ -166,12 +183,14 @@ export function Camera(p: Props) {
     if (!pronto || !pronto3d) return;
     const novoAmbiente = ultimoAmbiente.current !== p.ambienteId;
     ultimoAmbiente.current = p.ambienteId;
+    const pedido = novoAmbiente || ultimoReset.current !== p.sinalReset || ultimoPreset.current !== p.vistaCamera;
+    if (!pedido && mexeu.current) return;
     if (novoAmbiente || ultimoReset.current !== p.sinalReset) usaPadrao.current = true;
     else if (ultimoPreset.current !== p.vistaCamera) usaPadrao.current = false;
     ultimoReset.current = p.sinalReset;
     ultimoPreset.current = p.vistaCamera;
     // Trocar de ambiente troca a cena inteira: voar entre escalas diferentes confunde.
-    enquadrar(novoAmbiente, usaPadrao.current);
+    enquadrar(false, usaPadrao.current, novoAmbiente);
   }, [
     pronto,
     pronto3d,
@@ -245,6 +264,7 @@ export function Camera(p: Props) {
   useEffect(() => {
     if (!p.foco || p.foco.n === ultimoFoco.current) return;
     ultimoFoco.current = p.foco.n;
+    mexeu.current = true;
     panoramicaPara(p.foco.id);
   }, [p.foco, panoramicaPara]);
 
@@ -282,6 +302,118 @@ export function Camera(p: Props) {
     enquadrar(false, false);
   }, [p.sinalLimparVista, enquadrar]);
 
+  /*
+    Seleção: se a mesa caiu sob a interface (cartão à direita, folha embaixo), desliza só o
+    necessário para ela entrar na região livre, sem zoom. A folga muda logo depois da seleção,
+    quando o cartão abre; por isso a checagem fica pendente por um instante e roda de novo.
+  */
+  useEffect(() => {
+    if (p.selecionada === null) {
+      pendente.current = null;
+      return;
+    }
+    mexeu.current = true;
+    pendente.current = { id: p.selecionada, ate: performance.now() + 900 };
+  }, [p.selecionada]);
+
+  useEffect(() => {
+    const c = ref.current;
+    const pend = pendente.current;
+    if (!c || !pend || performance.now() > pend.ate) return;
+    const a = atual.current;
+    const xz = a.posicoes.get(pend.id);
+    if (!xz || a.w <= 0) return;
+
+    const vp = { w: a.w, h: a.h, fov: (camera as THREE.PerspectiveCamera).fov };
+    const r = regiaoLivre(a.folga, vp);
+    const mx = (r.dir - r.esq) * MARGEM_LIVRE;
+    const my = (r.cima - r.baixo) * MARGEM_LIVRE;
+    const ponto = new THREE.Vector3(xz[0], 0.74, xz[1]);
+    // Pose de destino, não a atual: uma transição em curso não pode enganar a conta.
+    const pos = c.getPosition(new THREE.Vector3(), false);
+    const alvo = c.getTarget(new THREE.Vector3(), false);
+    const cam = new THREE.PerspectiveCamera(vp.fov, vp.w / vp.h, 0.1, 1000);
+    cam.position.copy(pos);
+    cam.lookAt(alvo);
+    cam.updateMatrixWorld();
+    const ndc = ponto.clone().project(cam);
+    const destino = {
+      x: Math.min(Math.max(ndc.x, r.esq + mx), r.dir - mx),
+      y: Math.min(Math.max(ndc.y, r.baixo + my), r.cima - my),
+    };
+    if (Math.abs(destino.x - ndc.x) < 1e-3 && Math.abs(destino.y - ndc.y) < 1e-3) return;
+
+    const w = transladarParaPonto(ponto, pos, c.azimuthAngle, c.polarAngle, a.folga, vp, destino);
+    void c.moveTo(alvo.x + w.x, alvo.y + w.y, alvo.z + w.z, !a.reduzMovimento);
+    renderizarPor(900);
+  }, [p.selecionada, p.folga.topo, p.folga.base, p.folga.esquerda, p.folga.direita, camera, renderizarPor]);
+
+  /*
+    Embalo: o arrasto acompanha o ponteiro 1:1 e, ao soltar, o alvo segue na velocidade do gesto
+    e desacelera (o smoothDamp herda a velocidade e não ultrapassa). Pegar no meio do deslize
+    para onde está: o controle descarta o destino ao começar um arrasto.
+  */
+  useEffect(() => {
+    const c = ref.current;
+    if (!c) return;
+    const amostras: { t: number; x: number; z: number }[] = [];
+    let arrastando = false;
+    const alvo = new THREE.Vector3();
+
+    const inicio = () => {
+      arrastando = true;
+      mexeu.current = true;
+      amostras.length = 0;
+    };
+    const amostra = () => {
+      if (!arrastando) return;
+      c.getTarget(alvo, true);
+      const t = performance.now();
+      amostras.push({ t, x: alvo.x, z: alvo.z });
+      while (amostras.length > 2 && t - amostras[0].t > 90) amostras.shift();
+    };
+    const fim = () => {
+      arrastando = false;
+      const a = amostras[0];
+      const b = amostras[amostras.length - 1];
+      amostras.length = 0;
+      // Soltar parado (sem movimento nos últimos 60 ms) não desliza.
+      if (!a || !b || b.t - a.t < 16 || performance.now() - b.t > 60 || atual.current.reduzMovimento) return;
+      const dt = (b.t - a.t) / 1000;
+      const vx = (b.x - a.x) / dt;
+      const vz = (b.z - a.z) / dt;
+      if (Math.hypot(vx, vz) < 0.8) return;
+      c.getTarget(alvo, false);
+      void c.moveTo(alvo.x + vx * EMBALO, alvo.y, alvo.z + vz * EMBALO, true);
+      renderizarPor(900);
+    };
+
+    c.addEventListener("controlstart", inicio);
+    c.addEventListener("update", amostra);
+    c.addEventListener("controlend", fim);
+    return () => {
+      c.removeEventListener("controlstart", inicio);
+      c.removeEventListener("update", amostra);
+      c.removeEventListener("controlend", fim);
+    };
+  }, [pronto3d, renderizarPor]);
+
+  // Os planos de recorte acompanham a distância: com near fixo, camadas a milímetros cintilavam de longe.
+  const recorte = useRef({ near: 0, far: 0 });
+  useFrame(() => {
+    const c = ref.current;
+    if (!c) return;
+    const cam = camera as THREE.PerspectiveCamera;
+    const d = c.distance;
+    const near = THREE.MathUtils.clamp(d / 150, 0.05, 2);
+    const far = d * 4 + Math.hypot(atual.current.cenario.salaL, atual.current.cenario.salaP);
+    const r = recorte.current;
+    if (Math.abs(r.near - near) / near < 0.02 && Math.abs(r.far - far) / far < 0.02) return;
+    r.near = cam.near = near;
+    r.far = cam.far = far;
+    cam.updateProjectionMatrix();
+  }, -0.5);
+
   // O azimute alimenta a bússola do shell; ~10 Hz poupa renderizações do React.
   useEffect(() => {
     const c = ref.current;
@@ -303,6 +435,7 @@ export function Camera(p: Props) {
     const c = ref.current;
     if (!c || !p.zoom || p.zoom.n === ultimoZoom.current) return;
     ultimoZoom.current = p.zoom.n;
+    mexeu.current = true;
     void c.dolly(p.zoom.direcao * c.distance * 0.25, !p.reduzMovimento);
     renderizarPor(1200);
   }, [p.zoom, p.reduzMovimento, renderizarPor]);
@@ -311,8 +444,9 @@ export function Camera(p: Props) {
     <CameraControls
       ref={aoMontar}
       makeDefault
-      smoothTime={p.reduzMovimento ? 0 : 0.35}
-      draggingSmoothTime={p.reduzMovimento ? 0 : 0.12}
+      smoothTime={p.reduzMovimento ? 0 : 0.25}
+      draggingSmoothTime={p.reduzMovimento ? 0 : 0.03}
+      boundaryFriction={0.35}
       dollyToCursor
       minPolarAngle={0}
       maxPolarAngle={1.35}

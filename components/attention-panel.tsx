@@ -2,10 +2,9 @@
 
 import type { Limiares, Mesa } from "@/lib/types";
 import { PRACAS } from "@/lib/data";
-import { derivarEstado, ROTULO_ALERTA, textoAlerta, triarMesas } from "@/lib/state";
+import { ROTULO_ALERTA, textoAlerta, triarMesas } from "@/lib/state";
 import { cn, formatarDuracao } from "@/lib/utils";
 import type { ArmazemHover } from "@/hooks/use-hover-mesa";
-import { AmostraAro } from "./amostra-aro";
 import { FichaAlerta } from "./selo-alerta";
 
 interface AttentionPanelProps {
@@ -33,7 +32,6 @@ export function AttentionPanel({ mesas, limiares, onSelect, hover }: AttentionPa
   return (
     <ul className="m-0 flex list-none flex-col p-0">
       {lista.map(({ mesa, alertas }, i) => {
-        const estado = derivarEstado(mesa, limiares);
         const [principal, ...outros] = alertas;
         const praca = PRACAS.find((p) => p.id === mesa.pracaId && p.ambienteId === mesa.ambienteId);
 
@@ -51,13 +49,11 @@ export function AttentionPanel({ mesas, limiares, onSelect, hover }: AttentionPa
                 "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)",
               )}
             >
-              <AmostraAro estado={estado} className="grid size-10 place-items-center text-base font-semibold text-(--color-ink)">
-                {mesa.id}
-              </AmostraAro>
+              <span className="tnum w-8 flex-none text-right text-[16px] font-semibold text-(--color-ink)">{mesa.id}</span>
 
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-1.5 text-[15px] font-semibold leading-5">
-                  <FichaAlerta tipo={principal.tipo} className="size-5 text-[11px]" />
+                  <FichaAlerta tipo={principal.tipo} className="size-[18px]" />
                   <span className="truncate">{ROTULO_ALERTA[principal.tipo]}</span>
                   {outros.length > 0 && (
                     <span className="tnum flex-none text-[12px] font-medium text-(--color-ink-2)">+{outros.length}</span>

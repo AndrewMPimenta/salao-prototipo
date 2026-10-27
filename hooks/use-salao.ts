@@ -60,11 +60,15 @@ export function useSalao(todas: Mesa[], ambientes: Ambiente[], limiares: Limiare
   const lerAzimute = useCallback(() => azimute.current, []);
 
   const mesas = useMemo(() => todas.filter((m) => m.ambienteId === ambienteId), [todas, ambienteId]);
-  const { rotulos, cadeiras, pessoas, sombras } = { ...exibicaoPadrao(mesas.length, maquinaFraca), ...ajustes };
+  const { rotulos, destaque, cadeiras, pessoas, sombras } = { ...exibicaoPadrao(maquinaFraca), ...ajustes };
   const exibicao = useMemo<Exibicao>(
-    () => ({ rotulos, cadeiras, pessoas: cadeiras && pessoas, sombras }),
-    [rotulos, cadeiras, pessoas, sombras],
+    () => ({ rotulos, destaque, cadeiras, pessoas: cadeiras && pessoas, sombras }),
+    [rotulos, destaque, cadeiras, pessoas, sombras],
   );
+  // As amostras da legenda e das listas seguem o destaque escolhido, sem precisar receber a exibição.
+  useEffect(() => {
+    document.documentElement.dataset.destaque = destaque;
+  }, [destaque]);
   const resumo = useMemo(() => resumir(mesas, limiares), [mesas, limiares]);
   const mesasVisiveis = useMemo(
     () => (atencao ? mesas.filter((m) => derivarAlertas(m, limiares).length > 0) : mesas),

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import type { Alerta, EstadoMesa, Mesa } from "@/lib/types";
-import { GLIFO_ESTADO, ROTULO_ESTADO, textoAlerta, TRACO_ESTADO } from "@/lib/state";
+import { GLIFO_ESTADO, ROTULO_ESTADO, textoAlerta } from "@/lib/state";
 import { posicoesCadeiras } from "@/lib/geometria";
 import { cn, formatarDuracao } from "@/lib/utils";
 import { SeloAlerta } from "./selo-alerta";
@@ -37,6 +37,12 @@ export function TableShape({
   const largura = mesa.largura * escala;
   const altura = mesa.altura * escala;
   const glifo = GLIFO_ESTADO[estado];
+  const alerta = alertas[0]?.tipo;
+  const brilho = alerta
+    ? `var(--color-alerta-${alerta === "entregaAtrasada" ? "entrega" : alerta === "contaParada" ? "conta" : "critico"})`
+    : estado === "ocupada"
+      ? null
+      : `var(--color-brilho-${estado})`;
 
   const descricao = [
     `Mesa ${mesa.id}.`,
@@ -92,17 +98,13 @@ export function TableShape({
     top: `${mesa.y}%`,
     width: largura,
     height: altura,
-    background: `var(--color-${estado}-fill)`,
-    borderColor: `var(--color-${estado}-stroke)`,
-    borderWidth: TRACO_ESTADO[estado],
-    borderStyle: estado === "reservada" ? "dashed" : "solid",
-    color: `var(--color-${estado}-ink)`,
-    // Elevação é o que separa a mesa do piso. O preenchimento não dá conta.
-    boxShadow: estado === "livre" || estado === "reservada" ? "none" : "var(--shadow-table)",
-    backgroundImage:
-      estado === "conta"
-        ? "repeating-linear-gradient(45deg, transparent 0 6px, color-mix(in srgb, var(--color-conta-stroke) 20%, transparent) 6px 12px)"
-        : undefined,
+    // Tampo neutro como na cena 3D; o sinal é o brilho em volta (alerta vence o estado, ocupada não brilha).
+    background: "var(--color-raised)",
+    borderColor: "var(--color-line-2)",
+    borderWidth: 1,
+    borderStyle: "solid",
+    color: "var(--color-ink)",
+    boxShadow: brilho ? `var(--shadow-table), 0 0 0 3px color-mix(in srgb, ${brilho} 35%, transparent), 0 0 18px 6px color-mix(in srgb, ${brilho} 45%, transparent)` : "var(--shadow-table)",
   };
 
   const classes = cn(

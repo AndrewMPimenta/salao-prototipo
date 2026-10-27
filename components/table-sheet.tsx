@@ -8,11 +8,11 @@ import {
   minutosAteLiberar,
   ROTULO_ALERTA,
   ROTULO_ESTADO,
-  TRACO_ESTADO,
 } from "@/lib/state";
 import { cn, formatarDuracao, formatarMoeda } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { FichaAlerta } from "./selo-alerta";
+import { AmostraEstado } from "./amostra-estado";
 
 interface TableSheetProps {
   mesa: Mesa;
@@ -99,20 +99,13 @@ export function TableSheet({ mesa, limiares, onClose, variante = "sheet" }: Tabl
       <ul className="m-0 mt-3 flex list-none flex-col gap-2 border-t border-(--color-line) p-0 pt-3">
         <li className="flex items-center gap-2.5 text-[15px] font-semibold leading-6 text-(--color-ink)">
           <span className="grid size-6 flex-none place-items-center">
-            <span
-              aria-hidden
-              className="size-3.5 rounded-full"
-              style={{
-                background: `var(--color-${estado}-fill)`,
-                boxShadow: `inset 0 0 0 ${Math.min(TRACO_ESTADO[estado], 2.5)}px var(--color-${estado}-stroke)`,
-              }}
-            />
+            <AmostraEstado estado={estado} className="size-5" />
           </span>
           {ROTULO_ESTADO[estado]}
         </li>
         {alertas.map((a) => (
           <li key={a.tipo} className="flex items-center gap-2.5 text-[15px] leading-6 text-(--color-ink)">
-            <FichaAlerta tipo={a.tipo} />
+            <FichaAlerta tipo={a.tipo} className="size-5" />
             <span className="min-w-0 flex-1">
               <b className="font-semibold">{ROTULO_ALERTA[a.tipo]}</b>{" "}
               <span className="tnum text-(--color-ink-2)">há {formatarDuracao(a.minutos)}</span>
@@ -125,7 +118,10 @@ export function TableSheet({ mesa, limiares, onClose, variante = "sheet" }: Tabl
         {ocupada ? (
           <>
             <Item rotulo="Pessoas" valor={`${mesa.pessoas} de ${mesa.lugares} lugares`} />
-            <Item rotulo="Aberta há" valor={formatarDuracao(mesa.abertaHa ?? 0)} />
+            <Item
+              rotulo="Permanência"
+              valor={`${formatarDuracao(mesa.abertaHa ?? 0)} de ${formatarDuracao(limiares.permanenciaMedia)}`}
+            />
             <Item rotulo="Último pedido há" valor={formatarDuracao(mesa.semPedido ?? 0)} />
             <Item
               rotulo="Pedidos pendentes"

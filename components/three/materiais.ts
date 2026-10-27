@@ -1,33 +1,48 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import type { EstadoMesa } from "@/lib/types";
+import type { EstadoMesa, TipoAlerta } from "@/lib/types";
 
 export type Par = { fill: string; stroke: string };
 
-/** O tampo é neutro em todos os estados: quem diz o estado é o aro da borda (`corAro`). */
+/** O tampo é neutro em todos os estados: quem diz o estado é o brilho no piso (`corBrilho`). */
 export const TAMPO: Record<"claro" | "escuro", Par> = {
-  claro: { fill: "#fbf8f2", stroke: "#8a8479" },
-  escuro: { fill: "#46423b", stroke: "#8f897e" },
+  claro: { fill: "#e3dccf", stroke: "#b3a999" },
+  escuro: { fill: "#a39c90", stroke: "#8a8378" },
 };
 
-export type TipoAro = "solido" | "tracejado" | "fino";
+/** Intensidade do brilho: alerta é maior e mais forte que estado, para não depender só da cor. */
+export type NivelBrilho = "estado" | "alerta" | "critico";
 
-/** Livre e conta usam o traço cheio; reservada é tracejada; ocupada recua num fio. */
-export const TIPO_ARO: Record<EstadoMesa, TipoAro> = {
-  livre: "solido",
-  reservada: "tracejado",
-  ocupada: "fino",
-  conta: "solido",
+const BRILHO_CLARO = {
+  livre: "#1f9d6a",
+  reservada: "#7c5cd6",
+  conta: "#0043ce",
+  vermelho: "#d32f2f",
+  ambar: "#e09a12",
+  selecao: "#1b1a17",
+};
+const BRILHO_ESCURO = {
+  livre: "#34c08a",
+  reservada: "#a08cf0",
+  conta: "#64b5f6",
+  vermelho: "#ff6b6b",
+  ambar: "#f0b43a",
+  selecao: "#f4f1ea",
 };
 
-const ARO_CLARO: Record<EstadoMesa, string> = { livre: "#1b1a17", reservada: "#4a463f", ocupada: "#aaa397", conta: "#0043ce" };
-const ARO_ESCURO: Record<EstadoMesa, string> = { livre: "#f4f1ea", reservada: "#cdc6ba", ocupada: "#7c776d", conta: "#64b5f6" };
-
-/** O realce do hover leva qualquer aro ao contraste máximo com o tampo. */
-export function corAro(estado: EstadoMesa, escuro: boolean, realce: boolean) {
-  const t = escuro ? ARO_ESCURO : ARO_CLARO;
-  return realce ? t.livre : t[estado];
+/** Sinal mais importante da mesa: o alerta vence o estado; ocupada sem alerta não brilha. */
+export function corBrilho(estado: EstadoMesa, alerta: TipoAlerta | undefined, escuro: boolean): { cor: string; nivel: NivelBrilho } | null {
+  const t = escuro ? BRILHO_ESCURO : BRILHO_CLARO;
+  if (alerta === "semPedidoCritico") return { cor: t.vermelho, nivel: "critico" };
+  if (alerta === "semPedido") return { cor: t.vermelho, nivel: "alerta" };
+  if (alerta === "entregaAtrasada") return { cor: t.ambar, nivel: "alerta" };
+  if (alerta === "contaParada") return { cor: t.conta, nivel: "alerta" };
+  if (estado === "ocupada") return null;
+  return { cor: t[estado], nivel: "estado" };
 }
+
+/** Mesa em foco sem brilho próprio (ocupada) ganha um brilho neutro de tinta. */
+export const corSelecao = (escuro: boolean) => (escuro ? BRILHO_ESCURO : BRILHO_CLARO).selecao;
 
 /** Cores do cenário; o fundo acompanha --color-app para a maquete flutuar na página. */
 export interface Cores {
@@ -54,58 +69,70 @@ export interface Cores {
   icone: string;
   sofa: string;
   almofada: string;
+  balcao: string;
+  balcaoTopo: string;
+  pista: string;
+  juntaPista: string;
 }
 
 const CORES_CLARO: Cores = {
   fundo: "#efebe4",
-  piso: "#ebe5da",
+  piso: "#f2eee7",
   plinto: "#ddd5c7",
-  parede: "#ddd4c6",
-  capa: "#efe9df",
-  madeira: "#9a7652",
-  madeiraEscura: "#7f6044",
-  deck: "#d8cbb8",
-  ripaDeck: "#c3b49e",
-  mezPiso: "#b8a083",
-  mezRipa: "#a58c6c",
-  verde: "#6f8f6a",
+  parede: "#d8cfc1",
+  capa: "#ebe5da",
+  madeira: "#c7ae90",
+  madeiraEscura: "#b0967a",
+  deck: "#e4ddd1",
+  ripaDeck: "#d6cdbf",
+  mezPiso: "#ddd5c8",
+  mezRipa: "#cfc6b8",
+  verde: "#a6ab9b",
   vaso: "#a8998a",
-  cadeira: "#d4ccbf",
-  figura: "#8a8376",
+  cadeira: "#9c9184",
+  figura: "#6b6257",
   anel: "#1b1a17",
   vidro: "#cfe3ea",
   trilho: "#9a9286",
   porta: "#c9bfae",
   placa: "#f5f2ec",
   icone: "#2a2824",
-  sofa: "#8c7f70",
-  almofada: "#b3a592",
+  sofa: "#bfb6a9",
+  almofada: "#d0c8bb",
+  balcao: "#8f857a",
+  balcaoTopo: "#e2dbcf",
+  pista: "#cdc5b8",
+  juntaPista: "#bdb4a6",
 };
 
 const CORES_ESCURO: Cores = {
-  fundo: "#0f0e0c",
-  piso: "#25231f",
-  plinto: "#141311",
-  parede: "#37342e",
-  capa: "#46433c",
-  madeira: "#4a3a2c",
-  madeiraEscura: "#3a2e23",
-  deck: "#1d1a17",
-  ripaDeck: "#17150f",
-  mezPiso: "#3a2f25",
-  mezRipa: "#2d251d",
-  verde: "#34463a",
-  vaso: "#2e2a25",
-  cadeira: "#3a3732",
-  figura: "#b5aea2",
+  fundo: "#151412",
+  piso: "#1f1d1a",
+  plinto: "#121110",
+  parede: "#3a3631",
+  capa: "#4c4741",
+  madeira: "#4d4237",
+  madeiraEscura: "#40362c",
+  deck: "#24221e",
+  ripaDeck: "#26231f",
+  mezPiso: "#2e2b26",
+  mezRipa: "#282520",
+  verde: "#3a3d36",
+  vaso: "#3a3631",
+  cadeira: "#7d756a",
+  figura: "#c4bdb0",
   anel: "#f4f1ea",
   vidro: "#8fb3c0",
-  trilho: "#6a645a",
-  porta: "#3b3a36",
+  trilho: "#7a7368",
+  porta: "#47433d",
   placa: "#5a5750",
   icone: "#15140f",
-  sofa: "#4d4640",
-  almofada: "#68604f",
+  sofa: "#4f4a43",
+  almofada: "#635d55",
+  balcao: "#2b2824",
+  balcaoTopo: "#5e5850",
+  pista: "#2b2925",
+  juntaPista: "#34312c",
 };
 
 export const coresDoTema = (escuro: boolean) => (escuro ? CORES_ESCURO : CORES_CLARO);
@@ -140,78 +167,6 @@ export const capsula = (r: number, comp: number) =>
 
 export const circulo = () => obter("circ", () => new THREE.CircleGeometry(1, 40));
 
-export const anel = (ri: number, ro: number) =>
-  obter(`a${ri},${ro}`, () => new THREE.RingGeometry(ri, ro, 64));
-
-const PASSOS_ARCO = 48;
-
-/** Arco horário a partir das 12h; a fração é quantizada para o cache não crescer sem limite. */
-export const arco = (ri: number, ro: number, fracao: number) => {
-  const passos = Math.max(1, Math.round(Math.min(Math.max(fracao, 0), 1) * PASSOS_ARCO));
-  const comp = (passos / PASSOS_ARCO) * Math.PI * 2;
-  return obter(`r${ri},${ro},${passos}`, () => new THREE.RingGeometry(ri, ro, Math.max(2, passos * 2), 1, Math.PI / 2 - comp, comp));
-};
-
-const SEGMENTOS_TRACEJADO = 28;
-
-/** Anel tracejado numa só geometria: 28 arcos fundidos custam uma chamada de desenho. */
-export const anelTracejado = (ri: number, ro: number) =>
-  obter(`t${ri},${ro}`, () => {
-    const passo = (Math.PI * 2) / SEGMENTOS_TRACEJADO;
-    const partes = Array.from({ length: SEGMENTOS_TRACEJADO }, (_, k) => new THREE.RingGeometry(ri, ro, 3, 1, k * passo, passo * 0.55));
-    return mergeGeometries(partes)!;
-  });
-
-const TUBO_ARO: Record<TipoAro, number> = { solido: 0.085, tracejado: 0.075, fino: 0.035 };
-const ARCOS_ARO = 20;
-
-/**
- * Aro de raio 1 deitado no plano xz; a escala uniforme da instância dá o raio da mesa e,
- * junto, a espessura proporcional. Os tracejados são arcos fundidos numa só geometria.
- */
-export const aroCircular = (tipo: TipoAro) =>
-  obter(`o${tipo}`, () => {
-    const tubo = TUBO_ARO[tipo];
-    if (tipo !== "tracejado") return new THREE.TorusGeometry(1, tubo, 6, 56).rotateX(Math.PI / 2);
-
-    const passo = (Math.PI * 2) / ARCOS_ARO;
-    const arcos = Array.from({ length: ARCOS_ARO }, (_, k) => new THREE.TorusGeometry(1, tubo, 6, 5, passo * 0.55).rotateZ(k * passo));
-    return mergeGeometries(arcos)!.rotateX(Math.PI / 2);
-  });
-
-const ESPESSURA_ARO = { solido: 0.055, tracejado: 0.05, fino: 0.025 } as const;
-const ALTURA_ARO = 0.02;
-
-/** Moldura da mesa retangular, centrada na origem; o aro reto é feito de caixas porque a escala deformaria a espessura. */
-export const aroRetangular = (largura: number, profundidade: number, tipo: TipoAro) =>
-  obter(`q${largura},${profundidade},${tipo}`, () => {
-    const e = ESPESSURA_ARO[tipo];
-    const partes: THREE.BufferGeometry[] = [];
-
-    // Traço contínuo ou dashes de 14 cm com vão de 10 cm, centrados na aresta.
-    const aresta = (comp: number, cx: number, cz: number, horizontal: boolean) => {
-      const peca = (len: number, off: number) => {
-        const g = horizontal ? new THREE.BoxGeometry(len, ALTURA_ARO, e) : new THREE.BoxGeometry(e, ALTURA_ARO, len);
-        partes.push(g.translate(horizontal ? cx + off : cx, 0, horizontal ? cz : cz + off));
-      };
-      if (tipo !== "tracejado") return peca(comp, 0);
-
-      const dash = 0.14;
-      const passo = dash + 0.1;
-      const n = Math.max(1, Math.floor((comp + 0.1) / passo));
-      const inicio = -((n - 1) * passo) / 2;
-      for (let k = 0; k < n; k++) peca(dash, inicio + k * passo);
-    };
-
-    const x = largura / 2 - e / 2;
-    const z = profundidade / 2 - e / 2;
-    aresta(largura, 0, -z, true);
-    aresta(largura, 0, z, true);
-    aresta(profundidade - e * 2, -x, 0, false);
-    aresta(profundidade - e * 2, x, 0, false);
-    return mergeGeometries(partes)!;
-  });
-
 const basicos = new Map<string, THREE.MeshBasicMaterial>();
 
 /** Sem iluminação: o aro tem de ler a mesma cor sob qualquer luz da cena. */
@@ -245,26 +200,84 @@ export function mat(cor: string, opacidade = 1, rugosidade = 0.9) {
 /** Alvo de toque invisível: não desenha, mas o raycast ainda o enxerga. */
 export const matAlvo = new THREE.MeshBasicMaterial({ visible: false });
 
-const halos = new Map<string, THREE.MeshBasicMaterial>();
+let textura: THREE.CanvasTexture | null = null;
 
-/** Halo suave sob a mesa livre: gradiente radial que some na borda, sem recorte duro. */
-export function matHalo(cor: string, alfa: number) {
-  const chave = `${cor}|${alfa}`;
-  let m = halos.get(chave);
-  if (!m) {
-    const c = document.createElement("canvas");
-    c.width = c.height = 128;
-    const g = c.getContext("2d")!;
-    const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
-    grad.addColorStop(0, "rgba(255,255,255,1)");
-    grad.addColorStop(0.55, "rgba(255,255,255,0.6)");
-    grad.addColorStop(1, "rgba(255,255,255,0)");
-    g.fillStyle = grad;
-    g.fillRect(0, 0, 128, 128);
-    const tex = new THREE.CanvasTexture(c);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    m = new THREE.MeshBasicMaterial({ map: tex, color: cor, transparent: true, opacity: alfa, depthWrite: false });
-    halos.set(chave, m);
-  }
-  return m;
+/** Gradiente radial gerado uma vez e compartilhado por sombras de contato e brilhos. */
+export function texturaMancha() {
+  if (textura) return textura;
+  const c = document.createElement("canvas");
+  c.width = c.height = 128;
+  const g = c.getContext("2d")!;
+  const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  grad.addColorStop(0, "rgba(255,255,255,1)");
+  grad.addColorStop(0.35, "rgba(255,255,255,0.75)");
+  grad.addColorStop(0.7, "rgba(255,255,255,0.22)");
+  grad.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 128, 128);
+  textura = new THREE.CanvasTexture(c);
+  return textura;
 }
+
+/**
+ * Decalque deitado no piso: não grava profundidade e o polygonOffset o puxa à frente da laje,
+ * então camadas quase coplanares não cintilam de longe. A cor vem por instância.
+ */
+export function matMancha(opacidade: number, camada: number) {
+  // Iluminado como o piso: com a sala em foco, a mancha esmaecida (cor do piso) some em vez de virar um halo claro.
+  return new THREE.MeshLambertMaterial({
+    map: texturaMancha(),
+    transparent: true,
+    opacity: opacidade,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -1 - camada,
+    polygonOffsetUnits: -4 - camada * 2,
+  });
+}
+
+/** Quadrado unitário deitado no plano xz, para as manchas instanciadas. */
+export const quadPiso = () => obter("quadPiso", () => new THREE.PlaneGeometry(2, 2).rotateX(-Math.PI / 2));
+
+/** Friso do destaque "borda" na mesa redonda: raio 1, tubo de 5,5% do raio, deitado no plano xz. */
+export const friso = () => obter("friso", () => new THREE.TorusGeometry(0.97, 0.055, 8, 72).rotateX(Math.PI / 2));
+
+const ESPESSURA_MOLDURA = 0.045;
+const RAIO_CANTO = 0.06;
+
+function retanguloArredondado(l: number, p: number, r: number) {
+  const s = new THREE.Shape();
+  const x = -l / 2;
+  const y = -p / 2;
+  s.moveTo(x + r, y);
+  s.lineTo(x + l - r, y);
+  s.quadraticCurveTo(x + l, y, x + l, y + r);
+  s.lineTo(x + l, y + p - r);
+  s.quadraticCurveTo(x + l, y + p, x + l - r, y + p);
+  s.lineTo(x + r, y + p);
+  s.quadraticCurveTo(x, y + p, x, y + p - r);
+  s.lineTo(x, y + r);
+  s.quadraticCurveTo(x, y, x + r, y);
+  return s;
+}
+
+/** Moldura do destaque "borda" na mesa retangular: retângulo arredondado vazado, na medida do tampo. */
+export const moldura = (l: number, p: number) =>
+  obter(`m${l},${p}`, () => {
+    const e = ESPESSURA_MOLDURA;
+    const forma = retanguloArredondado(l, p, RAIO_CANTO);
+    forma.holes.push(retanguloArredondado(l - e * 2, p - e * 2, Math.max(0.01, RAIO_CANTO - e)));
+    return new THREE.ExtrudeGeometry(forma, { depth: 0.022, bevelEnabled: false, curveSegments: 4 }).rotateX(-Math.PI / 2);
+  });
+
+/**
+ * Juntas finas sobre uma face (tábuas do palco, placas da pista) fundidas numa só geometria:
+ * dezenas de frisos custam uma chamada de desenho. `cruzado` acrescenta as juntas no outro eixo.
+ */
+export const juntas = (l: number, p: number, passo: number, cruzado = false) =>
+  obter(`j${l},${p},${passo},${cruzado}`, () => {
+    const partes: THREE.BufferGeometry[] = [];
+    for (let z = -p / 2 + passo; z < p / 2 - 0.01; z += passo) partes.push(new THREE.BoxGeometry(l, 0.004, 0.018).translate(0, 0, z));
+    if (cruzado) for (let x = -l / 2 + passo; x < l / 2 - 0.01; x += passo) partes.push(new THREE.BoxGeometry(0.018, 0.004, p).translate(x, 0, 0));
+    return mergeGeometries(partes)!;
+  });

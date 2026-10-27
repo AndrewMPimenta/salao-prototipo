@@ -2,7 +2,8 @@
 
 import { useId, useState, type Ref } from "react";
 import type { Ambiente, Limiares, Mesa } from "@/lib/types";
-import { derivarEstado, ROTULO_CURTO, TRACO_ESTADO } from "@/lib/state";
+import { derivarEstado, ROTULO_CURTO } from "@/lib/state";
+import { AmostraEstado } from "../amostra-estado";
 import { cn } from "@/lib/utils";
 import { IconeBusca } from "./icones";
 
@@ -108,14 +109,7 @@ export function BuscaMesa({ mesas, ambientes, limiares, onIr, inputRef, autoFocu
                 i === ativo && "bg-(--color-ink)/8",
               )}
             >
-              <span
-                aria-hidden
-                className="size-3 flex-none rounded-full"
-                style={{
-                  background: `var(--color-${estado}-fill)`,
-                  boxShadow: `inset 0 0 0 ${Math.min(TRACO_ESTADO[estado], 2)}px var(--color-${estado}-stroke)`,
-                }}
-              />
+              <AmostraEstado estado={estado} className="size-4" />
               <span className="flex-1 text-[15px] font-medium text-(--color-ink)">Mesa {m.id}</span>
               <span className="text-[12px] text-(--color-ink-3)">
                 {ROTULO_CURTO[estado]} · {ambientes.find((a) => a.id === m.ambienteId)?.nome}

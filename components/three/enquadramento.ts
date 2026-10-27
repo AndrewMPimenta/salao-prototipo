@@ -31,7 +31,7 @@ function eixos(az: number, pol: number) {
   A interface flutuante cobre parte do canvas. A região LIVRE, em NDC, é onde
   a cena deve ficar centrada; o centro do canvas não importa.
 */
-function regiaoLivre(f: Folga, vp: Viewport) {
+export function regiaoLivre(f: Folga, vp: Viewport) {
   const l = Math.min(f.esquerda, vp.w * 0.35);
   const r = Math.min(f.direita, vp.w * 0.35);
   const t = Math.min(f.topo, vp.h * 0.35);
@@ -44,7 +44,10 @@ function regiaoLivre(f: Folga, vp: Viewport) {
   };
 }
 
-/** Translação da câmera (no plano dela) que leva o ponto ao centro da região livre, sem mexer em distância nem rotação. */
+/**
+ * Translação da câmera (no plano dela) que leva o ponto ao centro da região livre, ou ao
+ * destino em NDC quando dado, sem mexer em distância nem rotação.
+ */
 export function transladarParaPonto(
   ponto: THREE.Vector3,
   pos: THREE.Vector3,
@@ -52,6 +55,7 @@ export function transladarParaPonto(
   pol: number,
   folga: Folga,
   vp: Viewport,
+  destino?: { x: number; y: number },
 ) {
   const { back, right, up } = eixos(az, pol);
   const ty = Math.tan(THREE.MathUtils.degToRad(vp.fov) / 2);
@@ -60,8 +64,9 @@ export function transladarParaPonto(
 
   const rel = ponto.clone().sub(pos);
   const prof = Math.max(0.1, -rel.dot(back));
-  const dx = rel.dot(right) - ((r.esq + r.dir) / 2) * tx * prof;
-  const dy = rel.dot(up) - ((r.baixo + r.cima) / 2) * ty * prof;
+  const alvo = destino ?? { x: (r.esq + r.dir) / 2, y: (r.baixo + r.cima) / 2 };
+  const dx = rel.dot(right) - alvo.x * tx * prof;
+  const dy = rel.dot(up) - alvo.y * ty * prof;
 
   return right.multiplyScalar(dx).addScaledVector(up, dy);
 }

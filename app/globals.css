@@ -14,12 +14,12 @@
 
   ESTADO DA MESA
 
-  O tampo carrega só o estado de base (livre, reservada, ocupada, conta), todos
-  de baixa saturação: ocupada em andamento normal não pede nada, e pintá-la
-  esconderia as que pedem. A cor saturada fica nos selos de alerta, que nunca
-  recolorem o tampo. Vermelho = receita parada (sem pedido), âmbar = cozinha
-  (entrega), azul = informativo (conta); ícone e glifo repetem a distinção, então
-  a cor nunca está sozinha e sobrevive à escala de cinza.
+  O mobiliário é neutro; a cor da cena vem só do brilho no piso sob cada mesa
+  (`--color-brilho-*`): verde = livre, violeta = reservada, azul = conta, e
+  ocupada sem alerta não brilha. Alerta vence o estado: vermelho = receita
+  parada (sem pedido), âmbar = cozinha (entrega), azul = conta parada. O brilho
+  de alerta é maior e mais forte, e o texto do hover e do cartão repete tudo,
+  então a cor nunca está sozinha.
 */
 /*
   `static` é obrigatório: as cores de estado são montadas em tempo de execução
@@ -54,6 +54,10 @@
   --color-reservada-stroke: #67625a;
   --color-conta-fill: #cfe3f5;
   --color-conta-stroke: #0043ce;
+  --color-brilho-livre: #1f9d6a;
+  --color-brilho-reservada: #7c5cd6;
+  --color-brilho-conta: #0043ce;
+  --color-brilho-ocupada: #b5aea2;
 
   --color-livre-ink: #1b1a17;
   --color-reservada-ink: #1b1a17;
@@ -86,13 +90,13 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --color-app: #0f0e0c;
+    --color-app: #151412;
     --color-surface: #1a1917;
     --color-raised: #25231f;
     --color-floor: #13120f;
     --color-sunken: #2b2925;
     --color-ink: #f4f1ea;
-    --color-ink-2: #a39d92;
+    --color-ink-2: #b3ada2;
     --color-ink-3: #7c776d;
     --color-line: #34312c;
     --color-line-2: #48443d;
@@ -109,6 +113,10 @@
     --color-reservada-stroke: #a39d92;
     --color-conta-fill: #1c3a5e;
     --color-conta-stroke: #64b5f6;
+    --color-brilho-livre: #34c08a;
+    --color-brilho-reservada: #a08cf0;
+    --color-brilho-conta: #64b5f6;
+    --color-brilho-ocupada: #6f6a61;
 
     --color-livre-ink: #f4f1ea;
     --color-reservada-ink: #f4f1ea;
@@ -124,9 +132,9 @@
     --color-alerta-conta: #64b5f6;
     --color-alerta-conta-ink: #1a1917;
 
-    --color-glass: rgb(26 25 23 / 0.7);
+    --color-glass: rgb(28 27 24 / 0.78);
     --color-glass-strong: rgb(26 25 23 / 0.9);
-    --color-glass-edge: rgb(255 255 255 / 0.08);
+    --color-glass-edge: rgb(255 255 255 / 0.06);
 
     --shadow-table: 0 1px 1px rgb(0 0 0 / 0.5), 0 3px 10px rgb(0 0 0 / 0.55);
     --shadow-card: 0 1px 2px rgb(0 0 0 / 0.5), 0 10px 30px -12px rgb(0 0 0 / 0.7);
@@ -137,13 +145,13 @@
 }
 
 :root[data-theme="dark"] {
-  --color-app: #0f0e0c;
+  --color-app: #151412;
   --color-surface: #1a1917;
   --color-raised: #25231f;
   --color-floor: #13120f;
   --color-sunken: #2b2925;
   --color-ink: #f4f1ea;
-  --color-ink-2: #a39d92;
+  --color-ink-2: #b3ada2;
   --color-ink-3: #7c776d;
   --color-line: #34312c;
   --color-line-2: #48443d;
@@ -159,6 +167,10 @@
   --color-reservada-stroke: #a39d92;
   --color-conta-fill: #1c3a5e;
   --color-conta-stroke: #64b5f6;
+  --color-brilho-livre: #34c08a;
+  --color-brilho-reservada: #a08cf0;
+  --color-brilho-conta: #64b5f6;
+  --color-brilho-ocupada: #6f6a61;
   --color-livre-ink: #f4f1ea;
   --color-reservada-ink: #f4f1ea;
   --color-ocupada-ink: #f4f1ea;
@@ -171,9 +183,9 @@
   --color-alerta-entrega-ink: #1a1917;
   --color-alerta-conta: #64b5f6;
   --color-alerta-conta-ink: #1a1917;
-  --color-glass: rgb(26 25 23 / 0.7);
+  --color-glass: rgb(28 27 24 / 0.78);
   --color-glass-strong: rgb(26 25 23 / 0.9);
-  --color-glass-edge: rgb(255 255 255 / 0.08);
+  --color-glass-edge: rgb(255 255 255 / 0.06);
   --shadow-table: 0 1px 1px rgb(0 0 0 / 0.5), 0 3px 10px rgb(0 0 0 / 0.55);
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.5), 0 10px 30px -12px rgb(0 0 0 / 0.7);
   --shadow-float: 0 1px 1px rgb(0 0 0 / 0.4), 0 16px 40px -10px rgb(0 0 0 / 0.75);
@@ -220,6 +232,29 @@ html {
     inset 0 1px 0 var(--color-glass-edge),
     0 0 0 1px color-mix(in srgb, var(--color-ink) 7%, transparent),
     var(--shadow-float);
+}
+
+/*
+  Amostra de estado na legenda e nas listas: segue o destaque escolhido para a cena
+  (`data-destaque` na raiz) — friso, tampo pintado ou brilho. Ocupada é neutra.
+*/
+.amostra {
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--c) 16%, transparent);
+  box-shadow: inset 0 0 0 1.5px var(--c);
+}
+:root[data-destaque="tampo"] .amostra {
+  background: var(--c);
+  box-shadow: none;
+}
+:root[data-destaque="brilho"] .amostra {
+  background: radial-gradient(circle, color-mix(in srgb, var(--c) 85%, transparent) 0 38%, transparent 72%);
+  box-shadow: none;
+}
+.amostra-neutra {
+  border-radius: 9999px;
+  background: var(--color-sunken);
+  box-shadow: inset 0 0 0 1px var(--color-line-2);
 }
 
 .scrollbar-none {

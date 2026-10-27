@@ -9,6 +9,7 @@ import { ToggleGroup } from "../ui/toggle-group";
 import { Drawer } from "../ui/drawer";
 import { BarraMovel } from "./barra-movel";
 import { ControlesMovel } from "./camera-controles";
+import { exibicaoDe } from "./menu-exibicao";
 import { Cena } from "./cena";
 import { PilulaImersivo } from "./controles-janela";
 import { FiltrosRapidos } from "./filtros-rapidos";
@@ -79,7 +80,7 @@ export function LayoutMovel({ salao, imersivo, telaCheia }: PropsLayout) {
       </div>
 
       <BarraMovel salao={salao} aberto={ui} telaCheia={telaCheia} medir={medirBarra} />
-      <ControlesMovel camera={salao.camera} aberto={ui && indice < 2} base={alturaBase + 12} />
+      <ControlesMovel camera={salao.camera} aberto={ui && indice < 2} base={alturaBase + 12} exibicao={exibicaoDe(salao)} />
 
       <div className={ui ? "contents" : "hidden"}>
         <Drawer

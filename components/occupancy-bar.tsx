@@ -3,7 +3,7 @@
 import type { EstadoMesa } from "@/lib/types";
 import { ORDEM_ESTADOS, ROTULO_ESTADO } from "@/lib/state";
 import { cn } from "@/lib/utils";
-import { AmostraAro } from "./amostra-aro";
+import { AmostraEstado } from "./amostra-estado";
 
 const ROTULO_FAIXA: Record<EstadoMesa, string> = {
   livre: "Livres",
@@ -72,7 +72,7 @@ export function OccupancyBar({
                 ativo ? "bg-(--color-accent) text-(--color-accent-ink)" : "text-(--color-ink-2) hover:bg-(--color-ink)/6",
               )}
             >
-              <AmostraAro estado={estado} className="size-3" />
+              <AmostraEstado estado={estado} className="size-3" />
               {ROTULO_FAIXA[estado]}
               <span className="tnum font-[family-name:var(--font-mono)]">{n}</span>
             </button>
@@ -123,8 +123,7 @@ export function OccupancyBar({
               key={estado}
               style={{
                 flex: `${contagem[estado]} 1 0`,
-                background: `var(--color-${estado}-fill)`,
-                border: `1px solid var(--color-${estado}-stroke)`,
+                background: `var(--color-brilho-${estado})`,
               }}
               className={cn(
                 "rounded-full transition-opacity duration-150",
@@ -176,7 +175,7 @@ export function OccupancyBar({
                     : "text-(--color-ink) shadow-[inset_0_0_0_1px_var(--color-line)] group-hover:shadow-[inset_0_0_0_1px_var(--color-line-2)]",
                 )}
               >
-                <AmostraAro estado={estado} className={flutuante ? "size-3.5" : "size-4"} />
+                <AmostraEstado estado={estado} className={flutuante ? "size-3.5" : "size-4"} />
                 <span className="tnum font-[family-name:var(--font-mono)] text-sm font-semibold leading-none">
                   {n}
                 </span>

@@ -14,30 +14,52 @@ export function estiloAlerta(tipo: TipoAlerta): CSSProperties {
   return { background: `var(--color-alerta-${TOKEN[tipo]})`, color: `var(--color-alerta-${TOKEN[tipo]}-ink)` };
 }
 
-const Relogio = ({ className }: { className?: string }) => (
-  <svg aria-hidden viewBox="0 0 12 12" className={cn("size-3 flex-none", className)} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="6" cy="6" r="4.6" />
-    <path d="M6 3.4V6l1.8 1.1" />
-  </svg>
-);
-
-/** O ícone sozinho, para linhas de lista onde o selo inteiro seria demais. */
-export function GlifoAlerta({ tipo, className }: { tipo: TipoAlerta; className?: string }) {
-  if (tipo === "entregaAtrasada") return <Relogio className={className} />;
-  const texto = tipo === "semPedidoCritico" ? "!!" : tipo === "semPedido" ? "!" : "R$";
-  return <span aria-hidden className={cn("flex-none font-bold leading-none", className)}>{texto}</span>;
+/*
+  Glifos desenhados num quadro de 16×16 com o centro geométrico em (8, 8): texto de fonte
+  ("!", "!!") herda as métricas da fonte e nunca fica centrado de verdade no círculo.
+*/
+function Desenho({ tipo }: { tipo: TipoAlerta }) {
+  if (tipo === "entregaAtrasada")
+    return (
+      <g fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="8" cy="8" r="5" />
+        <path d="M8 5.3V8l1.9 1.2" />
+      </g>
+    );
+  if (tipo === "contaParada")
+    return (
+      <text x="8" y="8.4" textAnchor="middle" dominantBaseline="central" fontSize="8" fontWeight="800" fill="currentColor" letterSpacing="-0.4">
+        R$
+      </text>
+    );
+  const exclamacao = (cx: number) => (
+    <g key={cx} fill="currentColor">
+      <rect x={cx - 1.1} y="3.2" width="2.2" height="6.2" rx="1.1" />
+      <circle cx={cx} cy="11.7" r="1.15" />
+    </g>
+  );
+  return <>{tipo === "semPedidoCritico" ? [exclamacao(5.9), exclamacao(10.1)] : exclamacao(8)}</>;
 }
 
-/** Ficha circular com o glifo, na cor do alerta. */
-export function FichaAlerta({ tipo, className }: { tipo: TipoAlerta; className?: string }) {
+/** O ícone sozinho, na cor do texto, para linhas e pílulas. */
+export function GlifoAlerta({ tipo, className }: { tipo: TipoAlerta; className?: string }) {
   return (
-    <span
-      aria-hidden
-      className={cn("grid size-6 flex-none place-items-center rounded-full text-[12px]", className)}
-      style={estiloAlerta(tipo)}
-    >
-      <GlifoAlerta tipo={tipo} />
-    </span>
+    <svg aria-hidden viewBox="0 0 16 16" className={cn("size-3.5 flex-none", className)}>
+      <Desenho tipo={tipo} />
+    </svg>
+  );
+}
+
+/** Ficha circular com o glifo, na cor do alerta: círculo e glifo no mesmo SVG, sem como desalinhar. */
+export function FichaAlerta({ tipo, className }: { tipo: TipoAlerta; className?: string }) {
+  const { background, color } = estiloAlerta(tipo);
+  return (
+    <svg aria-hidden viewBox="0 0 16 16" className={cn("size-[18px] flex-none", className)} style={{ color }}>
+      <circle cx="8" cy="8" r="8" fill={background as string} />
+      <g transform="translate(8 8) scale(0.72) translate(-8 -8)">
+        <Desenho tipo={tipo} />
+      </g>
+    </svg>
   );
 }
 

@@ -1,20 +1,22 @@
 "use client";
 
-import { Suspense, useCallback, useMemo, useRef, useState } from "react";
-import { Canvas, useThree } from "@react-three/fiber";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Canvas } from "@react-three/fiber";
 import type { EstadoMesa, Limiares, Mesa } from "@/lib/types";
 import { derivarAlertas, derivarEstado, ROTULO_ESTADO, textoAlerta } from "@/lib/state";
 import { cn } from "@/lib/utils";
 import { useTemaEscuro } from "@/hooks/use-tema";
-import { CenarioEventos, CenarioSalao, CenarioVaranda } from "./three/ambientes";
+import { CenarioEventos, CenarioSalao, CenarioVaranda, type PropsCena } from "./three/ambientes";
 import { CenarioMezanino } from "./three/mezanino";
 import { Camera } from "./three/camera";
 import { ChaoToque } from "./three/chao";
-import { obterCenario, ALTURA_ROTULO_3D, ms, mx, mz } from "./three/cenarios";
-import { coresDoTema, TAMPO } from "./three/materiais";
+import { marcosDe, obterCenario, ms, mx, mz } from "./three/cenarios";
+import { corBrilho, coresDoTema, TAMPO } from "./three/materiais";
 import type { ArmazemHover } from "@/hooks/use-hover-mesa";
 import type { Exibicao } from "@/lib/exibicao";
-import { Aros } from "./three/aros";
+import { Luzes } from "./three/foco";
+import { Manchas } from "./three/manchas";
+import { Mesas } from "./three/mesas";
 import { Assentos, type ItemAssento } from "./three/assentos";
 import { Mesa3D } from "./three/mesa-3d";
 import { CamadaRotulos, ProjetorRotulos, type ItemRotulo, type MapaRotulos } from "./three/rotulos";
@@ -48,51 +50,70 @@ export interface Floor3DProps {
   onCameraChange?: (azimuteRad: number) => void;
   /** Folga em px que a interface flutuante ocupa sobre o canvas. */
   folga: { topo: number; base: number; esquerda: number; direita: number };
-  /** Cadeiras, pessoas e sombras pesam na GPU; os rótulos decidem quando o número aparece. */
+  /** Cadeiras, pessoas, sombras de contato e o modo dos rótulos. */
   exibicao: Exibicao;
   /** Mesa sob o ponteiro, compartilhada com as listas do shell. */
   hover: ArmazemHover;
   className?: string;
 }
 
-/** Luz de chave com sombra: mapa menor no celular, onde a GPU é o gargalo. */
-function Luzes({ escuro, raio, sombras }: { escuro: boolean; raio: number; sombras: boolean }) {
-  const mapa = useThree((s) => (s.size.width < 768 ? 512 : 1024));
-
-  return (
-    <>
-      {/* Sem legado de luz, a intensidade é dividida por π no difuso: ~3 no total devolve a cor do material. O chão do hemisfério é claro para as paredes laterais não escurecerem. */}
-      <hemisphereLight args={["#fff8ee", escuro ? "#a39c90" : "#cfc7b9", 1.5]} />
-      <directionalLight
-        key={mapa}
-        position={[-raio * 0.5, raio * 1.1, raio * 0.8]}
-        color="#fff6ea"
-        intensity={1.7}
-        castShadow={sombras}
-        shadow-mapSize={[mapa, mapa]}
-        shadow-bias={-0.0006}
-        shadow-normalBias={0.03}
-        shadow-camera-left={-raio}
-        shadow-camera-right={raio}
-        shadow-camera-top={raio}
-        shadow-camera-bottom={-raio}
-        shadow-camera-far={raio * 4}
-      />
-      <directionalLight position={[raio * 0.6, raio * 0.4, -raio * 0.5]} intensity={0.4} />
-    </>
-  );
+/** Antialias com até 2x de densidade no desktop; no toque a GPU é o gargalo. Sob demanda, parado não custa nada. */
+function useDpr(): [number, number] {
+  const [dpr, setDpr] = useState<[number, number]>([1, 1.5]);
+  useEffect(() => {
+    const grosso = window.matchMedia("(pointer: coarse)").matches;
+    setDpr([1, grosso ? 1.5 : Math.min(window.devicePixelRatio || 1, 2)]);
+  }, []);
+  return dpr;
 }
 
-const CENAS: Record<string, typeof CenarioSalao> = {
+/**
+ * Troca de ambiente: a cena some em 120 ms (opacidade no compositor), troca e volta em 180 ms
+ * enquanto a câmera assenta. Até o fim do fade-out continua desenhando o ambiente antigo com as
+ * mesas dele; trocar de novo no meio só redireciona, sem fila. Com movimento reduzido, 150 ms.
+ */
+function useTrocaAmbiente(alvo: string, mesasAlvo: Mesa[], reduz: boolean) {
+  const [vigente, setVigente] = useState(alvo);
+  const ultimas = useRef(mesasAlvo);
+  const raiz = useRef<HTMLDivElement>(null);
+  if (alvo === vigente) ultimas.current = mesasAlvo;
+
+  useEffect(() => {
+    const el = raiz.current;
+    if (alvo === vigente) {
+      // Voltou ao ambiente vigente no meio do fade-out: só reaparece.
+      if (el?.style.opacity === "0") {
+        el.style.transition = `opacity ${reduz ? 75 : 180}ms ease-out`;
+        el.style.opacity = "1";
+      }
+      return;
+    }
+    const saida = reduz ? 75 : 120;
+    if (el) {
+      el.style.transition = `opacity ${saida}ms ease-out`;
+      el.style.opacity = "0";
+    }
+    const t = setTimeout(() => setVigente(alvo), saida);
+    return () => clearTimeout(t);
+  }, [alvo, vigente, reduz]);
+
+  return {
+    ambienteId: vigente,
+    mesas: alvo === vigente ? mesasAlvo : ultimas.current,
+    raiz,
+  };
+}
+
+const CENAS: Record<string, (p: PropsCena) => React.ReactNode> = {
   varanda: CenarioVaranda,
   mezanino: CenarioMezanino,
   eventos: CenarioEventos,
 };
 
 export function Floor3D({
-  mesas,
+  mesas: mesasAlvo,
   limiares,
-  ambienteId,
+  ambienteId: ambienteAlvo,
   filtro,
   destacar,
   selecionada,
@@ -100,7 +121,7 @@ export function Floor3D({
   vistaCamera,
   sinalReset,
   zoom,
-  foco,
+  foco: foco3d,
   sinalNorte,
   sinalSalvarVista,
   sinalLimparVista,
@@ -110,14 +131,30 @@ export function Floor3D({
   hover,
   className,
 }: Floor3DProps) {
+  const reduz = useReduzMovimento();
+  const { ambienteId, mesas, raiz } = useTrocaAmbiente(ambienteAlvo, mesasAlvo, reduz);
   const cenario = obterCenario(ambienteId);
   const escuro = useTemaEscuro();
-  const reduz = useReduzMovimento();
   const cores = coresDoTema(escuro);
   const tampo = TAMPO[escuro ? "escuro" : "claro"];
   const els = useRef<MapaRotulos>(new Map());
+  const elsMarcos = useRef<(HTMLDivElement | null)[]>([]);
+  const marcos = useMemo(() => marcosDe(ambienteId), [ambienteId]);
+  const dpr = useDpr();
   const aoSelecionar = useCallback((id: number) => onSelect(id), [onSelect]);
   const aoVazio = useCallback(() => onSelect(null), [onSelect]);
+
+  // Esc devolve a sala inteira; campos de texto e diálogos tratam o seu próprio Esc.
+  useEffect(() => {
+    if (selecionada === null) return;
+    const aoTeclar = (e: KeyboardEvent) => {
+      const alvo = e.target as HTMLElement | null;
+      if (e.key !== "Escape" || e.defaultPrevented || alvo?.closest("input, textarea, [role=dialog]")) return;
+      onSelect(null);
+    };
+    window.addEventListener("keydown", aoTeclar);
+    return () => window.removeEventListener("keydown", aoTeclar);
+  }, [selecionada, onSelect]);
 
   const posicoes = useMemo(
     () => new Map(mesas.map((m) => [m.id, [mx(m.x, cenario), mz(m.y, cenario), Math.max(ms(m.largura), ms(m.altura)) / 2] as [number, number, number]])),
@@ -126,68 +163,105 @@ export function Floor3D({
 
   const situacoes = useMemo<ItemAssento[]>(
     () =>
-      mesas.map((mesa) => {
-        const estado = derivarEstado(mesa, limiares);
-        const alertas = derivarAlertas(mesa, limiares);
-        const esmaecida = destacar ? !destacar(mesa) : filtro !== null && filtro !== estado;
-        return { mesa, estado, alertas, esmaecida };
-      }),
-    [mesas, limiares, destacar, filtro],
+      mesas.map((mesa) => ({
+        mesa,
+        estado: derivarEstado(mesa, limiares),
+        alertas: derivarAlertas(mesa, limiares),
+      })),
+    [mesas, limiares],
+  );
+
+  // Foco e filtro falam a mesma língua: o que não está em foco recua para ~1/4.
+  const esmaecidas = useMemo(
+    () =>
+      new Map(
+        situacoes.map(({ mesa, estado }) => [
+          mesa.id,
+          selecionada !== null ? mesa.id !== selecionada : destacar ? !destacar(mesa) : filtro !== null && filtro !== estado,
+        ]),
+      ),
+    [situacoes, selecionada, destacar, filtro],
   );
 
   const itensRotulo = useMemo<ItemRotulo[]>(
     () =>
-      situacoes.flatMap(({ mesa, estado, alertas, esmaecida }) => {
-        if (esmaecida) return [];
+      situacoes.map(({ mesa, estado, alertas }) => {
         const [x, z, raio] = posicoes.get(mesa.id)!;
-        return [{ mesa, estado, alertas, x, z, raio, selecionada: selecionada === mesa.id }];
+        return {
+          mesa,
+          estado,
+          alertas,
+          x,
+          z,
+          raio,
+          esmaecida: esmaecidas.get(mesa.id) ?? false,
+          selecionada: selecionada === mesa.id,
+        };
       }),
-    [situacoes, posicoes, selecionada],
+    [situacoes, posicoes, esmaecidas, selecionada],
   );
+
+  const sinais = useMemo(() => {
+    const m = new Map<number, string>();
+    for (const { mesa, estado, alertas } of situacoes) {
+      const b = corBrilho(estado, alertas[0]?.tipo, escuro);
+      if (b) m.set(mesa.id, b.cor);
+    }
+    return m;
+  }, [situacoes, escuro]);
+
+  const foco = selecionada === null ? null : posicoes.get(selecionada);
+  const alvoLuz = useMemo(() => (foco ? { x: foco[0], z: foco[1], raio: foco[2] } : null), [foco]);
 
   const raio = Math.max(cenario.salaL, cenario.salaP) / 2 + 2;
   const Cena = CENAS[ambienteId] ?? CenarioSalao;
 
   return (
-    <div className={cn("absolute inset-0", className)}>
+    <div ref={raiz} className={cn("absolute inset-0", className)}>
       <div aria-hidden className="h-full w-full">
         <Canvas
-          // Remonta ao trocar: ligar/desligar sombras exige recompilar os materiais.
-          key={exibicao.sombras ? "sombras" : "sem-sombras"}
           flat
           frameloop="demand"
-          shadows={exibicao.sombras}
-          dpr={exibicao.sombras ? [1, 1.5] : [1, 1]}
+          dpr={dpr}
+          gl={{ antialias: true, powerPreference: "high-performance" }}
           camera={{ fov: 34, near: 0.1, far: 600, position: [12, 14, 16] }}
           onPointerMissed={aoVazio}
         >
           <color attach="background" args={[cores.fundo]} />
-          <fog attach="fog" args={[cores.fundo, 300, 700]} />
 
           <Suspense fallback={null}>
-            <Luzes escuro={escuro} raio={raio} sombras={exibicao.sombras} />
-            <Cena cores={cores} c={cenario} />
+            <Luzes escuro={escuro} raio={raio} alvo={alvoLuz} instantaneo={reduz} />
+            <Cena cores={cores} c={cenario} sombras={exibicao.sombras} />
             <ChaoToque cenario={cenario} onVazio={aoVazio} />
 
-            {exibicao.cadeiras && <Assentos itens={situacoes} cenario={cenario} cores={cores} pessoas={exibicao.pessoas} />}
-            <Aros itens={situacoes} cenario={cenario} cores={cores} escuro={escuro} hover={hover} />
-
-            {situacoes.map(({ mesa, estado, alertas, esmaecida }) => (
-              <Mesa3D
-                key={mesa.id}
-                mesa={mesa}
-                estado={estado}
-                alertas={alertas}
-                progresso={mesa.pessoas > 0 ? (mesa.abertaHa ?? 0) / limiares.permanenciaMedia : null}
-                hover={hover}
-                par={tampo}
-                cores={cores}
-                escuro={escuro}
-                cenario={cenario}
-                esmaecida={esmaecida}
-                selecionada={selecionada === mesa.id}
-                onSelect={aoSelecionar}
-              />
+            <Manchas
+              itens={situacoes}
+              cenario={cenario}
+              cores={cores}
+              escuro={escuro}
+              sombras={exibicao.sombras}
+              brilho={exibicao.destaque === "brilho"}
+              selecionada={selecionada}
+              esmaecidas={esmaecidas}
+              instantaneo={reduz}
+            />
+            <Mesas
+              mesas={mesas}
+              cenario={cenario}
+              par={tampo}
+              piso={cores.piso}
+              sinais={sinais}
+              destaque={exibicao.destaque}
+              hover={hover}
+              selecionada={selecionada}
+              esmaecidas={esmaecidas}
+              instantaneo={reduz}
+            />
+            {exibicao.cadeiras && (
+              <Assentos itens={situacoes} cenario={cenario} cores={cores} pessoas={exibicao.pessoas} esmaecidas={esmaecidas} instantaneo={reduz} />
+            )}
+            {mesas.map((mesa) => (
+              <Mesa3D key={mesa.id} mesa={mesa} hover={hover} cenario={cenario} onSelect={aoSelecionar} />
             ))}
 
             <Camera
@@ -196,53 +270,57 @@ export function Floor3D({
               vistaCamera={vistaCamera}
               sinalReset={sinalReset}
               zoom={zoom}
-              foco={foco}
+              foco={foco3d}
               sinalNorte={sinalNorte}
               sinalSalvarVista={sinalSalvarVista}
               sinalLimparVista={sinalLimparVista}
               onCameraChange={onCameraChange}
               folga={folga}
               posicoes={posicoes}
+              selecionada={selecionada}
               reduzMovimento={reduz}
             />
-            {/* Depois da câmera: precisa ler a pose já atualizada deste quadro. */}
             <ProjetorRotulos
               itens={itensRotulo}
               els={els}
+              marcos={marcos}
+              elsMarcos={elsMarcos}
+              foco={selecionada !== null}
               modo={exibicao.rotulos}
               hover={hover}
-              priorizarLivres={filtro === "livre" || destacar !== undefined}
+              folga={folga}
             />
           </Suspense>
         </Canvas>
       </div>
 
-      <CamadaRotulos itens={itensRotulo} corHaste={cores.anel} els={els} />
+      <CamadaRotulos itens={itensRotulo} marcos={marcos} corHaste={cores.anel} els={els} elsMarcos={elsMarcos} />
 
       {/* A cena não é operável por teclado; esta é a via equivalente. */}
-      <table className="sr-only">
-        <caption>Mesas do ambiente</caption>
-        <thead>
-          <tr>
-            <th>Mesa</th>
-            <th>Situação</th>
-            <th>Pessoas</th>
-            <th>Lugares</th>
-          </tr>
-        </thead>
-        <tbody>
-          {mesas.map((m) => (
-            <tr key={m.id}>
-              <td>Mesa {m.id}</td>
-              <td>
-                {[ROTULO_ESTADO[derivarEstado(m, limiares)], ...derivarAlertas(m, limiares).map(textoAlerta)].join(". ")}
-              </td>
-              <td>{m.pessoas}</td>
-              <td>{m.lugares}</td>
+      {/* sr-only numa div: a tabela ignora a altura de 1px e esticava o contêiner, que rolava ao focar algo. */}
+      <div className="sr-only">
+        <table>
+          <caption>Mesas do ambiente</caption>
+          <thead>
+            <tr>
+              <th>Mesa</th>
+              <th>Situação</th>
+              <th>Pessoas</th>
+              <th>Lugares</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {mesas.map((m) => (
+              <tr key={m.id}>
+                <td>Mesa {m.id}</td>
+                <td>{[ROTULO_ESTADO[derivarEstado(m, limiares)], ...derivarAlertas(m, limiares).map(textoAlerta)].join(". ")}</td>
+                <td>{m.pessoas}</td>
+                <td>{m.lugares}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

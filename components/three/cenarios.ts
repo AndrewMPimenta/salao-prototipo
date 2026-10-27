@@ -47,3 +47,42 @@ export function caixaDaSala(c: Cenario, margem = 0) {
     new THREE.Vector3(c.salaL / 2 + margem, 1.1, c.salaP / 2 + margem),
   );
 }
+
+/** Marco do cenário com nome na cena (palco, bar, pista...): âncora no topo do objeto. */
+export interface Marco {
+  nome: string;
+  x: number;
+  y: number;
+  z: number;
+}
+
+/** As posições acompanham os blocos de `ambientes.tsx` e `mezanino.tsx`. */
+export function marcosDe(ambienteId: string): Marco[] {
+  const c = obterCenario(ambienteId);
+  const meiaL = c.salaL / 2;
+  const meiaP = c.salaP / 2;
+
+  switch (ambienteId) {
+    case "eventos":
+      return [
+        { nome: "Palco", x: 0, y: 0.5, z: -meiaP + 3 },
+        { nome: "Pista", x: 0, y: 0.03, z: -16.5 },
+        { nome: "Buffet", x: -meiaL + 1.4, y: 1.07, z: 0 },
+        { nome: "Banheiros", x: meiaL - 0.12, y: 1.8, z: -4.7 },
+      ];
+    case "varanda":
+      return [{ nome: "Passagem para o salão", x: 0, y: 0.1, z: -meiaP }];
+    case "mezanino":
+      return [
+        { nome: "Lounge", x: -meiaL + 2.4, y: 0.6, z: -meiaP + 2.4 },
+        { nome: "Escada", x: meiaL - 1, y: 1.2, z: -meiaP + 1.6 },
+        { nome: "Vista para o salão", x: 0, y: 1.05, z: meiaP },
+      ];
+    default:
+      return [
+        { nome: "Palco", x: 0, y: 0.34, z: -meiaP + 2.6 },
+        { nome: "Bar", x: meiaL - 1.6, y: 1.17, z: 6.2 },
+        { nome: "Banheiros", x: meiaL - 0.12, y: 1.8, z: -0.3 },
+      ];
+  }
+}

@@ -5,7 +5,7 @@ import type { EstadoMesa, Limiares, Mesa } from "@/lib/types";
 import { useHoverMesa, type ArmazemHover } from "@/hooks/use-hover-mesa";
 import { derivarAlertas, derivarEstado, ORDEM_ESTADOS, ROTULO_ESTADO, textoAlerta } from "@/lib/state";
 import { cn } from "@/lib/utils";
-import { AmostraAro } from "../amostra-aro";
+import { AmostraEstado } from "../amostra-estado";
 import { FichaAlerta } from "../selo-alerta";
 
 const TITULO_GRUPO: Record<EstadoMesa, string> = {
@@ -47,12 +47,12 @@ function Linha({ mesa, estado, limiares, hover, selecionada, onIr }: LinhaProps)
           destacada ? "bg-(--color-ink)/10" : selecionada ? "bg-(--color-ink)/6" : "hover:bg-(--color-ink)/6",
         )}
       >
-        <AmostraAro estado={estado} className="size-4" />
+        <AmostraEstado estado={estado} className="size-4" />
         <span className="tnum w-9 flex-none font-[family-name:var(--font-mono)] font-semibold">{mesa.id}</span>
         <span className="tnum min-w-0 flex-1 truncate text-(--color-ink-2)">
           {mesa.pessoas > 0 ? `${mesa.pessoas}/${mesa.lugares} pessoas` : `${mesa.lugares} lugares`}
         </span>
-        {principal && <FichaAlerta tipo={principal.tipo} className="size-[18px] text-[10px]" />}
+        {principal && <FichaAlerta tipo={principal.tipo} />}
       </button>
     </li>
   );

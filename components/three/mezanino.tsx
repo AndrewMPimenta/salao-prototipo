@@ -1,21 +1,20 @@
 "use client";
 
-import type { Cenario } from "./cenarios";
-import { Bloco, Laje, Parede } from "./ambientes";
+import { Bloco, Laje, Parede, Sombra, type PropsCena } from "./ambientes";
 import type { Cores } from "./materiais";
 
 /**
  * Piso elevado com vista para o salão: tábuas escuras, balaustrada de vidro na
  * frente (o lado que dá para o vazio), canto de lounge e escada no fundo.
  */
-export function CenarioMezanino({ cores, c }: { cores: Cores; c: Cenario }) {
+export function CenarioMezanino({ cores, c, sombras }: PropsCena) {
   const meiaL = c.salaL / 2;
   const meiaP = c.salaP / 2;
   const tabuas = Math.floor(c.salaP / 0.3);
 
   return (
     <group>
-      <Laje c={c} cores={cores} piso={cores.mezPiso} />
+      <Laje c={c} piso={cores.mezPiso} />
 
       {Array.from({ length: tabuas }, (_, i) => (
         <Bloco
@@ -23,7 +22,6 @@ export function CenarioMezanino({ cores, c }: { cores: Cores; c: Cenario }) {
           tam={[c.salaL - 0.1, 0.004, 0.03]}
           pos={[0, 0.006, -meiaP + 0.15 + i * 0.3]}
           cor={cores.mezRipa}
-          sombra={false}
         />
       ))}
 
@@ -34,14 +32,13 @@ export function CenarioMezanino({ cores, c }: { cores: Cores; c: Cenario }) {
 
       {/* Balaustrada de vidro: painel translúcido entre montantes finos, com corrimão. */}
       <Bloco tam={[c.salaL, 1.0, 0.03]} pos={[0, 0.5, meiaP]} cor={cores.vidro} op={0.25} rug={0.15} />
-      <Bloco tam={[c.salaL, 0.05, 0.08]} pos={[0, 1.02, meiaP]} cor={cores.trilho} sombra={false} />
+      <Bloco tam={[c.salaL, 0.05, 0.08]} pos={[0, 1.02, meiaP]} cor={cores.trilho} />
       {Array.from({ length: Math.round(c.salaL / 2.5) + 1 }, (_, i) => (
         <Bloco
           key={i}
           tam={[0.05, 1.0, 0.05]}
           pos={[-meiaL + (i * c.salaL) / Math.round(c.salaL / 2.5), 0.5, meiaP]}
           cor={cores.trilho}
-          sombra={false}
         />
       ))}
 
@@ -49,6 +46,13 @@ export function CenarioMezanino({ cores, c }: { cores: Cores; c: Cenario }) {
       <Sofa x={-meiaL + 3.2} z={-meiaP + 1.1} larg={3.2} rot={0} cores={cores} />
       <Sofa x={-meiaL + 1.0} z={-meiaP + 3.4} larg={2.6} rot={Math.PI / 2} cores={cores} />
       <Bloco tam={[1.0, 0.32, 1.0]} pos={[-meiaL + 3.0, 0.16, -meiaP + 3.0]} cor={cores.madeira} />
+      {sombras && (
+        <>
+          <Sombra x={-meiaL + 3.2} z={-meiaP + 1.1} l={3.2} p={0.9} />
+          <Sombra x={-meiaL + 1.0} z={-meiaP + 3.4} l={0.9} p={2.6} />
+          <Sombra x={meiaL - 1.0} z={-meiaP + 1.6} l={1.2} p={2.2} />
+        </>
+      )}
 
       {/* Escada subindo rente à parede direita, no fundo. */}
       {Array.from({ length: 7 }, (_, i) => (

@@ -50,6 +50,48 @@ export interface Mesa {
   reserva?: Reserva;
   /** Consumo da comanda, em reais. */
   total?: number;
+  /** Nome dado à mesa na abertura ("Aniversário Carla"). */
+  nome?: string;
+  /** Uma mesa pode ter várias comandas abertas ao mesmo tempo. */
+  comandas?: Comanda[];
+  /** Só existe com o recurso ligado e a mesa aberta depois da ativação. */
+  posicoes?: Posicao[];
+}
+
+export type StatusItem = "entregue" | "pendente";
+
+export interface ItemPedido {
+  id: string;
+  nome: string;
+  qtd: number;
+  /** Em reais. */
+  valorUnit: number;
+  /** Posição dona do item; ausente em mesa sem posições ou no item compartilhado. */
+  posicao?: number;
+  /** Item dividido entre as posições que o consumiram (porção, garrafa). */
+  compartilhado?: { posicoes: number[] };
+  status: StatusItem;
+  /** Minutos desde o lançamento. */
+  lancadoHa: number;
+}
+
+export interface Comanda {
+  numero: number;
+  titular?: string;
+  /** Minutos desde a abertura. */
+  abertaHa: number;
+  /** Minutos desde o último item lançado. */
+  ultimaVendaHa: number;
+  abertoPor: string;
+  itens: ItemPedido[];
+}
+
+/** Uma posição é uma cadeira da mesa, numerada no sentido horário a partir da cabeceira. */
+export interface Posicao {
+  numero: number;
+  ocupada: boolean;
+  nome?: string;
+  paga?: boolean;
 }
 
 export interface Ambiente {

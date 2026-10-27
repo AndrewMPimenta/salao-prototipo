@@ -2,12 +2,12 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import type { Salao } from "@/hooks/use-salao";
-import type { Exibicao, ModoRotulos } from "@/lib/exibicao";
+import type { Exibicao } from "@/lib/exibicao";
 import { cn } from "@/lib/utils";
-import { ToggleGroup } from "../ui/toggle-group";
 import { BotaoIcone } from "./botao-icone";
 import { IconeAjuda } from "./icones";
 import { materializar } from "./materializar";
+import { Chave, PainelExibicao } from "./menu-exibicao";
 
 const ATALHOS: { teclas: string[]; texto: string }[] = [
   { teclas: ["PgUp", "PgDn"], texto: "Trocar de ambiente" },
@@ -26,33 +26,6 @@ const Tecla = ({ children }: { children: string }) => (
   </kbd>
 );
 
-function Chave({ ligada, onChange, rotulo, desabilitada }: { ligada: boolean; onChange: (v: boolean) => void; rotulo: string; desabilitada?: boolean }) {
-  return (
-    <label className={cn("flex min-h-11 cursor-pointer items-center justify-between gap-4 text-[13px] text-(--color-ink)", desabilitada && "cursor-default opacity-45")}>
-      {rotulo}
-      <button
-        type="button"
-        role="switch"
-        aria-checked={ligada}
-        disabled={desabilitada}
-        aria-label={rotulo}
-        onClick={() => onChange(!ligada)}
-        className={cn(
-          "relative h-6 w-10 flex-none rounded-full transition-colors duration-200",
-          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)",
-          ligada ? "bg-(--color-accent)" : "bg-(--color-ink)/20",
-        )}
-      >
-        <span
-          className={cn(
-            "absolute left-0.5 top-0.5 size-5 rounded-full bg-(--color-raised) shadow-sm transition-[translate] duration-200 ease-(--ease-out-soft)",
-            ligada && "translate-x-4",
-          )}
-        />
-      </button>
-    </label>
-  );
-}
 
 interface AjudaAtalhosProps {
   aberto: boolean;
@@ -67,11 +40,6 @@ interface AjudaAtalhosProps {
   camera: Salao["camera"];
 }
 
-const OPCOES_ROTULOS: { valor: ModoRotulos; rotulo: string }[] = [
-  { valor: "auto", rotulo: "Automático" },
-  { valor: "sempre", rotulo: "Sempre" },
-  { valor: "hover", rotulo: "Ao passar o mouse" },
-];
 
 const Secao = ({ children }: { children: string }) => (
   <h2 className="m-0 mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-(--color-ink-3)">{children}</h2>
@@ -133,26 +101,7 @@ export function AjudaAtalhos({ aberto, onAbrir, atalhosLigados, onAtalhos, exibi
 
         <div className="border-t border-(--color-ink)/10 pt-3">
           <Secao>Exibição</Secao>
-          <p className="m-0 mb-1.5 text-[13px] text-(--color-ink)">Rótulos nas mesas</p>
-          <ToggleGroup<ModoRotulos>
-            rotulo="Rótulos nas mesas"
-            tamanho="sm"
-            valor={exibicao.rotulos}
-            onChange={(v) => onExibicao({ rotulos: v })}
-            opcoes={OPCOES_ROTULOS}
-            className="w-full [&>button]:flex-1 [&>button]:whitespace-nowrap [&>button]:px-1 [&>button]:text-[12px]"
-          />
-          <Chave ligada={exibicao.cadeiras} onChange={(v) => onExibicao({ cadeiras: v })} rotulo="Cadeiras" />
-          <Chave ligada={exibicao.pessoas} onChange={(v) => onExibicao({ pessoas: v })} rotulo="Pessoas" desabilitada={!exibicao.cadeiras} />
-          <Chave ligada={exibicao.sombras} onChange={(v) => onExibicao({ sombras: v })} rotulo="Sombras" />
-          <p className="m-0 flex items-center justify-between gap-2 pb-1 text-[11px] leading-4 text-(--color-ink-3)">
-            {personalizada ? "Ajuste manual." : "Padrão: cadeiras, pessoas e sombras saem em salões grandes ou máquinas fracas."}
-            {personalizada && (
-              <button type="button" onClick={onRestaurar} className="flex-none font-medium text-(--color-ink-2) underline underline-offset-2">
-                Restaurar padrão
-              </button>
-            )}
-          </p>
+          <PainelExibicao exibicao={exibicao} onExibicao={onExibicao} personalizada={personalizada} onRestaurar={onRestaurar} />
         </div>
 
         <div className="mt-2 border-t border-(--color-ink)/10 pt-3">

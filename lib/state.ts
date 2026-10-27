@@ -103,12 +103,4 @@ export const GLIFO_ESTADO: Partial<Record<EstadoMesa, string>> = {
   conta: "R$",
 };
 
-/** Espessura do traço em px. */
-export const TRACO_ESTADO: Record<EstadoMesa, number> = {
-  livre: 2,
-  reservada: 2,
-  ocupada: 2,
-  conta: 3,
-};
-
 export const ORDEM_ESTADOS: EstadoMesa[] = ["livre", "reservada", "ocupada", "conta"];

@@ -11,6 +11,7 @@ import { BarraDesktop } from "./barra-desktop";
 import { BotaoIcone } from "./botao-icone";
 import { BuscaMesa } from "./busca-mesa";
 import { ControlesDesktop } from "./camera-controles";
+import { exibicaoDe } from "./menu-exibicao";
 import { BotaoTelaCheia, PilulaImersivo } from "./controles-janela";
 import { Cena } from "./cena";
 import { IconeBusca } from "./icones";
@@ -190,7 +191,7 @@ export function LayoutDesktop({ salao, imersivo, telaCheia, atalhos }: PropsLayo
         )}
         <PainelAtencao salao={salao} aberto={painelAberto} onAbrir={setPainelAberto} medir={medirPainel} />
         <div className="pointer-events-auto flex-none">
-          <ControlesDesktop camera={salao.camera} aberto={salao.vista === "3d"} />
+          <ControlesDesktop camera={salao.camera} aberto={salao.vista === "3d"} exibicao={exibicaoDe(salao)} />
         </div>
       </div>
 

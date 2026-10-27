@@ -1,7 +1,12 @@
-export type ModoRotulos = "auto" | "sempre" | "hover";
+/** "sempre" mostra só os números; o detalhe completo é sempre do hover. */
+export type ModoRotulos = "hover" | "sempre";
+
+/** Como a cor do sinal aparece na mesa: friso na borda do tampo, tampo pintado ou brilho no piso. */
+export type Destaque = "borda" | "tampo" | "brilho";
 
 export interface Exibicao {
   rotulos: ModoRotulos;
+  destaque: Destaque;
   cadeiras: boolean;
   /** Só aparecem com cadeiras: ficam sentadas nelas. */
   pessoas: boolean;
@@ -10,17 +15,20 @@ export interface Exibicao {
 
 const CHAVE = "exibicao";
 
-/** Salão grande ou máquina fraca começa sem cadeiras, pessoas e sombras; o resto do padrão é fixo. */
-export function exibicaoPadrao(totalMesas: number, maquinaFraca: boolean): Exibicao {
-  const leve = totalMesas > 60 || maquinaFraca;
-  return { rotulos: "auto", cadeiras: !leve, pessoas: !leve, sombras: !leve };
+/**
+ * Máquina fraca começa sem cadeiras e pessoas. O tamanho do salão não pesa: tudo é instanciado
+ * e de longe as cadeiras somem sozinhas. As sombras de contato custam uma chamada de desenho.
+ */
+export function exibicaoPadrao(maquinaFraca: boolean): Exibicao {
+  return { rotulos: "hover", destaque: "borda", cadeiras: !maquinaFraca, pessoas: !maquinaFraca, sombras: true };
 }
 
 export function lerAjustes(): Partial<Exibicao> {
   try {
     const bruto = JSON.parse(localStorage.getItem(CHAVE) ?? "{}") as Record<string, unknown>;
     const out: Partial<Exibicao> = {};
-    if (bruto.rotulos === "auto" || bruto.rotulos === "sempre" || bruto.rotulos === "hover") out.rotulos = bruto.rotulos;
+    if (bruto.rotulos === "sempre" || bruto.rotulos === "hover") out.rotulos = bruto.rotulos;
+    if (bruto.destaque === "borda" || bruto.destaque === "tampo" || bruto.destaque === "brilho") out.destaque = bruto.destaque;
     for (const k of ["cadeiras", "pessoas", "sombras"] as const) if (typeof bruto[k] === "boolean") out[k] = bruto[k];
     return out;
   } catch {

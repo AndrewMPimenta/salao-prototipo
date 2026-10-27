@@ -6,6 +6,7 @@ import type { Salao } from "@/hooks/use-salao";
 import { BotaoIcone } from "./botao-icone";
 import { IconeAlvo, IconeBussola, IconeMais, IconeMarcador, IconeMenos, ICONE_PRESET } from "./icones";
 import { materializar } from "./materializar";
+import { MenuExibicao, type PropsExibicao } from "./menu-exibicao";
 import { PRESETS, ROTULO_PRESET } from "./tipos";
 
 type Camera = Salao["camera"];
@@ -137,17 +138,19 @@ function SeletorPreset({ camera }: { camera: Camera }) {
   );
 }
 
-export function ControlesDesktop({ camera, aberto }: { camera: Camera; aberto: boolean }) {
+export function ControlesDesktop({ camera, aberto, exibicao }: { camera: Camera; aberto: boolean; exibicao: PropsExibicao }) {
   return (
     <div inert={!aberto} className={cn("flex flex-col items-end gap-2", materializar(aberto))}>
       <SeletorPreset camera={camera} />
-      <Pilha camera={camera} />
+      <Pilha camera={camera}>
+        <MenuExibicao {...exibicao} />
+      </Pilha>
     </div>
   );
 }
 
 /** No celular os presets viram um botão que cicla; um segmentado largo cobriria a cena. */
-export function ControlesMovel({ camera, aberto, base }: { camera: Camera; aberto: boolean; base: number }) {
+export function ControlesMovel({ camera, aberto, base, exibicao }: { camera: Camera; aberto: boolean; base: number; exibicao: PropsExibicao }) {
   const Icone = ICONE_PRESET[camera.vistaCamera];
   return (
     <div
@@ -166,6 +169,7 @@ export function ControlesMovel({ camera, aberto, base }: { camera: Camera; abert
         >
           <Icone />
         </BotaoIcone>
+        <MenuExibicao {...exibicao} />
       </Pilha>
     </div>
   );

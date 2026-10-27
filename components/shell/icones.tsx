@@ -25,6 +25,7 @@ export const IconeAjuda = () => <Base><circle cx="12" cy="12" r="8.5" /><path d=
 export const IconeExpandir = () => <Base><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></Base>;
 export const IconeRecolher = () => <Base><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" /></Base>;
 export const IconeAlvo = () => <Base><circle cx="12" cy="12" r="3" /><path d="M12 3v3M12 18v3M3 12h3M18 12h3" /></Base>;
+export const IconeOlho = () => <Base><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" /><circle cx="12" cy="12" r="2.8" /></Base>;
 export const IconeMarcador = () => <Base><path d="M7 4h10v16l-5-3.5L7 20V4Z" /></Base>;
 export const IconeChevron = ({ baixo }: { baixo?: boolean }) => (
   <Base><path d={baixo ? "m7 10 5 5 5-5" : "m7 14 5-5 5 5"} /></Base>
