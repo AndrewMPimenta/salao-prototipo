@@ -119,8 +119,6 @@ export function ProjetorRotulos({ itens, els }: { itens: ItemRotulo[]; els: Reac
   const atual = useRef(itens);
   atual.current = itens;
   const ultimo = useRef<{ m: number[]; w: number; h: number } | null>(null);
-  const glTmp = useThree((s) => s.gl); // TMP-DEBUG
-  useEffect(() => { (window as any).__info = () => JSON.stringify(glTmp.info.render); }, [glTmp]); // TMP-DEBUG
 
   // Mudou a lista (filtro, seleção): os elementos são novos, então a posição em cache não vale.
   useEffect(() => {
@@ -171,7 +169,7 @@ export function ProjetorRotulos({ itens, els }: { itens: ItemRotulo[]; els: Reac
   A projeção é por ponto de âncora, aproximando cada rótulo por uma caixa
   fixa. É estimativa, não medição de DOM.
 */
-const LARGURA_ROTULO = 76;
+const LARGURA_ROTULO = 46;
 const ALTURA_ROTULO = 28;
 
 export function MedidorDeRotulos({
