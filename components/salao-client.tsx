@@ -57,7 +57,7 @@ export function SalaoClient({ mesas, ambientes, limiares }: SalaoClientProps) {
   };
 
   return (
-    <div ref={raiz} className="relative h-full w-full overflow-hidden bg-(--color-app)">
+    <div ref={raiz} className="relative h-full w-full overflow-clip bg-(--color-app)">
       {desktop === true && <LayoutDesktop {...propsLayout} />}
       {desktop === false && <LayoutMovel {...propsLayout} />}
     </div>

@@ -8,6 +8,8 @@ import { derivarAlertas } from "@/lib/state";
 import { resumir } from "@/components/shell/estatisticas";
 import { PRESETS, type FiltroRapido, type Vista, type VistaCamera } from "@/components/shell/tipos";
 
+export type AbaDetalhe = "resumo" | "comandas" | "posicoes";
+
 /**
  * Todo o estado de seleção e câmera mora aqui, fora dos layouts: desktop e
  * celular são duas composições da mesma conversa com a cena.
@@ -19,6 +21,8 @@ export function useSalao(todas: Mesa[], ambientes: Ambiente[], limiares: Limiare
   const [atencao, setAtencao] = useState(false);
   const [selecionada, setSelecionada] = useState<number | null>(null);
   const [foco, setFoco] = useState<{ id: number; n: number } | null>(null);
+  const [posicaoSelecionada, setPosicaoSelecionada] = useState<number | null>(null);
+  const [abaDetalhe, setAbaDetalhe] = useState<AbaDetalhe>("resumo");
   const [vistaCamera, setVistaCamera] = useState<VistaCamera>("perspectiva");
   const [sinalReset, setSinalReset] = useState(0);
   const [sinalNorte, setSinalNorte] = useState(0);
@@ -78,6 +82,16 @@ export function useSalao(todas: Mesa[], ambientes: Ambiente[], limiares: Limiare
     () => (atencao ? (m: Mesa) => derivarAlertas(m, limiares).length > 0 : undefined),
     [atencao, limiares],
   );
+  // Posição e aba pertencem à mesa em foco: trocar de mesa recomeça no Resumo, sem posição.
+  useEffect(() => {
+    setPosicaoSelecionada(null);
+    setAbaDetalhe("resumo");
+  }, [selecionada]);
+  /** Escolher uma cadeira na cena abre a posição no painel. */
+  const selecionarPosicao = useCallback((numero: number | null) => {
+    setPosicaoSelecionada(numero);
+    if (numero !== null) setAbaDetalhe("posicoes");
+  }, []);
   const mesaSelecionada = mesas.find((m) => m.id === selecionada) ?? null;
 
   const filtroRapido: FiltroRapido | "outro" = atencao
@@ -139,6 +153,7 @@ export function useSalao(todas: Mesa[], ambientes: Ambiente[], limiares: Limiare
     selecionada, mesaSelecionada, selecionar: setSelecionada,
     alternarSelecao: (id: number) => setSelecionada((s) => (s === id ? null : id)),
     irParaMesa, foco,
+    posicaoSelecionada, selecionarPosicao, abaDetalhe, setAbaDetalhe,
     hover,
     exibicao, exibicaoPersonalizada: Object.keys(ajustes).length > 0, definirExibicao, restaurarExibicao,
     camera: {

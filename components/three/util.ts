@@ -16,6 +16,8 @@ export function useReduzMovimento(): boolean {
   return reduz;
 }
 
+const BRANCO = new THREE.Color("#ffffff");
+
 /** Quanto uma peça fora de foco se funde ao piso: ~22% da presença original. */
 export const MUDO_FOCO = 0.78;
 
@@ -33,6 +35,10 @@ export function useEsmaecimento(
   instantaneo: boolean,
   /** Fusão extra de todas as instâncias com o piso (LOD de distância); em 1 a malha some. */
   lod?: React.RefObject<number>,
+  /** Chave da instância sob o ponteiro; clareia um pouco. */
+  realce: number | null = null,
+  /** Fusão máxima de uma chave com o piso; `undefined` = MUDO_FOCO. */
+  mudoDe?: (id: number) => number | undefined,
 ) {
   const invalidate = useThree((s) => s.invalidate);
   const fatores = useRef(new Map<number, number>());
@@ -46,7 +52,12 @@ export function useEsmaecimento(
     const l = lod?.current ?? 0;
     lodEscrito.current = l;
     m.visible = l < 0.999;
-    for (let i = 0; i < ids.length; i++) m.setColorAt(i, tmp.copy(bases[i]).lerp(corPiso, Math.max((fatores.current.get(ids[i]) ?? 0) * MUDO_FOCO, l)));
+    for (let i = 0; i < ids.length; i++) {
+      const mudo = mudoDe?.(ids[i]) ?? MUDO_FOCO;
+      tmp.copy(bases[i]).lerp(corPiso, Math.max((fatores.current.get(ids[i]) ?? 0) * mudo, l));
+      if (ids[i] === realce) tmp.lerp(BRANCO, 0.35);
+      m.setColorAt(i, tmp);
+    }
     if (m.instanceColor) m.instanceColor.needsUpdate = true;
   };
 
@@ -56,7 +67,7 @@ export function useEsmaecimento(
     invalidate();
     // escreve só lê o que já está na lista.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ids, bases, esmaecidas, corPiso, invalidate]);
+  }, [ids, bases, esmaecidas, corPiso, realce, invalidate]);
 
   useFrame((_, delta) => {
     let mudou = (lod?.current ?? 0) !== lodEscrito.current;

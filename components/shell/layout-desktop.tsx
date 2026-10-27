@@ -3,20 +3,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Salao } from "@/hooks/use-salao";
 import { useJanela, useMedida } from "@/hooks/use-medida";
-import { cn } from "@/lib/utils";
-import { TableSheet } from "../table-sheet";
 import { ThemeToggle } from "../theme-toggle";
 import { AjudaAtalhos } from "./ajuda-atalhos";
 import { BarraDesktop } from "./barra-desktop";
 import { BotaoIcone } from "./botao-icone";
 import { BuscaMesa } from "./busca-mesa";
-import { ControlesDesktop } from "./camera-controles";
+import { BarraFerramentas } from "./barra-ferramentas";
+import { AsideLateral } from "./aside-lateral";
 import { exibicaoDe } from "./menu-exibicao";
 import { BotaoTelaCheia, PilulaImersivo } from "./controles-janela";
 import { Cena } from "./cena";
 import { IconeBusca } from "./icones";
-import { materializar } from "./materializar";
-import { PainelAtencao } from "./painel-atencao";
 import { PainelOcupacao } from "./painel-ocupacao";
 import { PainelVista } from "./painel-vista";
 import { useMidia } from "@/hooks/use-midia";
@@ -29,13 +26,10 @@ export function LayoutDesktop({ salao, imersivo, telaCheia, atalhos }: PropsLayo
   const janela = useJanela();
   const [medirBarra, barra] = useMedida();
   const [medirOcup, ocup] = useMedida();
-  const [medirPainel, painel] = useMedida();
-  const [painelAberto, setPainelAberto] = useState(true);
+  const [larguraAside, setLarguraAside] = useState(380);
   const [buscaAberta, setBuscaAberta] = useState(false);
   const [ajudaAberta, setAjudaAberta] = useState(false);
   const buscaRef = useRef<HTMLInputElement>(null);
-  const ultima = useRef(salao.mesaSelecionada);
-  if (salao.mesaSelecionada) ultima.current = salao.mesaSelecionada;
 
   const abrirBusca = useCallback(() => {
     if (xl) buscaRef.current?.focus();
@@ -64,19 +58,28 @@ export function LayoutDesktop({ salao, imersivo, telaCheia, atalhos }: PropsLayo
   const ui = !imersivo;
   const nomeAmbiente = salao.ambientes.find((a) => a.id === salao.ambienteId)?.nome ?? "";
   const s = janela.seguro;
-  const lateral = painelAberto || salao.mesaSelecionada ? painel.w || 320 : 56;
-  // O painel ocupa só o canto esquerdo: contar a altura inteira dele deixaria a cena espremida.
+  const larguraNominal = xl ? 380 : 340;
+  const topoAside = s.topo + G + barra.h + 12;
   const folga = useMemo(
     () =>
       ui
         ? {
-            topo: s.topo + G + barra.h + 12,
+            topo: topoAside,
             base: s.base + G + Math.min(ocup.h, janela.h * 0.34) + G,
             esquerda: s.esquerda + G,
-            direita: s.direita + G + lateral + 12,
+            direita: s.direita + 12 + larguraAside + 12,
           }
         : { topo: G, base: G, esquerda: G, direita: G },
-    [ui, s.topo, s.base, s.esquerda, s.direita, barra.h, ocup.h, janela.h, lateral],
+    [ui, topoAside, s.base, s.esquerda, s.direita, ocup.h, janela.h, larguraAside],
+  );
+
+  const area = useMemo(
+    () => ({ esq: s.esquerda + G, topo: topoAside, dir: janela.w - s.direita - 12 - larguraAside - 12, base: janela.h - s.base - G }),
+    [s.esquerda, s.direita, s.base, topoAside, janela.w, janela.h, larguraAside],
+  );
+  const evitar = useMemo(
+    () => ({ esq: s.esquerda + G, topo: janela.h - s.base - G - ocup.h, dir: s.esquerda + G + ocup.w, base: janela.h - s.base - G }),
+    [s.esquerda, s.base, janela.h, ocup.w, ocup.h],
   );
 
   const campoBusca = (
@@ -114,6 +117,8 @@ export function LayoutDesktop({ salao, imersivo, telaCheia, atalhos }: PropsLayo
             hover={salao.hover}
             foco={salao.foco}
             onCameraChange={salao.camera.aoMudarCamera}
+            posicaoSelecionada={salao.posicaoSelecionada}
+            onSelecionarPosicao={salao.selecionarPosicao}
           />
         </div>
       ) : (
@@ -168,32 +173,16 @@ export function LayoutDesktop({ salao, imersivo, telaCheia, atalhos }: PropsLayo
 
       <PainelOcupacao salao={salao} nomeAmbiente={nomeAmbiente} aberto={ui} medir={medirOcup} />
 
-      <div
-        style={{ top: folga.topo, bottom: s.base + G }}
-        inert={!ui}
-        className={cn(
-          "pointer-events-none absolute right-[calc(env(safe-area-inset-right)+16px)] z-10 flex w-80 flex-col items-end gap-3",
-          !ui && "invisible",
-        )}
-      >
-        {ultima.current && (
-          <div
-            key={ultima.current.id}
-            className={cn("w-full flex-none", salao.mesaSelecionada ? "pointer-events-auto" : materializar(false, "cima"))}
-          >
-            <TableSheet
-              variante="cartao"
-              mesa={ultima.current}
-              limiares={salao.limiares}
-              onClose={() => salao.selecionar(null)}
-            />
-          </div>
-        )}
-        <PainelAtencao salao={salao} aberto={painelAberto} onAbrir={setPainelAberto} medir={medirPainel} />
-        <div className="pointer-events-auto flex-none">
-          <ControlesDesktop camera={salao.camera} aberto={salao.vista === "3d"} exibicao={exibicaoDe(salao)} />
-        </div>
-      </div>
+      <AsideLateral salao={salao} aberto={ui} largura={larguraNominal} topo={topoAside} onLargura={setLarguraAside} />
+
+      <BarraFerramentas
+        camera={salao.camera}
+        exibicao={exibicaoDe(salao)}
+        dispositivo="desktop"
+        aberto={ui && salao.vista === "3d"}
+        area={area}
+        evitar={evitar}
+      />
 
       <PilulaImersivo visivel={imersivo} onClick={telaCheia.alternar} />
     </>

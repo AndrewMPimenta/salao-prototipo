@@ -31,6 +31,22 @@ export const IconeChevron = ({ baixo }: { baixo?: boolean }) => (
   <Base><path d={baixo ? "m7 10 5 5 5-5" : "m7 14 5-5 5 5"} /></Base>
 );
 
+export const IconeLapis = () => <Base><path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17l-1 3Z" /><path d="m14.5 7.5 3 3" /></Base>;
+export const IconeChevronLado = ({ direita }: { direita?: boolean }) => (
+  <Base><path d={direita ? "m10 7 5 5-5 5" : "m14 7-5 5 5 5"} /></Base>
+);
+
+/** Seis pontos: duas colunas por três linhas, ou o contrário na barra deitada. */
+export function IconeAlca({ deitada }: { deitada?: boolean }) {
+  const colunas = deitada ? [6, 12, 18] : [9, 15];
+  const linhas = deitada ? [9, 15] : [6, 12, 18];
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" className="size-5" fill="currentColor">
+      {colunas.flatMap((x) => linhas.map((y) => <circle key={`${x}-${y}`} cx={x} cy={y} r={1.5} />))}
+    </svg>
+  );
+}
+
 export const IconeAerea = () => <Base><rect x="4" y="5" width="16" height="14" rx="2" /><circle cx="9.5" cy="10" r="1.6" /><circle cx="14.5" cy="14" r="1.6" /></Base>;
 export const IconePerspectiva = () => <Base><path d="M3 9 12 4l9 5-9 5-9-5Z" /><path d="M3 14l9 5 9-5" /></Base>;
 export const IconeNivel = () => <Base><path d="M3 15h18M6 15V9h5v6M14 15v-4h4v4" /><path d="M3 19h18" /></Base>;

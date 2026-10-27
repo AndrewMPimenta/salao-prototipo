@@ -1,24 +1,22 @@
 "use client";
 
+import { useState } from "react";
 import type { Limiares, Mesa } from "@/lib/types";
-import { AMBIENTES, PRACAS } from "@/lib/data";
-import {
-  derivarAlertas,
-  derivarEstado,
-  minutosAteLiberar,
-  ROTULO_ALERTA,
-  ROTULO_ESTADO,
-} from "@/lib/state";
-import { cn, formatarDuracao, formatarMoeda } from "@/lib/utils";
+import { AMBIENTES, posicoesHabilitadas, PRACAS } from "@/lib/data";
+import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
-import { FichaAlerta } from "./selo-alerta";
-import { AmostraEstado } from "./amostra-estado";
+import { DetalheMesa, type IdAba } from "./detalhe/detalhe-mesa";
 
 interface TableSheetProps {
   mesa: Mesa;
   limiares: Limiares;
   onClose: () => void;
   variante?: "sheet" | "cartao";
+  /** Estado compartilhado com a cena 3D; sem eles o painel guarda a própria aba. */
+  aba?: IdAba;
+  onAba?: (aba: IdAba) => void;
+  posicaoSelecionada?: number | null;
+  onSelecionarPosicao?: (posicao: number) => void;
 }
 
 /**
@@ -32,15 +30,27 @@ interface TableSheetProps {
  * deixar espaço. Por isso o cartão troca o botão "Fechar" por um ×: ele não
  * tem a faixa inferior de ações da folha.
  */
-export function TableSheet({ mesa, limiares, onClose, variante = "sheet" }: TableSheetProps) {
-  const estado = derivarEstado(mesa, limiares);
-  const alertas = derivarAlertas(mesa, limiares);
+export function TableSheet({
+  mesa,
+  limiares,
+  onClose,
+  variante = "sheet",
+  aba: abaControlada,
+  onAba,
+  posicaoSelecionada,
+  onSelecionarPosicao,
+}: TableSheetProps) {
+  const [interna, setInterna] = useState<{ id: number; aba: IdAba }>({ id: mesa.id, aba: "resumo" });
+  const habilitada = mesa.pessoas > 0 && posicoesHabilitadas(mesa.ambienteId);
+  const abaEscolhida = abaControlada ?? (interna.id === mesa.id ? interna.aba : "resumo");
+  const aba = abaEscolhida === "posicoes" && !habilitada ? "resumo" : abaEscolhida;
+  const aoMudarAba = (nova: IdAba) => {
+    setInterna({ id: mesa.id, aba: nova });
+    onAba?.(nova);
+  };
   const praca = PRACAS.find((p) => p.id === mesa.pracaId && p.ambienteId === mesa.ambienteId);
   const ambiente = AMBIENTES.find((a) => a.id === mesa.ambienteId);
   const cartao = variante === "cartao";
-  const ocupada = mesa.pessoas > 0;
-  const pendentes = mesa.pedidosPendentes ?? 0;
-  const restam = minutosAteLiberar(mesa, limiares);
 
   return (
     <div
@@ -49,9 +59,9 @@ export function TableSheet({ mesa, limiares, onClose, variante = "sheet" }: Tabl
       className={cn(
         "animate-surgir",
         cartao
-          ? "glass relative w-full rounded-(--radius-panel) p-4"
+          ? "glass relative flex max-h-[calc(100dvh-7rem)] w-full flex-col rounded-(--radius-panel) p-4"
           : [
-              "fixed inset-x-0 bottom-0 z-40 mx-auto w-full rounded-t-[24px] bg-(--color-surface) px-4 pt-2",
+              "fixed inset-x-0 bottom-0 z-40 mx-auto flex max-h-[88dvh] w-full flex-col rounded-t-[24px] bg-(--color-surface) px-4 pt-2",
               "pb-[calc(1rem+env(safe-area-inset-bottom,0px))]",
               "shadow-[0_-1px_0_var(--color-line),0_-12px_32px_-8px_rgb(40_30_15/0.25)]",
               "sm:max-w-[420px]",
@@ -59,10 +69,10 @@ export function TableSheet({ mesa, limiares, onClose, variante = "sheet" }: Tabl
       )}
     >
       {!cartao && (
-        <div aria-hidden className="mx-auto mb-3 h-1 w-9 rounded-full bg-(--color-line-2)" />
+        <div aria-hidden className="mx-auto mb-3 h-1 flex-none w-9 rounded-full bg-(--color-line-2)" />
       )}
 
-      <div className={cn("flex items-center gap-4", cartao && "pr-11")}>
+      <div className={cn("flex flex-none items-center gap-4", cartao && "pr-11")}>
         <h4 className="font-display m-0 min-w-14 flex-none text-[44px] leading-none">{mesa.id}</h4>
 
         <p className="m-0 min-w-0 flex-1 text-[13px] font-medium leading-5 text-(--color-ink-2)">
@@ -95,70 +105,22 @@ export function TableSheet({ mesa, limiares, onClose, variante = "sheet" }: Tabl
         </button>
       )}
 
-      {/* O estado em TEXTO aqui é o que dispensa legenda fixa no celular. */}
-      <ul className="m-0 mt-3 flex list-none flex-col gap-2 border-t border-(--color-line) p-0 pt-3">
-        <li className="flex items-center gap-2.5 text-[15px] font-semibold leading-6 text-(--color-ink)">
-          <span className="grid size-6 flex-none place-items-center">
-            <AmostraEstado estado={estado} className="size-5" />
-          </span>
-          {ROTULO_ESTADO[estado]}
-        </li>
-        {alertas.map((a) => (
-          <li key={a.tipo} className="flex items-center gap-2.5 text-[15px] leading-6 text-(--color-ink)">
-            <FichaAlerta tipo={a.tipo} className="size-5" />
-            <span className="min-w-0 flex-1">
-              <b className="font-semibold">{ROTULO_ALERTA[a.tipo]}</b>{" "}
-              <span className="tnum text-(--color-ink-2)">há {formatarDuracao(a.minutos)}</span>
-            </span>
-          </li>
-        ))}
-      </ul>
+      <div className="mt-3 flex min-h-0 flex-1 flex-col border-t border-(--color-line) pt-3">
+        <DetalheMesa
+          key={mesa.id}
+          mesa={mesa}
+          limiares={limiares}
+          aba={aba}
+          onAba={aoMudarAba}
+          posicaoSelecionada={posicaoSelecionada}
+          onSelecionarPosicao={onSelecionarPosicao}
+        />
+      </div>
 
-      <dl className="m-0 mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 border-t border-(--color-line) pt-3 text-[13px] leading-5">
-        {ocupada ? (
-          <>
-            <Item rotulo="Pessoas" valor={`${mesa.pessoas} de ${mesa.lugares} lugares`} />
-            <Item
-              rotulo="Permanência"
-              valor={`${formatarDuracao(mesa.abertaHa ?? 0)} de ${formatarDuracao(limiares.permanenciaMedia)}`}
-            />
-            <Item rotulo="Último pedido há" valor={formatarDuracao(mesa.semPedido ?? 0)} />
-            <Item
-              rotulo="Pedidos pendentes"
-              valor={
-                pendentes > 0
-                  ? `${pendentes} · mais antigo ${formatarDuracao(mesa.pendenteHa ?? 0)}`
-                  : "Nenhum"
-              }
-            />
-            {mesa.contaImpressa && <Item rotulo="Conta impressa há" valor={formatarDuracao(mesa.contaImpressaHa ?? 0)} />}
-            {mesa.total != null && <Item rotulo="Consumo" valor={formatarMoeda(mesa.total)} />}
-            {mesa.total != null && (
-              <Item rotulo="Por pessoa" valor={formatarMoeda(mesa.total / mesa.pessoas)} />
-            )}
-            <Item
-              rotulo="Previsão de liberação"
-              valor={restam > 0 ? `em ${formatarDuracao(restam)}` : "Passou da média"}
-            />
-          </>
-        ) : (
-          <>
-            <Item rotulo="Lugares" valor={String(mesa.lugares)} />
-            {mesa.livreHa != null && <Item rotulo="Livre há" valor={formatarDuracao(mesa.livreHa)} />}
-            <Item
-              rotulo="Próxima reserva"
-              valor={
-                mesa.reserva
-                  ? `${mesa.reserva.hora} · ${mesa.reserva.nome} · ${mesa.reserva.pessoas} pessoas`
-                  : "Sem reservas"
-              }
-            />
-          </>
-        )}
-      </dl>
-
-      <div className="mt-3 flex items-center justify-between gap-3 border-t border-(--color-line) pt-3">
-        <p className="m-0 text-[12px] leading-4 text-(--color-ink-3)">Somente consulta</p>
+      <div className="mt-3 flex flex-none items-center justify-between gap-3 border-t border-(--color-line) pt-3">
+        <p className="m-0 text-[12px] leading-4 text-(--color-ink-3)">
+          {aba === "posicoes" ? "Cobrança simulada — não altera o PDV" : "Somente consulta"}
+        </p>
         {!cartao && (
           <Button variante="solido" className="min-w-28 justify-center" onClick={onClose}>
             Fechar
@@ -166,14 +128,5 @@ export function TableSheet({ mesa, limiares, onClose, variante = "sheet" }: Tabl
         )}
       </div>
     </div>
-  );
-}
-
-function Item({ rotulo, valor }: { rotulo: string; valor: string }) {
-  return (
-    <>
-      <dt className="text-(--color-ink-2)">{rotulo}</dt>
-      <dd className="tnum m-0 text-right text-[15px] font-medium leading-5">{valor}</dd>
-    </>
   );
 }

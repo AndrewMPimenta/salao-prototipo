@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { cn } from "@/lib/utils";
 import type { Salao } from "@/hooks/use-salao";
+import { useAncoragem, type Lado } from "@/hooks/use-ancoragem";
+import type { IdFerramenta, Orientacao } from "@/hooks/use-barra-ferramentas";
 import { BotaoIcone } from "./botao-icone";
 import { IconeAlvo, IconeBussola, IconeMais, IconeMarcador, IconeMenos, ICONE_PRESET } from "./icones";
-import { materializar } from "./materializar";
 import { MenuExibicao, type PropsExibicao } from "./menu-exibicao";
 import { PRESETS, ROTULO_PRESET } from "./tipos";
 
@@ -20,11 +21,15 @@ function Bussola({ camera }: { camera: Camera }) {
   );
 }
 
-/** Vista padrão por ambiente: o menu abre à esquerda da pilha, onde há espaço, e fecha com Esc ou clique fora. */
-function MenuVista({ camera }: { camera: Camera }) {
+const item =
+  "flex h-11 w-full items-center whitespace-nowrap rounded-[14px] px-3 text-left text-[13px] font-medium text-(--color-ink) hover:bg-(--color-ink)/8 active:bg-(--color-ink)/12 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)";
+
+/** Vista padrão por ambiente: o menu abre do lado que a barra deixa livre e fecha com Esc ou clique fora. */
+function MenuVista({ camera, lado }: { camera: Camera; lado: Lado }) {
   const [aberto, setAberto] = useState(false);
   const [salvo, setSalvo] = useState(false);
   const raiz = useRef<HTMLDivElement>(null);
+  const { botao, pop, estilo } = useAncoragem(aberto, lado);
 
   useEffect(() => {
     if (!aberto) return;
@@ -40,19 +45,24 @@ function MenuVista({ camera }: { camera: Camera }) {
     };
   }, [aberto]);
 
-  const item =
-    "flex h-11 w-full items-center whitespace-nowrap rounded-[14px] px-3 text-left text-[13px] font-medium text-(--color-ink) hover:bg-(--color-ink)/8 active:bg-(--color-ink)/12 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)";
-
   return (
-    <div ref={raiz} className="relative">
+    <div
+      ref={(el) => {
+        raiz.current = el;
+        botao.current = el;
+      }}
+      className="relative"
+    >
       <BotaoIcone rotulo="Vista padrão" expandido={aberto} onClick={() => setAberto((v) => !v)}>
         <IconeMarcador />
       </BotaoIcone>
       {aberto && (
         <div
+          ref={pop}
           role="menu"
           aria-label="Vista padrão"
-          className="glass absolute right-[calc(100%+8px)] bottom-0 z-30 flex w-60 flex-col rounded-[18px] p-1"
+          style={estilo}
+          className="glass animate-surgir absolute z-30 flex w-60 flex-col rounded-[18px] p-1"
         >
           <button
             type="button"
@@ -86,91 +96,61 @@ function MenuVista({ camera }: { camera: Camera }) {
   );
 }
 
-const Divisoria = () => <span aria-hidden className="mx-2 h-px bg-(--color-ink)/10" />;
+/** Três botões de ícone seguindo a orientação da barra; no celular um só, que cicla. */
+function Presets({ camera, orientacao, movel }: { camera: Camera; orientacao: Orientacao; movel: boolean }) {
+  if (movel) {
+    const Icone = ICONE_PRESET[camera.vistaCamera];
+    return (
+      <BotaoIcone rotulo={`Câmera ${ROTULO_PRESET[camera.vistaCamera]}. Alternar ângulo.`} onClick={camera.ciclarPreset}>
+        <Icone />
+      </BotaoIcone>
+    );
+  }
 
-/** Pilha vertical de vidro: zoom, bússola e recentralizar. */
-function Pilha({ camera, children }: { camera: Camera; children?: ReactNode }) {
   return (
-    <div role="group" aria-label="Navegação da câmera" className="glass flex flex-col rounded-[22px] p-1">
-      <BotaoIcone rotulo="Aproximar" onClick={() => camera.zoomar(1)}><IconeMais /></BotaoIcone>
-      <BotaoIcone rotulo="Afastar" onClick={() => camera.zoomar(-1)}><IconeMenos /></BotaoIcone>
-      <Divisoria />
-      <Bussola camera={camera} />
-      <BotaoIcone rotulo="Recentralizar" onClick={camera.recentralizar}><IconeAlvo /></BotaoIcone>
-      <MenuVista camera={camera} />
-      {children}
-    </div>
-  );
-}
-
-/** Segmentado com o indicador deslizando por translate, como o ToggleGroup. */
-function SeletorPreset({ camera }: { camera: Camera }) {
-  const i = PRESETS.indexOf(camera.vistaCamera);
-  return (
-    <div role="group" aria-label="Ângulo da câmera" className="glass relative grid w-72 grid-cols-3 rounded-[22px] p-1">
-      <span
-        aria-hidden
-        className="absolute inset-y-1 left-1 w-[calc((100%-8px)/3)] rounded-[18px] bg-(--color-raised) shadow-[0_1px_2px_rgb(40_30_15/0.18),0_0_0_1px_var(--color-line)] transition-[translate] duration-[280ms] ease-(--ease-out-soft)"
-        style={{ translate: `${i * 100}% 0` }}
-      />
+    <div role="group" aria-label="Ângulo da câmera" className={cn("flex", orientacao === "vertical" ? "flex-col" : "flex-row")}>
       {PRESETS.map((p, n) => {
         const Icone = ICONE_PRESET[p];
         return (
-          <button
+          <BotaoIcone
             key={p}
-            type="button"
-            aria-pressed={i === n}
-            title={`${ROTULO_PRESET[p]} (${n + 1})`}
+            rotulo={`${ROTULO_PRESET[p]} (${n + 1})`}
+            pressionado={camera.vistaCamera === p}
             onClick={() => camera.setVistaCamera(p)}
-            className={cn(
-              "relative z-10 flex h-9 items-center justify-center gap-1 rounded-[18px] text-[12px] font-medium",
-              "transition-[color,scale] duration-100 active:scale-[0.97]",
-              "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)",
-              i === n ? "text-(--color-ink)" : "text-(--color-ink-2)",
-            )}
           >
-            <span className="grid size-5 scale-[0.8] place-items-center"><Icone /></span>
-            {ROTULO_PRESET[p]}
-          </button>
+            <Icone />
+          </BotaoIcone>
         );
       })}
     </div>
   );
 }
 
-export function ControlesDesktop({ camera, aberto, exibicao }: { camera: Camera; aberto: boolean; exibicao: PropsExibicao }) {
-  return (
-    <div inert={!aberto} className={cn("flex flex-col items-end gap-2", materializar(aberto))}>
-      <SeletorPreset camera={camera} />
-      <Pilha camera={camera}>
-        <MenuExibicao {...exibicao} />
-      </Pilha>
-    </div>
-  );
+interface FerramentaProps {
+  id: IdFerramenta;
+  camera: Camera;
+  exibicao: PropsExibicao;
+  orientacao: Orientacao;
+  /** Lado em que os popovers abrem, sempre o que a barra deixa livre. */
+  lado: Lado;
+  movel: boolean;
 }
 
-/** No celular os presets viram um botão que cicla; um segmentado largo cobriria a cena. */
-export function ControlesMovel({ camera, aberto, base, exibicao }: { camera: Camera; aberto: boolean; base: number; exibicao: PropsExibicao }) {
-  const Icone = ICONE_PRESET[camera.vistaCamera];
-  return (
-    <div
-      inert={!aberto}
-      style={{ bottom: base, right: "calc(env(safe-area-inset-right) + 12px)" }}
-      className={cn(
-        "absolute z-20 transition-[bottom,opacity,translate,filter,visibility] duration-[320ms] ease-(--ease-out-soft)",
-        !aberto && "pointer-events-none invisible translate-y-2 opacity-0 blur-[6px]",
-      )}
-    >
-      <Pilha camera={camera}>
-        <Divisoria />
-        <BotaoIcone
-          rotulo={`Câmera ${ROTULO_PRESET[camera.vistaCamera]}. Alternar ângulo.`}
-          onClick={camera.ciclarPreset}
-        >
-          <Icone />
-        </BotaoIcone>
-        <MenuExibicao {...exibicao} />
-      </Pilha>
-    </div>
-  );
+export function Ferramenta({ id, camera, exibicao, orientacao, lado, movel }: FerramentaProps) {
+  switch (id) {
+    case "presets":
+      return <Presets camera={camera} orientacao={orientacao} movel={movel} />;
+    case "aproximar":
+      return <BotaoIcone rotulo="Aproximar" onClick={() => camera.zoomar(1)}><IconeMais /></BotaoIcone>;
+    case "afastar":
+      return <BotaoIcone rotulo="Afastar" onClick={() => camera.zoomar(-1)}><IconeMenos /></BotaoIcone>;
+    case "bussola":
+      return <Bussola camera={camera} />;
+    case "recentralizar":
+      return <BotaoIcone rotulo="Recentralizar" onClick={camera.recentralizar}><IconeAlvo /></BotaoIcone>;
+    case "vista":
+      return <MenuVista camera={camera} lado={lado} />;
+    case "exibicao":
+      return <MenuExibicao {...exibicao} lado={lado} />;
+  }
 }

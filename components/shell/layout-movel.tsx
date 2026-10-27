@@ -8,7 +8,7 @@ import { TableSheet } from "../table-sheet";
 import { ToggleGroup } from "../ui/toggle-group";
 import { Drawer } from "../ui/drawer";
 import { BarraMovel } from "./barra-movel";
-import { ControlesMovel } from "./camera-controles";
+import { BarraFerramentas } from "./barra-ferramentas";
 import { exibicaoDe } from "./menu-exibicao";
 import { Cena } from "./cena";
 import { PilulaImersivo } from "./controles-janela";
@@ -46,6 +46,12 @@ export function LayoutMovel({ salao, imersivo, telaCheia }: PropsLayout) {
     [ui, s.topo, s.esquerda, s.direita, barra.h, alturaBase],
   );
 
+  // A barra só encosta nas laterais e nunca desce até a gaveta ou a folha da mesa.
+  const area = useMemo(
+    () => ({ esq: s.esquerda + 12, topo: s.topo + 12 + barra.h + 8, dir: janela.w - s.direita - 12, base: janela.h - alturaBase - 12 }),
+    [s.esquerda, s.topo, s.direita, barra.h, janela.w, janela.h, alturaBase],
+  );
+
   // O filho direto da folha (fixed) é quem tem altura; o wrapper `contents` não tem caixa.
   const ancora = useCallback((el: HTMLElement | null) => medirSheet(el?.firstElementChild as HTMLElement | null), [medirSheet]);
 
@@ -76,11 +82,19 @@ export function LayoutMovel({ salao, imersivo, telaCheia }: PropsLayout) {
           hover={salao.hover}
           foco={salao.foco}
           onCameraChange={salao.camera.aoMudarCamera}
+          posicaoSelecionada={salao.posicaoSelecionada}
+          onSelecionarPosicao={salao.selecionarPosicao}
         />
       </div>
 
       <BarraMovel salao={salao} aberto={ui} telaCheia={telaCheia} medir={medirBarra} />
-      <ControlesMovel camera={salao.camera} aberto={ui && indice < 2} base={alturaBase + 12} exibicao={exibicaoDe(salao)} />
+      <BarraFerramentas
+        camera={salao.camera}
+        exibicao={exibicaoDe(salao)}
+        dispositivo="movel"
+        aberto={ui && indice < 2}
+        area={area}
+      />
 
       <div className={ui ? "contents" : "hidden"}>
         <Drawer
@@ -143,7 +157,15 @@ export function LayoutMovel({ salao, imersivo, telaCheia }: PropsLayout) {
 
       {mesaSelecionada && (
         <div ref={ancora} className="contents">
-          <TableSheet mesa={mesaSelecionada} limiares={salao.limiares} onClose={() => salao.selecionar(null)} />
+          <TableSheet
+            mesa={mesaSelecionada}
+            limiares={salao.limiares}
+            onClose={() => salao.selecionar(null)}
+            aba={salao.abaDetalhe}
+            onAba={salao.setAbaDetalhe}
+            posicaoSelecionada={salao.posicaoSelecionada}
+            onSelecionarPosicao={salao.selecionarPosicao}
+          />
         </div>
       )}
 

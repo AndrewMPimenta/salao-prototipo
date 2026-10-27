@@ -12,17 +12,21 @@ interface Props {
   hover: ArmazemHover;
   cenario: Cenario;
   onSelect: (id: number) => void;
+  /** Mesa em foco com cadeiras clicáveis: o alvo encolhe ao tampo para não ficar na frente delas. */
+  cadeirasAtivas?: boolean;
 }
 
 /**
  * Só o alvo de toque da mesa, invisível: tampo, cadeiras e manchas são instanciados
  * (`mesas.tsx`, `assentos.tsx`, `manchas.tsx`) para o custo de desenho não crescer com o salão.
  */
-export const Mesa3D = memo(function Mesa3D({ mesa, hover, cenario, onSelect }: Props) {
+export const Mesa3D = memo(function Mesa3D({ mesa, hover, cenario, onSelect, cadeirasAtivas = false }: Props) {
   const gl = useThree((s) => s.gl);
   const raioX = ms(mesa.largura) / 2;
   const raioZ = ms(mesa.altura) / 2;
-  const raioAlvo = Math.max(raioX, raioZ) + 0.55;
+  const folga = cadeirasAtivas ? 0.06 : 0.55;
+  const altura = cadeirasAtivas ? 0.8 : 1.3;
+  const raioAlvo = Math.max(raioX, raioZ) + folga;
 
   const aoPassar = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation();
@@ -47,9 +51,9 @@ export const Mesa3D = memo(function Mesa3D({ mesa, hover, cenario, onSelect }: P
   // Área de toque generosa, cobrindo as cadeiras: um dedo não acerta um tampo de 80 cm.
   return (
     <mesh
-      geometry={mesa.forma === "redonda" ? cilindro(raioAlvo, raioAlvo, 1.3, 16) : caixa(raioX * 2 + 1.1, 1.3, raioZ * 2 + 1.1)}
+      geometry={mesa.forma === "redonda" ? cilindro(raioAlvo, raioAlvo, altura, 16) : caixa(raioX * 2 + folga * 2, altura, raioZ * 2 + folga * 2)}
       material={matAlvo}
-      position={[mx(mesa.x, cenario), 0.65, mz(mesa.y, cenario)]}
+      position={[mx(mesa.x, cenario), altura / 2, mz(mesa.y, cenario)]}
       onPointerOver={aoPassar}
       onPointerOut={aoSair}
       onClick={aoClicar}

@@ -26,15 +26,18 @@ export interface DetalheMesaProps {
   /** Controlada: o pai (a cena 3D) escolhe a posição; `null` limpa a escolha. */
   posicaoSelecionada?: number | null;
   onSelecionarPosicao?: (posicao: number) => void;
+  /** Controlada: o pai guarda a aba para a cena 3D poder abrir Posições. */
+  aba?: IdAba;
+  onAba?: (aba: IdAba) => void;
 }
 
-type IdAba = "resumo" | "comandas" | "posicoes";
+export type IdAba = "resumo" | "comandas" | "posicoes";
 
 /**
  * Detalhe da mesa em abas: Resumo, Comandas e Posições. Sem o recurso de posições no ambiente, ou
  * em mesa aberta antes da ativação, a aba Posições não existe (ou explica por que está vazia).
  */
-export function DetalheMesa({ mesa, limiares, onCobrar, posicaoSelecionada, onSelecionarPosicao }: DetalheMesaProps) {
+export function DetalheMesa({ mesa, limiares, onCobrar, posicaoSelecionada, onSelecionarPosicao, aba: abaControlada, onAba }: DetalheMesaProps) {
   const base = useId();
   const mesaAtual = useMesaComCobrancas(mesa);
   const cobranca = useCobrancas(mesa.id);
@@ -49,7 +52,15 @@ export function DetalheMesa({ mesa, limiares, onCobrar, posicaoSelecionada, onSe
       ]
     : [{ id: "resumo", rotulo: "Resumo" }];
 
-  const [aba, setAba] = useState<IdAba>("resumo");
+  const [abaInterna, setAbaInterna] = useState<IdAba>("resumo");
+  const aba = abaControlada ?? abaInterna;
+  // Ref: o pai costuma passar função inline, e a identidade nova não pode reabrir Posições.
+  const aoMudarAba = useRef(onAba);
+  aoMudarAba.current = onAba;
+  const setAba = useCallback((id: IdAba) => {
+    setAbaInterna(id);
+    aoMudarAba.current?.(id);
+  }, []);
   const [opcoes, setOpcoes] = useState<OpcoesConta>({ modo: "consumo", taxaServico: true });
   const [interna, setInterna] = useState<number | null>(null);
   const [confirmando, setConfirmando] = useState<{ posicao: number; centavos: number } | null>(null);
@@ -62,7 +73,7 @@ export function DetalheMesa({ mesa, limiares, onCobrar, posicaoSelecionada, onSe
   // Escolher uma cadeira na cena abre a posição no painel.
   useEffect(() => {
     if (posicaoSelecionada != null && habilitada) setAba("posicoes");
-  }, [posicaoSelecionada, habilitada]);
+  }, [posicaoSelecionada, habilitada, setAba]);
 
   const selecionar = (posicao: number) => {
     setInterna(posicao);
@@ -104,14 +115,14 @@ export function DetalheMesa({ mesa, limiares, onCobrar, posicaoSelecionada, onSe
   const idPainel = (id: IdAba) => `${base}-painel-${id}`;
 
   return (
-    <div className="relative">
-      {mesa.nome && <p className="m-0 mb-3 text-[15px] font-semibold leading-6 text-(--color-ink)">{mesa.nome}</p>}
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      {mesa.nome && <p className="m-0 mb-3 flex-none text-[15px] font-semibold leading-6 text-(--color-ink)">{mesa.nome}</p>}
 
       {abas.length > 1 && (
         <div
           role="tablist"
           aria-label="Detalhes da mesa"
-          className="mb-3 flex rounded-(--radius-control) bg-(--color-ink)/8 p-1"
+          className="mb-3 flex flex-none rounded-(--radius-control) bg-(--color-ink)/8 p-1"
         >
           {abas.map((a, i) => {
             const ativa = a.id === abaAtiva;
@@ -147,7 +158,7 @@ export function DetalheMesa({ mesa, limiares, onCobrar, posicaoSelecionada, onSe
       )}
 
       {/* Painéis inativos ficam montados e ocultos: modo de divisão e comanda aberta sobrevivem à troca de aba. */}
-      <div className="-m-1 max-h-[min(62dvh,34rem)] overflow-y-auto overscroll-contain p-1">
+      <div className="-m-1 min-h-0 flex-1 overflow-y-auto overscroll-contain p-1">
         <div
           role={abas.length > 1 ? "tabpanel" : undefined}
           id={idPainel("resumo")}

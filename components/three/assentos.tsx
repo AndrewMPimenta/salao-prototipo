@@ -1,11 +1,12 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useRef } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import type { Alerta, EstadoMesa, Mesa } from "@/lib/types";
 import { ms, mx, mz, type Cenario } from "./cenarios";
 import { caixa, capsula, cilindro, esfera, mat, type Cores } from "./materiais";
+import { posicaoDaCadeira } from "@/lib/assentos";
 import { useEsmaecimento } from "./util";
 
 export interface ItemAssento {
@@ -18,19 +19,38 @@ interface Parte {
   geo: THREE.BufferGeometry;
   matrizes: THREE.Matrix4[];
   cores: THREE.Color[];
-  ids: number[];
+  mesaIds: number[];
+  /** Posição (P1…Pn) da cadeira dona de cada instância. */
+  numeros: number[];
+  /** Só as peças da cadeira recebem raio; a figura sentada não. */
+  cadeira: boolean;
 }
+
+/** Mesa em foco com posições: as cadeiras dela ganham chave própria para esmaecer, realçar e levantar uma a uma. */
+export interface FocoAssentos {
+  mesaId: number;
+  pagas: number[];
+  selecionada: number | null;
+  onSelecionar: (numero: number) => void;
+}
+
+const BASE_CHAVE = 1_000_000;
+export const chaveCadeira = (mesaId: number, numero: number) => BASE_CHAVE + mesaId * 100 + numero;
+/** Cadeira e figura de posição paga ficam com ~35% da presença. */
+const MUDO_PAGA = 0.65;
+const LEVANTE_CADEIRA = 0.06;
+const nulo = () => null;
 
 const MATERIAL = mat("#ffffff");
 const FOLGA_CADEIRA = 0.36;
 const MUDO_OCUPADA = 0.28;
 
 /** Posição de cada cadeira da mesa no mundo; o encosto (+z local) aponta para fora da mesa. */
-function cadeirasDa(mesa: Mesa, c: Cenario) {
+export function cadeirasDa(mesa: Mesa, c: Cenario) {
   const raioX = ms(mesa.largura) / 2;
   const raioZ = ms(mesa.altura) / 2;
   const redonda = mesa.forma === "redonda";
-  const out: { x: number; z: number; rot: number; ocupada: boolean }[] = [];
+  const out: { x: number; z: number; rot: number; ocupada: boolean; numero: number }[] = [];
 
   for (let i = 0; i < mesa.lugares; i++) {
     let cx: number;
@@ -56,7 +76,10 @@ function cadeirasDa(mesa: Mesa, c: Cenario) {
       }
     }
 
-    out.push({ x: mx(mesa.x, c) + cx, z: mz(mesa.y, c) + cz, rot: Math.atan2(cx, cz), ocupada: i < mesa.pessoas });
+    // Com posições, a cadeira ocupada é a da posição marcada, não a i-ésima.
+    const numero = posicaoDaCadeira(mesa, i);
+    const ocupada = mesa.posicoes ? (mesa.posicoes.find((p) => p.numero === numero)?.ocupada ?? false) : i < mesa.pessoas;
+    out.push({ x: mx(mesa.x, c) + cx, z: mz(mesa.y, c) + cz, rot: Math.atan2(cx, cz), ocupada, numero });
   }
 
   return out;
@@ -87,22 +110,89 @@ const PECAS_FIGURA = [
   { geo: () => capsula(0.065, 0.2), m: local(0.09, 0.54, -0.14, Math.PI / 2) },
 ];
 
-function Instancias({ parte, esmaecidas, piso, instantaneo, lod }: { parte: Parte; esmaecidas: ReadonlyMap<number, boolean>; piso: string; instantaneo: boolean; lod: React.RefObject<number> }) {
+function Instancias({
+  parte,
+  esmaecidas,
+  piso,
+  instantaneo,
+  lod,
+  foco,
+  realce,
+  aoRealcar,
+}: {
+  parte: Parte;
+  esmaecidas: ReadonlyMap<number, boolean>;
+  piso: string;
+  instantaneo: boolean;
+  lod: React.RefObject<number>;
+  foco: FocoAssentos | null;
+  realce: number | null;
+  aoRealcar: (chave: number | null) => void;
+}) {
   const ref = useRef<THREE.InstancedMesh>(null);
   const invalidate = useThree((s) => s.invalidate);
+  const gl = useThree((s) => s.gl);
+  const mesaFoco = foco?.mesaId ?? null;
+  const ids = useMemo(
+    () => parte.mesaIds.map((m, i) => (m === mesaFoco ? chaveCadeira(m, parte.numeros[i]) : m)),
+    [parte, mesaFoco],
+  );
+  const levantada = foco?.selecionada != null && mesaFoco !== null ? chaveCadeira(mesaFoco, foco.selecionada) : null;
 
   useLayoutEffect(() => {
     const m = ref.current;
     if (!m) return;
-    parte.matrizes.forEach((x, i) => m.setMatrixAt(i, x));
+    const sobe = new THREE.Matrix4();
+    const tmp = new THREE.Matrix4();
+    parte.matrizes.forEach((x, i) => m.setMatrixAt(i, ids[i] === levantada ? tmp.copy(x).premultiply(sobe.makeTranslation(0, LEVANTE_CADEIRA, 0)) : x));
     m.instanceMatrix.needsUpdate = true;
     invalidate();
-  }, [parte, invalidate]);
+  }, [parte, ids, levantada, invalidate]);
 
-  useEsmaecimento(ref, parte.ids, parte.cores, esmaecidas, piso, instantaneo, lod);
+  useEsmaecimento(ref, ids, parte.cores, esmaecidas, piso, instantaneo, lod, realce, (id) => (id >= BASE_CHAVE ? MUDO_PAGA : undefined));
 
   if (parte.matrizes.length === 0) return null;
-  return <instancedMesh key={parte.matrizes.length} ref={ref} args={[parte.geo, MATERIAL, parte.matrizes.length]} frustumCulled={false} raycast={() => null} />;
+
+  const clicavel = parte.cadeira && foco !== null;
+  const doFoco = (e: ThreeEvent<PointerEvent | MouseEvent>) => e.instanceId !== undefined && parte.mesaIds[e.instanceId] === mesaFoco;
+
+  return (
+    <instancedMesh
+      key={parte.matrizes.length}
+      ref={ref}
+      args={[parte.geo, MATERIAL, parte.matrizes.length]}
+      frustumCulled={false}
+      raycast={clicavel ? THREE.InstancedMesh.prototype.raycast : nulo}
+      onPointerOver={
+        clicavel
+          ? (e) => {
+              if (!doFoco(e)) return;
+              e.stopPropagation();
+              aoRealcar(ids[e.instanceId!]);
+              gl.domElement.style.cursor = "pointer";
+            }
+          : undefined
+      }
+      onPointerOut={
+        clicavel
+          ? () => {
+              aoRealcar(null);
+              gl.domElement.style.cursor = "";
+            }
+          : undefined
+      }
+      onClick={
+        clicavel
+          ? (e) => {
+              // Arrastar a câmera termina em click; só toque curto escolhe a posição.
+              if (e.delta > 6 || !doFoco(e)) return;
+              e.stopPropagation();
+              foco.onSelecionar(parte.numeros[e.instanceId!]);
+            }
+          : undefined
+      }
+    />
+  );
 }
 
 // Diâmetro médio do tampo na tela, em px: abaixo de 17 as cadeiras viram ruído; voltam acima de 22.
@@ -120,8 +210,9 @@ export function Assentos({
   cenario,
   cores,
   pessoas,
-  esmaecidas,
+  esmaecidas: esmaecidasBase,
   instantaneo,
+  foco = null,
 }: {
   itens: ItemAssento[];
   cenario: Cenario;
@@ -129,8 +220,16 @@ export function Assentos({
   pessoas: boolean;
   esmaecidas: ReadonlyMap<number, boolean>;
   instantaneo: boolean;
+  foco?: FocoAssentos | null;
 }) {
   const lod = useRef(0);
+  const [realce, setRealce] = useState<number | null>(null);
+  const esmaecidas = useMemo(() => {
+    if (!foco || foco.pagas.length === 0) return esmaecidasBase;
+    const m = new Map(esmaecidasBase);
+    for (const n of foco.pagas) m.set(chaveCadeira(foco.mesaId, n), true);
+    return m;
+  }, [esmaecidasBase, foco]);
   const longe = useRef(false);
   const ultimo = useRef<number[]>([]);
   const centros = useMemo(
@@ -143,8 +242,8 @@ export function Assentos({
     const cadeira = new THREE.Color(cores.cadeira);
     const figura = new THREE.Color(cores.figura);
 
-    const cad: Parte[] = PECAS_CADEIRA.map((p) => ({ geo: p.geo(), matrizes: [], cores: [], ids: [] }));
-    const fig: Parte[] = PECAS_FIGURA.map((p) => ({ geo: p.geo(), matrizes: [], cores: [], ids: [] }));
+    const cad: Parte[] = PECAS_CADEIRA.map((p) => ({ geo: p.geo(), matrizes: [], cores: [], mesaIds: [], numeros: [], cadeira: true }));
+    const fig: Parte[] = PECAS_FIGURA.map((p) => ({ geo: p.geo(), matrizes: [], cores: [], mesaIds: [], numeros: [], cadeira: false }));
 
     for (const { mesa, estado } of itens) {
       // Ocupadas recuam; livres mantêm o tom cheio para a vaga se destacar.
@@ -159,13 +258,15 @@ export function Assentos({
         PECAS_CADEIRA.forEach((p, k) => {
           cad[k].matrizes.push(base.clone().multiply(p.m));
           cad[k].cores.push(k === 0 ? corCadeira : corEncosto);
-          cad[k].ids.push(mesa.id);
+          cad[k].mesaIds.push(mesa.id);
+          cad[k].numeros.push(c.numero);
         });
         if (!pessoas || !c.ocupada) continue;
         PECAS_FIGURA.forEach((p, k) => {
           fig[k].matrizes.push(base.clone().multiply(p.m));
           fig[k].cores.push(corFigura);
-          fig[k].ids.push(mesa.id);
+          fig[k].mesaIds.push(mesa.id);
+          fig[k].numeros.push(c.numero);
         });
       }
     }
@@ -205,7 +306,7 @@ export function Assentos({
   return (
     <>
       {partes.map((p, i) => (
-        <Instancias key={i} parte={p} esmaecidas={esmaecidas} piso={cores.piso} instantaneo={instantaneo} lod={lod} />
+        <Instancias key={i} parte={p} esmaecidas={esmaecidas} piso={cores.piso} instantaneo={instantaneo} lod={lod} foco={foco} realce={realce} aoRealcar={setRealce} />
       ))}
     </>
   );

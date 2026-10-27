@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { EstadoMesa, Limiares, Mesa } from "@/lib/types";
 import { useHoverMesa, type ArmazemHover } from "@/hooks/use-hover-mesa";
 import { derivarAlertas, derivarEstado, ORDEM_ESTADOS, ROTULO_ESTADO, textoAlerta } from "@/lib/state";
@@ -63,14 +63,14 @@ interface ListaMesasProps {
   limiares: Limiares;
   hover: ArmazemHover;
   selecionada: number | null;
+  /** Filtro pelo número, controlado pelo painel que fixa o campo no cabeçalho. */
+  busca: string;
   /** Seleciona a mesa e leva a câmera até ela, sem zoom. */
   onIr: (id: number) => void;
 }
 
-/** Todas as mesas do ambiente, por estado, com busca pelo número. Passar o mouse destaca a mesa na cena. */
-export function ListaMesas({ mesas, limiares, hover, selecionada, onIr }: ListaMesasProps) {
-  const [busca, setBusca] = useState("");
-
+/** Todas as mesas do ambiente, por estado, filtradas pelo número. Passar o mouse destaca a mesa na cena. */
+export function ListaMesas({ mesas, limiares, hover, selecionada, busca, onIr }: ListaMesasProps) {
   const grupos = useMemo(() => {
     const q = busca.trim();
     const por: Record<EstadoMesa, { mesa: Mesa; estado: EstadoMesa }[]> = { livre: [], reservada: [], ocupada: [], conta: [] };
@@ -88,16 +88,6 @@ export function ListaMesas({ mesas, limiares, hover, selecionada, onIr }: ListaM
 
   return (
     <div className="flex flex-col gap-1">
-      <input
-        type="search"
-        inputMode="numeric"
-        value={busca}
-        onChange={(e) => setBusca(e.target.value)}
-        placeholder="Buscar mesa"
-        aria-label="Buscar mesa pelo número"
-        className="mb-1 h-9 w-full rounded-full bg-(--color-ink)/8 px-3.5 text-[13px] text-(--color-ink) placeholder:text-(--color-ink-3) focus-visible:outline-2 focus-visible:outline-(--color-focus)"
-      />
-
       {ORDEM_ESTADOS.map((estado) =>
         grupos[estado].length === 0 ? null : (
           <section key={estado} aria-label={TITULO_GRUPO[estado]}>

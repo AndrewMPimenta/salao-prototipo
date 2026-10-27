@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { ToggleGroup } from "../ui/toggle-group";
 import { BotaoIcone } from "./botao-icone";
 import { IconeOlho } from "./icones";
+import { useAncoragem, type Lado } from "@/hooks/use-ancoragem";
 import { materializar } from "./materializar";
 
 export function Chave({ ligada, onChange, rotulo, desabilitada }: { ligada: boolean; onChange: (v: boolean) => void; rotulo: string; desabilitada?: boolean }) {
@@ -99,10 +100,11 @@ export function PainelExibicao({ exibicao, onExibicao, personalizada, onRestaura
   );
 }
 
-/** Botão da pilha da câmera que abre os ajustes num vidro ancorado nele, à esquerda. */
-export function MenuExibicao(props: PropsExibicao) {
+/** Botão da barra de ferramentas que abre os ajustes num vidro ancorado nele, do lado que a barra deixa livre. */
+export function MenuExibicao({ lado = "esquerda", ...props }: PropsExibicao & { lado?: Lado }) {
   const [aberto, setAberto] = useState(false);
   const raiz = useRef<HTMLDivElement>(null);
+  const { botao, pop, estilo } = useAncoragem(aberto, lado);
 
   useEffect(() => {
     if (!aberto) return;
@@ -124,16 +126,24 @@ export function MenuExibicao(props: PropsExibicao) {
   }, [aberto]);
 
   return (
-    <div ref={raiz} className="relative">
+    <div
+      ref={(el) => {
+        raiz.current = el;
+        botao.current = el;
+      }}
+      className="relative"
+    >
       <BotaoIcone rotulo="Exibição" expandido={aberto} pressionado={aberto} onClick={() => setAberto((v) => !v)}>
         <IconeOlho />
       </BotaoIcone>
       <div
         role="dialog"
         aria-label="Exibição"
+        ref={pop}
+        style={estilo}
         inert={!aberto}
         className={cn(
-          "glass absolute right-[calc(100%+8px)] bottom-0 z-30 w-64 origin-bottom-right rounded-[18px] px-3 pt-1 pb-2",
+          "glass absolute z-30 w-64 rounded-[18px] px-3 pt-1 pb-2",
           materializar(aberto),
         )}
       >

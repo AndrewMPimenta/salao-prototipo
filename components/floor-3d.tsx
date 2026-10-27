@@ -3,10 +3,12 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import type { EstadoMesa, Limiares, Mesa } from "@/lib/types";
+import { posicoesHabilitadas } from "@/lib/data";
+import { aplicarCobrancas, useCobrancas } from "@/hooks/use-cobrancas";
 import { derivarAlertas, derivarEstado, ROTULO_ESTADO, textoAlerta } from "@/lib/state";
 import { cn } from "@/lib/utils";
 import { useTemaEscuro } from "@/hooks/use-tema";
-import { CenarioEventos, CenarioSalao, CenarioVaranda, type PropsCena } from "./three/ambientes";
+import { CenarioEventos, CenarioHotBeach, CenarioSalao, CenarioTerraco, CenarioVaranda, type PropsCena } from "./three/ambientes";
 import { CenarioMezanino } from "./three/mezanino";
 import { Camera } from "./three/camera";
 import { ChaoToque } from "./three/chao";
@@ -17,9 +19,9 @@ import type { Exibicao } from "@/lib/exibicao";
 import { Luzes } from "./three/foco";
 import { Manchas } from "./three/manchas";
 import { Mesas } from "./three/mesas";
-import { Assentos, type ItemAssento } from "./three/assentos";
+import { Assentos, cadeirasDa, type FocoAssentos, type ItemAssento } from "./three/assentos";
 import { Mesa3D } from "./three/mesa-3d";
-import { CamadaRotulos, ProjetorRotulos, type ItemRotulo, type MapaRotulos } from "./three/rotulos";
+import { CamadaRotulos, CamadaTags, ProjetorRotulos, ProjetorTags, type ItemRotulo, type MapaRotulos, type TagPosicao } from "./three/rotulos";
 import { useReduzMovimento } from "./three/util";
 
 export type VistaCamera = "aerea" | "perspectiva" | "nivel";
@@ -54,6 +56,10 @@ export interface Floor3DProps {
   exibicao: Exibicao;
   /** Mesa sob o ponteiro, compartilhada com as listas do shell. */
   hover: ArmazemHover;
+  /** Posição escolhida da mesa em foco; destaca a cadeira e a etiqueta. */
+  posicaoSelecionada?: number | null;
+  /** Cadeira clicada na cena (só com a mesa em foco e posições ligadas). */
+  onSelecionarPosicao?: (numero: number) => void;
   className?: string;
 }
 
@@ -108,6 +114,8 @@ const CENAS: Record<string, (p: PropsCena) => React.ReactNode> = {
   varanda: CenarioVaranda,
   mezanino: CenarioMezanino,
   eventos: CenarioEventos,
+  terraco: CenarioTerraco,
+  hotbeach: CenarioHotBeach,
 };
 
 export function Floor3D({
@@ -129,6 +137,8 @@ export function Floor3D({
   folga,
   exibicao,
   hover,
+  posicaoSelecionada = null,
+  onSelecionarPosicao,
   className,
 }: Floor3DProps) {
   const reduz = useReduzMovimento();
@@ -138,6 +148,7 @@ export function Floor3D({
   const cores = coresDoTema(escuro);
   const tampo = TAMPO[escuro ? "escuro" : "claro"];
   const els = useRef<MapaRotulos>(new Map());
+  const elsTags = useRef(new Map<number, HTMLDivElement>());
   const elsMarcos = useRef<(HTMLDivElement | null)[]>([]);
   const marcos = useMemo(() => marcosDe(ambienteId), [ambienteId]);
   const dpr = useDpr();
@@ -161,14 +172,44 @@ export function Floor3D({
     [mesas, cenario],
   );
 
+  // Posições incluídas ou retiradas no painel aparecem na cena na hora; o pagamento não entra aqui para não refazer as malhas.
+  const cobranca = useCobrancas(selecionada ?? -1);
+  const mesasCena = useMemo(
+    () => mesas.map((m) => (m.id === selecionada && m.posicoes ? aplicarCobrancas(m, { ...cobranca, pagas: {} }) : m)),
+    [mesas, selecionada, cobranca],
+  );
+  const mesaFoco = mesasCena.find((m) => m.id === selecionada);
+  const comPosicoes = Boolean(exibicao.cadeiras && mesaFoco?.posicoes && mesaFoco.pessoas > 0 && posicoesHabilitadas(ambienteId));
+  const pagas = useMemo(() => Object.keys(cobranca.pagas).map(Number), [cobranca.pagas]);
+
+  const focoAssentos = useMemo<FocoAssentos | null>(
+    () =>
+      comPosicoes && mesaFoco
+        ? { mesaId: mesaFoco.id, pagas, selecionada: posicaoSelecionada, onSelecionar: onSelecionarPosicao ?? (() => {}) }
+        : null,
+    [comPosicoes, mesaFoco, pagas, posicaoSelecionada, onSelecionarPosicao],
+  );
+
+  const tags = useMemo<TagPosicao[]>(() => {
+    if (!comPosicoes || !mesaFoco) return [];
+    return cadeirasDa(mesaFoco, cenario).map((c) => ({
+      numero: c.numero,
+      x: c.x + Math.sin(c.rot) * 0.3,
+      z: c.z + Math.cos(c.rot) * 0.3,
+      ocupada: c.ocupada,
+      paga: pagas.includes(c.numero),
+      selecionada: posicaoSelecionada === c.numero,
+    }));
+  }, [comPosicoes, mesaFoco, cenario, pagas, posicaoSelecionada]);
+
   const situacoes = useMemo<ItemAssento[]>(
     () =>
-      mesas.map((mesa) => ({
+      mesasCena.map((mesa) => ({
         mesa,
         estado: derivarEstado(mesa, limiares),
         alertas: derivarAlertas(mesa, limiares),
       })),
-    [mesas, limiares],
+    [mesasCena, limiares],
   );
 
   // Foco e filtro falam a mesma língua: o que não está em foco recua para ~1/4.
@@ -258,10 +299,10 @@ export function Floor3D({
               instantaneo={reduz}
             />
             {exibicao.cadeiras && (
-              <Assentos itens={situacoes} cenario={cenario} cores={cores} pessoas={exibicao.pessoas} esmaecidas={esmaecidas} instantaneo={reduz} />
+              <Assentos itens={situacoes} cenario={cenario} cores={cores} pessoas={exibicao.pessoas} esmaecidas={esmaecidas} instantaneo={reduz} foco={focoAssentos} />
             )}
             {mesas.map((mesa) => (
-              <Mesa3D key={mesa.id} mesa={mesa} hover={hover} cenario={cenario} onSelect={aoSelecionar} />
+              <Mesa3D key={mesa.id} mesa={mesa} hover={hover} cenario={cenario} onSelect={aoSelecionar} cadeirasAtivas={comPosicoes && mesa.id === selecionada} />
             ))}
 
             <Camera
@@ -280,6 +321,7 @@ export function Floor3D({
               selecionada={selecionada}
               reduzMovimento={reduz}
             />
+            <ProjetorTags tags={tags} els={elsTags} />
             <ProjetorRotulos
               itens={itensRotulo}
               els={els}
@@ -294,6 +336,7 @@ export function Floor3D({
         </Canvas>
       </div>
 
+      <CamadaTags tags={tags} els={elsTags} />
       <CamadaRotulos itens={itensRotulo} marcos={marcos} corHaste={cores.anel} els={els} elsMarcos={elsMarcos} />
 
       {/* A cena não é operável por teclado; esta é a via equivalente. */}
