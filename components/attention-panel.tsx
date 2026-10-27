@@ -66,6 +66,7 @@ export function AttentionPanel({ mesas, limiares, onSelect }: AttentionPanelProp
                   {mesa.pessoas} pessoas
                   {mesa.abertaHa ? ` · ${formatarDuracao(mesa.abertaHa)}` : ""}
                   {praca ? ` · ${praca.garcom}` : ""}
+                  {mesa.pedidosPendentes ? ` · ${mesa.pedidosPendentes} ${mesa.pedidosPendentes === 1 ? "pedido pendente" : "pedidos pendentes"}` : ""}
                 </span>
               </span>
 

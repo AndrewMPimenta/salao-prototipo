@@ -4,6 +4,7 @@ export const AMBIENTES: Ambiente[] = [
   { id: "principal", nome: "Salão Principal" },
   { id: "varanda", nome: "Varanda" },
   { id: "mezanino", nome: "Mezanino" },
+  { id: "eventos", nome: "Salão de Eventos" },
 ];
 
 export const PRACAS: Praca[] = [
@@ -15,12 +16,16 @@ export const PRACAS: Praca[] = [
   { id: "B", ambienteId: "varanda", garcom: "Jô" },
   { id: "A", ambienteId: "mezanino", garcom: "Nando" },
   { id: "B", ambienteId: "mezanino", garcom: "Lu" },
+  { id: "A", ambienteId: "eventos", garcom: "Caio" },
+  { id: "B", ambienteId: "eventos", garcom: "Vivi" },
+  { id: "C", ambienteId: "eventos", garcom: "Hugo" },
+  { id: "D", ambienteId: "eventos", garcom: "Maya" },
 ];
 
 /** Dados de exemplo — um serviço de quarta à noite, salão quase cheio. */
-export const MESAS: Mesa[] = [
+const MESAS_BASE: Mesa[] = [
   { id: 1, ambienteId: "principal", pracaId: "A", forma: "retangular", x: 11, y: 14, largura: 62, altura: 86, lugares: 4, pessoas: 4, semPedido: 23, abertaHa: 77 },
-  { id: 2, ambienteId: "principal", pracaId: "A", forma: "retangular", x: 11, y: 38, largura: 62, altura: 86, lugares: 4, pessoas: 3, semPedido: 6, abertaHa: 52 },
+  { id: 2, ambienteId: "principal", pracaId: "A", forma: "retangular", x: 11, y: 38, largura: 62, altura: 86, lugares: 4, pessoas: 3, semPedido: 6, abertaHa: 52, pedidosPendentes: 2 },
   { id: 3, ambienteId: "principal", pracaId: "A", forma: "retangular", x: 11, y: 62, largura: 62, altura: 86, lugares: 4, pessoas: 2, semPedido: 4, abertaHa: 20 },
   { id: 4, ambienteId: "principal", pracaId: "A", forma: "retangular", x: 11, y: 86, largura: 62, altura: 86, lugares: 4, pessoas: 4, semPedido: 12, abertaHa: 64 },
   { id: 5, ambienteId: "principal", pracaId: "B", forma: "redonda", x: 29, y: 17, largura: 62, altura: 62, lugares: 4, pessoas: 0 },
@@ -28,19 +33,19 @@ export const MESAS: Mesa[] = [
   { id: 7, ambienteId: "principal", pracaId: "B", forma: "redonda", x: 57, y: 17, largura: 62, altura: 62, lugares: 4, pessoas: 0 },
   { id: 8, ambienteId: "principal", pracaId: "B", forma: "redonda", x: 29, y: 42, largura: 62, altura: 62, lugares: 4, pessoas: 0 },
   { id: 9, ambienteId: "principal", pracaId: "B", forma: "redonda", x: 43, y: 42, largura: 62, altura: 62, lugares: 4, pessoas: 2, semPedido: 38, abertaHa: 72, contaImpressa: true, total: "R$ 184,50" },
-  { id: 10, ambienteId: "principal", pracaId: "B", forma: "redonda", x: 58, y: 42, largura: 76, altura: 76, lugares: 6, pessoas: 5, semPedido: 9, abertaHa: 13 },
+  { id: 10, ambienteId: "principal", pracaId: "B", forma: "redonda", x: 58, y: 42, largura: 76, altura: 76, lugares: 6, pessoas: 5, semPedido: 9, abertaHa: 13, pedidosPendentes: 1 },
   { id: 11, ambienteId: "principal", pracaId: "B", forma: "redonda", x: 29, y: 66, largura: 62, altura: 62, lugares: 4, pessoas: 0 },
   { id: 12, ambienteId: "principal", pracaId: "B", forma: "redonda", x: 43, y: 66, largura: 62, altura: 62, lugares: 4, pessoas: 0 },
   { id: 13, ambienteId: "principal", pracaId: "B", forma: "redonda", x: 58, y: 66, largura: 72, altura: 72, lugares: 4, pessoas: 2, semPedido: 56, abertaHa: 66 },
   { id: 14, ambienteId: "principal", pracaId: "C", forma: "retangular", x: 31, y: 89, largura: 116, altura: 54, lugares: 6, pessoas: 4, semPedido: 17, abertaHa: 26 },
-  { id: 15, ambienteId: "principal", pracaId: "C", forma: "retangular", x: 53, y: 89, largura: 130, altura: 54, lugares: 8, pessoas: 8, semPedido: 11, abertaHa: 44 },
+  { id: 15, ambienteId: "principal", pracaId: "C", forma: "retangular", x: 53, y: 89, largura: 130, altura: 54, lugares: 8, pessoas: 8, semPedido: 11, abertaHa: 44, pedidosPendentes: 3 },
   { id: 16, ambienteId: "principal", pracaId: "D", forma: "redonda", x: 73, y: 15, largura: 56, altura: 56, lugares: 2, pessoas: 2, semPedido: 3, abertaHa: 10 },
   { id: 17, ambienteId: "principal", pracaId: "D", forma: "redonda", x: 73, y: 36, largura: 52, altura: 52, lugares: 2, pessoas: 0 },
   { id: 18, ambienteId: "principal", pracaId: "D", forma: "redonda", x: 73, y: 57, largura: 52, altura: 52, lugares: 2, pessoas: 0 },
-  { id: 19, ambienteId: "principal", pracaId: "D", forma: "redonda", x: 73, y: 74, largura: 60, altura: 60, lugares: 4, pessoas: 3, semPedido: 14, abertaHa: 32 },
+  { id: 19, ambienteId: "principal", pracaId: "D", forma: "redonda", x: 73, y: 74, largura: 60, altura: 60, lugares: 4, pessoas: 3, semPedido: 14, abertaHa: 32, pedidosPendentes: 1 },
   { id: 20, ambienteId: "principal", pracaId: "C", forma: "redonda", x: 89, y: 89, largura: 60, altura: 60, lugares: 4, pessoas: 0 },
   { id: 21, ambienteId: "varanda", pracaId: "A", forma: "redonda", x: 16, y: 24, largura: 62, altura: 62, lugares: 4, pessoas: 4, semPedido: 8, abertaHa: 38 },
-  { id: 22, ambienteId: "varanda", pracaId: "A", forma: "redonda", x: 38, y: 24, largura: 62, altura: 62, lugares: 4, pessoas: 2, semPedido: 21, abertaHa: 41 },
+  { id: 22, ambienteId: "varanda", pracaId: "A", forma: "redonda", x: 38, y: 24, largura: 62, altura: 62, lugares: 4, pessoas: 2, semPedido: 21, abertaHa: 41, pedidosPendentes: 2 },
   { id: 23, ambienteId: "varanda", pracaId: "A", forma: "redonda", x: 60, y: 24, largura: 62, altura: 62, lugares: 4, pessoas: 0 },
   { id: 24, ambienteId: "varanda", pracaId: "A", forma: "redonda", x: 82, y: 24, largura: 62, altura: 62, lugares: 4, pessoas: 0 },
   { id: 25, ambienteId: "varanda", pracaId: "B", forma: "retangular", x: 20, y: 70, largura: 116, altura: 54, lugares: 6, pessoas: 5, semPedido: 19, abertaHa: 82 },
@@ -52,11 +57,76 @@ export const MESAS: Mesa[] = [
   { id: 31, ambienteId: "mezanino", pracaId: "A", forma: "redonda", x: 50, y: 18, largura: 56, altura: 56, lugares: 2, pessoas: 0 },
   { id: 32, ambienteId: "mezanino", pracaId: "A", forma: "redonda", x: 68, y: 18, largura: 56, altura: 56, lugares: 2, pessoas: 0 },
   { id: 33, ambienteId: "mezanino", pracaId: "B", forma: "redonda", x: 88, y: 22, largura: 62, altura: 62, lugares: 4, pessoas: 4, semPedido: 26, abertaHa: 48 },
-  { id: 34, ambienteId: "mezanino", pracaId: "B", forma: "redonda", x: 16, y: 70, largura: 62, altura: 62, lugares: 4, pessoas: 3, semPedido: 7, abertaHa: 25 },
+  { id: 34, ambienteId: "mezanino", pracaId: "B", forma: "redonda", x: 16, y: 70, largura: 62, altura: 62, lugares: 4, pessoas: 3, semPedido: 7, abertaHa: 25, pedidosPendentes: 1 },
   { id: 35, ambienteId: "mezanino", pracaId: "B", forma: "redonda", x: 40, y: 74, largura: 62, altura: 62, lugares: 4, pessoas: 4, semPedido: 10, abertaHa: 40 },
   { id: 36, ambienteId: "mezanino", pracaId: "B", forma: "retangular", x: 68, y: 76, largura: 116, altura: 54, lugares: 6, pessoas: 5, semPedido: 14, abertaHa: 30 },
   { id: 37, ambienteId: "mezanino", pracaId: "B", forma: "redonda", x: 91, y: 68, largura: 62, altura: 62, lugares: 4, pessoas: 2, semPedido: 2, abertaHa: 55, contaImpressa: true, total: "R$ 96,00" },
 ];
+
+/*
+  Salão de Eventos: grade de mesas de banquete gerada aqui, com LCG semeado para
+  o salão ser idêntico a cada carga (Math.random quebraria a hidratação).
+  Posições em metros no campo de mesas e depois convertidas em % do ambiente;
+  as medidas do campo precisam bater com `CENARIOS.eventos`.
+*/
+const EV_COLUNAS = 12;
+const EV_LINHAS = 10;
+const EV_PASSO_X = 3.6;
+const EV_PASSO_Z = 3.1;
+const EV_CORREDOR_X = 1.8;
+const EV_CORREDOR_Z = 2;
+export const EV_CAMPO_L = EV_COLUNAS * EV_PASSO_X + 2 * EV_CORREDOR_X;
+export const EV_CAMPO_P = EV_LINHAS * EV_PASSO_Z + EV_CORREDOR_Z;
+
+function gerarEventos(): Mesa[] {
+  let semente = 20260720;
+  const sorteio = () => {
+    semente = (Math.imul(semente, 1664525) + 1013904223) >>> 0;
+    return semente / 4294967296;
+  };
+  const inteiro = (min: number, max: number) => min + Math.floor(sorteio() * (max - min + 1));
+
+  const mesas: Mesa[] = [];
+  for (let l = 0; l < EV_LINHAS; l++) {
+    for (let c = 0; c < EV_COLUNAS; c++) {
+      const xm = EV_PASSO_X / 2 + c * EV_PASSO_X + Math.floor(c / 4) * EV_CORREDOR_X;
+      const zm = EV_PASSO_Z / 2 + l * EV_PASSO_Z + (l >= EV_LINHAS / 2 ? EV_CORREDOR_Z : 0);
+      const redonda = (c + l) % 3 !== 0;
+      const lugares = redonda ? 8 : 10;
+
+      const r = sorteio();
+      const mesa: Mesa = {
+        id: 100 + l * EV_COLUNAS + c,
+        ambienteId: "eventos",
+        pracaId: "ABCD"[Math.floor(c / 3)],
+        forma: redonda ? "redonda" : "retangular",
+        x: Math.round((xm / EV_CAMPO_L) * 1000) / 10,
+        y: Math.round((zm / EV_CAMPO_P) * 1000) / 10,
+        largura: redonda ? 120 : 220,
+        altura: redonda ? 120 : 64,
+        lugares,
+        pessoas: 0,
+      };
+
+      if (r >= 0.29) {
+        mesa.pessoas = inteiro(Math.ceil(lugares / 2), lugares);
+        mesa.abertaHa = inteiro(8, 95);
+        mesa.semPedido = inteiro(2, 17);
+        if (r >= 0.84 && r < 0.92) mesa.semPedido = inteiro(20, 38);
+        else if (r >= 0.92 && r < 0.96) mesa.semPedido = inteiro(41, 70);
+        else if (r >= 0.96) {
+          mesa.contaImpressa = true;
+          mesa.total = `R$ ${inteiro(480, 2400)},00`;
+        }
+        if (sorteio() < 0.4) mesa.pedidosPendentes = inteiro(1, 3);
+      }
+      mesas.push(mesa);
+    }
+  }
+  return mesas;
+}
+
+export const MESAS: Mesa[] = [...MESAS_BASE, ...gerarEventos()];
 
 export interface Fixture {
   x: number;
@@ -74,6 +144,10 @@ export const FIXTURES: Record<string, Fixture[]> = {
     { x: 66, y: 97, largura: 24, altura: 5, nome: "Entrada", solido: true },
   ],
   varanda: [{ x: 40, y: 96, largura: 30, altura: 5, nome: "Acesso ao salão", solido: true }],
+  eventos: [
+    { x: 50, y: -8, largura: 38, altura: 6, nome: "Palco", solido: true },
+    { x: -6, y: 50, largura: 5, altura: 70, nome: "Buffet" },
+  ],
   mezanino: [
     { x: 88, y: -2, largura: 12, altura: 5, nome: "Escada", solido: true },
     { x: 30, y: 97, largura: 40, altura: 5, nome: "Vista para o salão", solido: true },

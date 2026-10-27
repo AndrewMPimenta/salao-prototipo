@@ -19,6 +19,8 @@ export interface Mesa {
   semPedido?: number;
   /** Minutos desde a abertura da comanda. */
   abertaHa?: number;
+  /** Itens já lançados que ainda não chegaram à mesa. */
+  pedidosPendentes?: number;
   contaImpressa?: boolean;
   total?: string;
 }

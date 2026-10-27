@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useThree } from "@react-three/fiber";
 import { CameraControls, CameraControlsImpl } from "@react-three/drei";
 import * as THREE from "three";
 import type { VistaCamera } from "@/components/floor-3d";
 import { caixaDaSala, type Cenario } from "./cenarios";
-import { enquadrarCaixa, poseParaPonto, type Folga } from "./enquadramento";
+import { enquadrarCaixa, transladarParaPonto, type Folga } from "./enquadramento";
 
 const { ACTION } = CameraControlsImpl;
 
@@ -16,10 +16,27 @@ const PRESETS: Record<VistaCamera, { pol: number; az: number }> = {
   nivel: { pol: 1.22, az: 0.35 },
 };
 
-const POLAR_MESA = 0.85;
-
 /** Em retrato o lado maior corre na vertical; a diagonal é atenuada porque alarga a sala na tela estreita. */
 const azimuteDe = (az: number, aspecto: number) => (aspecto < 0.9 ? Math.PI / 2 + az * 0.3 : az);
+
+interface VistaSalva {
+  p: [number, number, number];
+  t: [number, number, number];
+  retrato: boolean;
+}
+
+const chaveVista = (ambienteId: string) => `vistaPadrao:${ambienteId}`;
+
+function lerVista(ambienteId: string, retrato: boolean): VistaSalva | null {
+  try {
+    const v = JSON.parse(localStorage.getItem(chaveVista(ambienteId)) ?? "null") as VistaSalva | null;
+    // A pose de um formato de tela não serve no outro: o azimute de retrato é girado.
+    if (!v || v.retrato !== retrato || v.p?.length !== 3 || v.t?.length !== 3) return null;
+    return v;
+  } catch {
+    return null;
+  }
+}
 
 interface Props {
   cenario: Cenario;
@@ -29,41 +46,66 @@ interface Props {
   zoom: { direcao: 1 | -1; n: number } | null;
   foco: { id: number; n: number } | null;
   sinalNorte: number;
+  /** Muda a cada "salvar vista": grava a pose atual como padrão do ambiente. */
+  sinalSalvarVista: number;
+  /** Muda a cada "restaurar padrão": apaga a vista salva e volta ao enquadramento do preset. */
+  sinalLimparVista: number;
   onCameraChange?: (azimute: number) => void;
   folga: Folga;
-  selecionada: number | null;
   /** Posição de cada mesa no mundo (x, z). */
   posicoes: Map<number, [number, number, number]>;
   reduzMovimento: boolean;
 }
 
 export function Camera(p: Props) {
-  const ref = useRef<CameraControlsImpl>(null);
-  const { size, camera, invalidate } = useThree();
+  const ref = useRef<CameraControlsImpl | null>(null);
+  // O controle só existe depois da montagem do filho; como estado, os efeitos que o configuram rodam quando ele chega.
+  const [pronto3d, setPronto3d] = useState(false);
+  const aoMontar = useCallback((c: CameraControlsImpl | null) => {
+    ref.current = c;
+    setPronto3d(c !== null);
+  }, []);
+  const { size, camera, invalidate, gl } = useThree();
   const fov = (camera as THREE.PerspectiveCamera).fov;
   const pronto = size.width > 0 && size.height > 0;
 
-  // Os efeitos de seleção e redimensionamento leem o estado mais recente sem se re-disparar.
+  // Os efeitos de foco e redimensionamento leem o estado mais recente sem se re-disparar.
   const atual = useRef({ ...p, w: size.width, h: size.height, fov });
   atual.current = { ...p, w: size.width, h: size.height, fov };
 
   const ultimoAmbiente = useRef<string | null>(null);
   const aspectoEnquadrado = useRef(0);
   const ultimoZoom = useRef(p.zoom?.n ?? 0);
-  const ultimaSelecao = useRef<number | null>(null);
   const ultimoFoco = useRef(p.foco?.n ?? 0);
   const ultimoNorte = useRef(p.sinalNorte);
+  const ultimoPreset = useRef(p.vistaCamera);
+  const ultimoReset = useRef(p.sinalReset);
+  const ultimaSalva = useRef(p.sinalSalvarVista);
+  const ultimaLimpa = useRef(p.sinalLimparVista);
+  // Preset escolhido à mão vence a vista salva até o próximo reset ou troca de ambiente.
+  const usaPadrao = useRef(true);
 
   useEffect(() => {
     const c = ref.current;
     if (!c) return;
-    c.mouseButtons.left = ACTION.ROTATE;
-    c.mouseButtons.right = ACTION.TRUCK;
+    // Navegação de mapa: arrastar desloca pelo piso; girar fica no botão direito ou com Ctrl/Shift.
+    c.mouseButtons.left = ACTION.TRUCK;
+    c.mouseButtons.right = ACTION.ROTATE;
+    c.mouseButtons.middle = ACTION.DOLLY;
     c.mouseButtons.wheel = ACTION.DOLLY;
-    c.touches.one = ACTION.TOUCH_ROTATE;
-    c.touches.two = ACTION.TOUCH_DOLLY_TRUCK;
+    c.verticalDragToForward = true;
+    c.touches.one = ACTION.TOUCH_TRUCK;
+    c.touches.two = ACTION.TOUCH_DOLLY_ROTATE;
     c.touches.three = ACTION.TOUCH_TRUCK;
-  }, []);
+
+    // A ação do botão é lida no pointerdown; o modificador só é conhecido ali.
+    const alvo = gl.domElement.parentElement ?? gl.domElement;
+    const aoPressionar = (e: PointerEvent) => {
+      if (e.pointerType === "mouse") c.mouseButtons.left = e.ctrlKey || e.shiftKey ? ACTION.ROTATE : ACTION.TRUCK;
+    };
+    alvo.addEventListener("pointerdown", aoPressionar, true);
+    return () => alvo.removeEventListener("pointerdown", aoPressionar, true);
+  }, [gl, pronto3d]);
 
   useEffect(() => {
     const c = ref.current;
@@ -77,46 +119,62 @@ export function Camera(p: Props) {
     limite.min.y = -3;
     limite.max.y = 6;
     c.setBoundary(limite);
-  }, [p.cenario]);
+  }, [p.cenario, pronto3d]);
 
-  const enquadrar = useCallback((instantaneo: boolean) => {
+  // Sob demanda, nada desenha sozinho: a pose só é aplicada no quadro seguinte e a transição precisa de quadros até o fim.
+  const renderizarPor = useCallback((ms: number) => {
+    const fim = performance.now() + ms;
+    const passo = () => {
+      invalidate();
+      if (performance.now() < fim) requestAnimationFrame(passo);
+    };
+    passo();
+  }, [invalidate]);
+
+  const enquadrar = useCallback((instantaneo: boolean, usarSalva: boolean) => {
     const c = ref.current;
     const a = atual.current;
     if (!c || a.w <= 0) return;
 
-    const aspecto = a.w / a.h;
+    // O tamanho do canvas no DOM chega antes do estado do R3F; medir aqui evita enquadrar com a proporção errada.
+    const el = gl.domElement;
+    const w = el.clientWidth || a.w;
+    const h = el.clientHeight || a.h;
+    const aspecto = w / h;
+    const retrato = aspecto < 0.9;
     // Em retrato o campo vertical de 34° dá um horizontal estreito demais: a sala só caberia a >100 m.
     const cam = camera as THREE.PerspectiveCamera;
-    cam.fov = aspecto < 0.9 ? 55 : 34;
+    cam.fov = retrato ? 55 : 34;
     cam.updateProjectionMatrix();
-    const vp = { w: a.w, h: a.h, fov: cam.fov };
+    const vp = { w, h, fov: cam.fov };
     const preset = PRESETS[a.vistaCamera];
     // Em retrato o lado maior da sala corre na vertical do celular.
     const az = azimuteDe(preset.az, aspecto);
-    const caixa = caixaDaSala(a.cenario, 0.4);
-    const diag = Math.hypot(a.cenario.salaL, a.cenario.salaP);
-    const { pos, alvo, d } = enquadrarCaixa(caixa, az, preset.pol, a.folga, vp, c.minDistance, diag * 8);
+    const { pos, alvo, d } = enquadrarCaixa(caixaDaSala(a.cenario, 0), az, preset.pol, a.folga, vp);
     // Afastar além da visão geral enquadrada não informa nada.
     c.maxDistance = d * 1.15;
 
+    const salva = usarSalva ? lerVista(a.ambienteId, retrato) : null;
+    const [pp, tt] = salva ? [salva.p, salva.t] : [pos.toArray(), alvo.toArray()];
+
     aspectoEnquadrado.current = aspecto;
-    void c.setLookAt(pos.x, pos.y, pos.z, alvo.x, alvo.y, alvo.z, !instantaneo && !a.reduzMovimento);
-    // Sob demanda, a pose só é aplicada no quadro seguinte e esse quadro precisa pedir o seguinte.
-    invalidate();
-    requestAnimationFrame(() => {
-      invalidate();
-      requestAnimationFrame(() => invalidate());
-    });
-  }, [camera, invalidate]);
+    void c.setLookAt(pp[0], pp[1], pp[2], tt[0], tt[1], tt[2], !instantaneo && !a.reduzMovimento);
+    renderizarPor(1800);
+  }, [camera, gl, renderizarPor]);
 
   useEffect(() => {
-    if (!pronto) return;
+    if (!pronto || !pronto3d) return;
     const novoAmbiente = ultimoAmbiente.current !== p.ambienteId;
     ultimoAmbiente.current = p.ambienteId;
+    if (novoAmbiente || ultimoReset.current !== p.sinalReset) usaPadrao.current = true;
+    else if (ultimoPreset.current !== p.vistaCamera) usaPadrao.current = false;
+    ultimoReset.current = p.sinalReset;
+    ultimoPreset.current = p.vistaCamera;
     // Trocar de ambiente troca a cena inteira: voar entre escalas diferentes confunde.
-    enquadrar(novoAmbiente);
+    enquadrar(novoAmbiente, usaPadrao.current);
   }, [
     pronto,
+    pronto3d,
     p.ambienteId,
     p.vistaCamera,
     p.sinalReset,
@@ -127,59 +185,102 @@ export function Camera(p: Props) {
     enquadrar,
   ]);
 
+  // O canvas pode ganhar o tamanho final (ou as fontes chegar) depois do primeiro quadro; sob demanda isso não redesenha sozinho.
+  useEffect(() => {
+    if (!pronto3d) return;
+    const el = gl.domElement.parentElement ?? gl.domElement;
+    let t: ReturnType<typeof setTimeout>;
+    const ro = new ResizeObserver(() => {
+      clearTimeout(t);
+      t = setTimeout(() => {
+        const aspecto = gl.domElement.clientWidth / gl.domElement.clientHeight;
+        const base = aspectoEnquadrado.current;
+        if (base > 0 && Math.abs(aspecto - base) / base > 0.08) enquadrar(true, usaPadrao.current);
+        renderizarPor(400);
+      }, 100);
+    });
+    ro.observe(el);
+    void document.fonts?.ready.then(() => renderizarPor(600));
+    const pedir = () => invalidate();
+    const c = ref.current;
+    c?.addEventListener("update", pedir);
+    c?.addEventListener("rest", pedir);
+    return () => {
+      clearTimeout(t);
+      ro.disconnect();
+      c?.removeEventListener("update", pedir);
+      c?.removeEventListener("rest", pedir);
+    };
+  }, [pronto3d, gl, enquadrar, renderizarPor, invalidate]);
+
   // Só reenquadra se a proporção mudou de fato: a barra de endereço do celular não deve mexer na vista.
   useEffect(() => {
     if (!pronto) return;
     const t = setTimeout(() => {
       const aspecto = size.width / size.height;
       const base = aspectoEnquadrado.current;
-      if (base > 0 && Math.abs(aspecto - base) / base > 0.08) enquadrar(true);
+      if (base > 0 && Math.abs(aspecto - base) / base > 0.08) enquadrar(true, usaPadrao.current);
     }, 150);
     return () => clearTimeout(t);
   }, [pronto, size.width, size.height, enquadrar]);
 
-  const voarPara = useCallback((id: number) => {
+  // Só desloca: quem navega por lista ou busca já escolheu o zoom e o ângulo que quer.
+  const panoramicaPara = useCallback((id: number) => {
     const c = ref.current;
     const a = atual.current;
     const xz = a.posicoes.get(id);
     if (!c || !xz || a.w <= 0) return;
 
     const vp = { w: a.w, h: a.h, fov: (camera as THREE.PerspectiveCamera).fov };
-    const { pos, alvo } = poseParaPonto(
-      new THREE.Vector3(xz[0], 0.5, xz[1]),
-      c.azimuthAngle,
-      POLAR_MESA,
-      // Mesas maiores pedem mais recuo para as cadeiras não encherem a tela.
-      Math.max(c.minDistance, 6 + xz[2] * 2.5),
-      a.folga,
-      vp,
-    );
+    const pos = c.getPosition(new THREE.Vector3());
+    const alvo = c.getTarget(new THREE.Vector3());
+    const w = transladarParaPonto(new THREE.Vector3(xz[0], 0.5, xz[1]), pos, c.azimuthAngle, c.polarAngle, a.folga, vp);
+    pos.add(w);
+    alvo.add(w);
     void c.setLookAt(pos.x, pos.y, pos.z, alvo.x, alvo.y, alvo.z, !a.reduzMovimento);
-  }, [camera]);
+    renderizarPor(1800);
+  }, [camera, renderizarPor]);
 
-  useEffect(() => {
-    const id = p.selecionada;
-    if (id === ultimaSelecao.current) return;
-    ultimaSelecao.current = id;
-    // Ao limpar a seleção a câmera fica onde o usuário a deixou.
-    if (id !== null) voarPara(id);
-  }, [p.selecionada, voarPara]);
-
-  // Foco sob demanda (lista/busca): voa mesmo que a mesa já esteja selecionada.
+  // Foco sob demanda (lista/busca): desloca mesmo que a mesa já esteja selecionada.
   useEffect(() => {
     if (!p.foco || p.foco.n === ultimoFoco.current) return;
     ultimoFoco.current = p.foco.n;
-    voarPara(p.foco.id);
-  }, [p.foco, voarPara]);
+    panoramicaPara(p.foco.id);
+  }, [p.foco, panoramicaPara]);
 
   useEffect(() => {
     const c = ref.current;
     if (!c || p.sinalNorte === ultimoNorte.current) return;
     ultimoNorte.current = p.sinalNorte;
     const a = atual.current;
-    const az = azimuteDe(PRESETS[a.vistaCamera].az, a.w / a.h);
+    const az = azimuteDe(PRESETS[a.vistaCamera].az, gl.domElement.clientWidth / gl.domElement.clientHeight);
     void c.rotateTo(az, c.polarAngle, !a.reduzMovimento);
-  }, [p.sinalNorte]);
+    renderizarPor(1800);
+  }, [p.sinalNorte, gl, renderizarPor]);
+
+  useEffect(() => {
+    const c = ref.current;
+    if (!c || p.sinalSalvarVista === ultimaSalva.current) return;
+    ultimaSalva.current = p.sinalSalvarVista;
+    const v: VistaSalva = {
+      p: c.getPosition(new THREE.Vector3()).toArray(),
+      t: c.getTarget(new THREE.Vector3()).toArray(),
+      retrato: gl.domElement.clientWidth / gl.domElement.clientHeight < 0.9,
+    };
+    try {
+      localStorage.setItem(chaveVista(atual.current.ambienteId), JSON.stringify(v));
+    } catch {}
+  }, [p.sinalSalvarVista, gl]);
+
+  useEffect(() => {
+    if (p.sinalLimparVista === ultimaLimpa.current) return;
+    ultimaLimpa.current = p.sinalLimparVista;
+    try {
+      localStorage.removeItem(chaveVista(atual.current.ambienteId));
+    } catch {}
+    usaPadrao.current = true;
+    enquadrar(false, false);
+  }, [p.sinalLimparVista, enquadrar]);
 
   // O azimute alimenta a bússola do shell; ~10 Hz poupa renderizações do React.
   useEffect(() => {
@@ -196,18 +297,19 @@ export function Camera(p: Props) {
     };
     c.addEventListener("update", aoAtualizar);
     return () => c.removeEventListener("update", aoAtualizar);
-  }, []);
+  }, [pronto3d]);
 
   useEffect(() => {
     const c = ref.current;
     if (!c || !p.zoom || p.zoom.n === ultimoZoom.current) return;
     ultimoZoom.current = p.zoom.n;
     void c.dolly(p.zoom.direcao * c.distance * 0.25, !p.reduzMovimento);
-  }, [p.zoom, p.reduzMovimento]);
+    renderizarPor(1200);
+  }, [p.zoom, p.reduzMovimento, renderizarPor]);
 
   return (
     <CameraControls
-      ref={ref}
+      ref={aoMontar}
       makeDefault
       smoothTime={p.reduzMovimento ? 0 : 0.35}
       draggingSmoothTime={p.reduzMovimento ? 0 : 0.12}

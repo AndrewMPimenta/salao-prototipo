@@ -29,6 +29,7 @@ export function TableSheet({ mesa, limiares, onClose, variante = "sheet" }: Tabl
   const estado = derivarEstado(mesa, limiares);
   const praca = PRACAS.find((p) => p.id === mesa.pracaId && p.ambienteId === mesa.ambienteId);
   const ambiente = AMBIENTES.find((a) => a.id === mesa.ambienteId);
+  const pendentes = mesa.pedidosPendentes ?? 0;
   const cartao = variante === "cartao";
 
   return (
@@ -70,6 +71,11 @@ export function TableSheet({ mesa, limiares, onClose, variante = "sheet" }: Tabl
             />
             <span className="min-w-0">{ROTULO_ESTADO[estado]}</span>
           </p>
+          {pendentes > 0 && (
+            <p className="tnum m-0 mt-1 text-[13px] leading-4 text-(--color-ink-2)">
+              Pedidos pendentes de entrega: {pendentes}
+            </p>
+          )}
           {mesa.pessoas > 0 && (
             <p className="tnum m-0 mt-1 text-[13px] leading-4 text-(--color-ink-2)">
               {mesa.pessoas} {mesa.pessoas === 1 ? "pessoa" : "pessoas"} · {mesa.lugares} lugares
@@ -109,6 +115,7 @@ export function TableSheet({ mesa, limiares, onClose, variante = "sheet" }: Tabl
           <Item rotulo="Lugares" valor={String(mesa.lugares)} />
           {mesa.pessoas > 0 && <Item rotulo="Pessoas" valor={String(mesa.pessoas)} />}
           {mesa.abertaHa && <Item rotulo="Aberta há" valor={formatarDuracao(mesa.abertaHa)} />}
+          {pendentes > 0 && <Item rotulo="Pedidos pendentes de entrega" valor={String(pendentes)} />}
           {mesa.semPedido != null && <Item rotulo="Sem pedido" valor={`${mesa.semPedido} min`} />}
           {mesa.total && <Item rotulo="Total" valor={mesa.total} />}
           {praca && <Item rotulo="Praça" valor={`${praca.id} · ${praca.garcom}`} />}

@@ -1,10 +1,10 @@
 "use client";
 
-import { useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { Salao } from "@/hooks/use-salao";
 import { BotaoIcone } from "./botao-icone";
-import { IconeAlvo, IconeBussola, IconeMais, IconeMenos, ICONE_PRESET } from "./icones";
+import { IconeAlvo, IconeBussola, IconeMais, IconeMarcador, IconeMenos, ICONE_PRESET } from "./icones";
 import { materializar } from "./materializar";
 import { PRESETS, ROTULO_PRESET } from "./tipos";
 
@@ -19,6 +19,72 @@ function Bussola({ camera }: { camera: Camera }) {
   );
 }
 
+/** Vista padrão por ambiente: o menu abre à esquerda da pilha, onde há espaço, e fecha com Esc ou clique fora. */
+function MenuVista({ camera }: { camera: Camera }) {
+  const [aberto, setAberto] = useState(false);
+  const [salvo, setSalvo] = useState(false);
+  const raiz = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!aberto) return;
+    const fora = (e: PointerEvent) => {
+      if (!raiz.current?.contains(e.target as Node)) setAberto(false);
+    };
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setAberto(false);
+    document.addEventListener("pointerdown", fora);
+    document.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("pointerdown", fora);
+      document.removeEventListener("keydown", esc);
+    };
+  }, [aberto]);
+
+  const item =
+    "flex h-11 w-full items-center whitespace-nowrap rounded-[14px] px-3 text-left text-[13px] font-medium text-(--color-ink) hover:bg-(--color-ink)/8 active:bg-(--color-ink)/12 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)";
+
+  return (
+    <div ref={raiz} className="relative">
+      <BotaoIcone rotulo="Vista padrão" expandido={aberto} onClick={() => setAberto((v) => !v)}>
+        <IconeMarcador />
+      </BotaoIcone>
+      {aberto && (
+        <div
+          role="menu"
+          aria-label="Vista padrão"
+          className="glass absolute right-[calc(100%+8px)] bottom-0 z-30 flex w-60 flex-col rounded-[18px] p-1"
+        >
+          <button
+            type="button"
+            role="menuitem"
+            className={item}
+            onClick={() => {
+              camera.salvarVista();
+              setSalvo(true);
+              setTimeout(() => {
+                setSalvo(false);
+                setAberto(false);
+              }, 900);
+            }}
+          >
+            {salvo ? "Vista salva" : "Salvar vista atual como padrão"}
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className={item}
+            onClick={() => {
+              camera.limparVista();
+              setAberto(false);
+            }}
+          >
+            Restaurar padrão de fábrica
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const Divisoria = () => <span aria-hidden className="mx-2 h-px bg-(--color-ink)/10" />;
 
 /** Pilha vertical de vidro: zoom, bússola e recentralizar. */
@@ -30,6 +96,7 @@ function Pilha({ camera, children }: { camera: Camera; children?: ReactNode }) {
       <Divisoria />
       <Bussola camera={camera} />
       <BotaoIcone rotulo="Recentralizar" onClick={camera.recentralizar}><IconeAlvo /></BotaoIcone>
+      <MenuVista camera={camera} />
       {children}
     </div>
   );

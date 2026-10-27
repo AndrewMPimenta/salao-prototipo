@@ -57,9 +57,13 @@ interface AjudaAtalhosProps {
   onAtalhos: (v: boolean) => void;
   rotulos: boolean;
   onRotulos: (v: boolean) => void;
+  modoLeve: boolean;
+  modoLeveAutomatico: boolean;
+  /** `null` devolve ao automático. */
+  onModoLeve: (v: boolean | null) => void;
 }
 
-export function AjudaAtalhos({ aberto, onAbrir, atalhosLigados, onAtalhos, rotulos, onRotulos }: AjudaAtalhosProps) {
+export function AjudaAtalhos({ aberto, onAbrir, atalhosLigados, onAtalhos, rotulos, onRotulos, modoLeve, modoLeveAutomatico, onModoLeve }: AjudaAtalhosProps) {
   const raiz = useRef<HTMLDivElement>(null);
   const id = useId();
 
@@ -108,6 +112,15 @@ export function AjudaAtalhos({ aberto, onAbrir, atalhosLigados, onAtalhos, rotul
         <div className="border-t border-(--color-ink)/10 pt-1">
           <Chave ligada={atalhosLigados} onChange={onAtalhos} rotulo="Atalhos de tecla única" />
           <Chave ligada={rotulos} onChange={onRotulos} rotulo="Rótulos nas mesas 3D" />
+          <Chave ligada={modoLeve} onChange={onModoLeve} rotulo="Modo leve (sem cadeiras e pessoas)" />
+          <p className="m-0 flex items-center justify-between gap-2 pb-1 text-[11px] leading-4 text-(--color-ink-3)">
+            {modoLeveAutomatico ? "Automático: liga em salões grandes ou máquinas fracas." : "Ajuste manual."}
+            {!modoLeveAutomatico && (
+              <button type="button" onClick={() => onModoLeve(null)} className="flex-none font-medium text-(--color-ink-2) underline underline-offset-2">
+                Automático
+              </button>
+            )}
+          </p>
         </div>
       </div>
     </div>

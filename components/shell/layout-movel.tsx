@@ -67,9 +67,12 @@ export function LayoutMovel({ salao, imersivo, telaCheia }: PropsLayout) {
           vistaCamera={salao.camera.vistaCamera}
           sinalReset={salao.camera.sinalReset}
           sinalNorte={salao.camera.sinalNorte}
+          sinalSalvarVista={salao.camera.sinalSalvarVista}
+          sinalLimparVista={salao.camera.sinalLimparVista}
           zoom={salao.camera.zoom}
           folga={folga}
           mostrarRotulos={salao.mostrarRotulos}
+          modoLeve={salao.modoLeve}
           foco={salao.foco}
           onCameraChange={salao.camera.aoMudarCamera}
         />

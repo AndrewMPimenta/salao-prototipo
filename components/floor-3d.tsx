@@ -6,7 +6,7 @@ import type { EstadoMesa, Limiares, Mesa } from "@/lib/types";
 import { derivarEstado, ROTULO_ESTADO } from "@/lib/state";
 import { cn } from "@/lib/utils";
 import { useTemaEscuro } from "@/hooks/use-tema";
-import { CenarioSalao, CenarioVaranda } from "./three/ambientes";
+import { CenarioEventos, CenarioSalao, CenarioVaranda } from "./three/ambientes";
 import { CenarioMezanino } from "./three/mezanino";
 import { Camera } from "./three/camera";
 import { ChaoToque } from "./three/chao";
@@ -14,7 +14,7 @@ import { obterCenario, ALTURA_ROTULO_3D, ms, mx, mz } from "./three/cenarios";
 import { CLARO, ESCURO, coresDoTema } from "./three/materiais";
 import { Assentos, type ItemAssento } from "./three/assentos";
 import { Mesa3D } from "./three/mesa-3d";
-import { CamadaRotulos, MedidorDeRotulos, ProjetorRotulos, type ItemRotulo, type MapaRotulos } from "./three/rotulos";
+import { CamadaRotulos, ProjetorRotulos, type ItemRotulo, type MapaRotulos } from "./three/rotulos";
 import { useReduzMovimento } from "./three/util";
 
 export type VistaCamera = "aerea" | "perspectiva" | "nivel";
@@ -33,20 +33,26 @@ export interface Floor3DProps {
   /** Muda a cada clique em "recentralizar": re-enquadra mesmo se a vista não mudou. */
   sinalReset: number;
   zoom: { direcao: 1 | -1; n: number } | null;
-  /** Voa até a mesa sob demanda (lista/busca), mesmo já selecionada. */
+  /** Desloca até a mesa sob demanda (lista/busca), sem zoom nem giro. */
   foco: { id: number; n: number } | null;
   /** Anima o azimute de volta ao do preset. */
   sinalNorte: number;
+  /** Grava a vista atual como padrão do ambiente. */
+  sinalSalvarVista: number;
+  /** Apaga a vista salva do ambiente e volta ao enquadramento de fábrica. */
+  sinalLimparVista: number;
   /** Azimute em radianos, ~10 Hz, para a bússola do shell. */
   onCameraChange?: (azimuteRad: number) => void;
   /** Folga em px que a interface flutuante ocupa sobre o canvas. */
   folga: { topo: number; base: number; esquerda: number; direita: number };
   mostrarRotulos: boolean;
+  /** Sem cadeiras, figuras e sombras, para máquinas fracas e salões muito cheios. */
+  modoLeve: boolean;
   className?: string;
 }
 
 /** Luz de chave com sombra: mapa menor no celular, onde a GPU é o gargalo. */
-function Luzes({ escuro, raio }: { escuro: boolean; raio: number }) {
+function Luzes({ escuro, raio, sombras }: { escuro: boolean; raio: number; sombras: boolean }) {
   const mapa = useThree((s) => (s.size.width < 768 ? 512 : 1024));
 
   return (
@@ -58,7 +64,7 @@ function Luzes({ escuro, raio }: { escuro: boolean; raio: number }) {
         position={[-raio * 0.5, raio * 1.1, raio * 0.8]}
         color="#fff6ea"
         intensity={1.7}
-        castShadow
+        castShadow={sombras}
         shadow-mapSize={[mapa, mapa]}
         shadow-bias={-0.0006}
         shadow-normalBias={0.03}
@@ -73,6 +79,12 @@ function Luzes({ escuro, raio }: { escuro: boolean; raio: number }) {
   );
 }
 
+const CENAS: Record<string, typeof CenarioSalao> = {
+  varanda: CenarioVaranda,
+  mezanino: CenarioMezanino,
+  eventos: CenarioEventos,
+};
+
 export function Floor3D({
   mesas,
   limiares,
@@ -86,9 +98,12 @@ export function Floor3D({
   zoom,
   foco,
   sinalNorte,
+  sinalSalvarVista,
+  sinalLimparVista,
   onCameraChange,
   folga,
   mostrarRotulos,
+  modoLeve,
   className,
 }: Floor3DProps) {
   const cenario = obterCenario(ambienteId);
@@ -96,23 +111,13 @@ export function Floor3D({
   const reduz = useReduzMovimento();
   const cores = coresDoTema(escuro);
   const paleta = escuro ? ESCURO : CLARO;
-  const [colidindo, setColidindo] = useState<Set<number>>(() => new Set());
   const els = useRef<MapaRotulos>(new Map());
-  const aoMudar = useCallback((s: Set<number>) => setColidindo(s), []);
   const aoSelecionar = useCallback((id: number) => onSelect(id), [onSelect]);
   const aoVazio = useCallback(() => onSelect(null), [onSelect]);
 
   const posicoes = useMemo(
     () => new Map(mesas.map((m) => [m.id, [mx(m.x, cenario), mz(m.y, cenario), Math.max(ms(m.largura), ms(m.altura)) / 2] as [number, number, number]])),
     [mesas, cenario],
-  );
-  const pontos = useMemo(
-    () =>
-      mesas.map((m) => {
-        const [x, z] = posicoes.get(m.id)!;
-        return { id: m.id, x, y: ALTURA_ROTULO_3D, z };
-      }),
-    [mesas, posicoes],
   );
 
   const situacoes = useMemo<ItemAssento[]>(
@@ -130,22 +135,24 @@ export function Floor3D({
       situacoes.flatMap(({ mesa, estado, esmaecida }) => {
         if (esmaecida) return [];
         const [x, z] = posicoes.get(mesa.id)!;
-        return [{ mesa, estado, par: paleta[estado], x, z, selecionada: selecionada === mesa.id, colidindo: colidindo.has(mesa.id) }];
+        return [{ mesa, estado, par: paleta[estado], x, z, selecionada: selecionada === mesa.id }];
       }),
-    [situacoes, posicoes, paleta, selecionada, colidindo],
+    [situacoes, posicoes, paleta, selecionada],
   );
 
   const raio = Math.max(cenario.salaL, cenario.salaP) / 2 + 2;
-  const Cena = ambienteId === "varanda" ? CenarioVaranda : ambienteId === "mezanino" ? CenarioMezanino : CenarioSalao;
+  const Cena = CENAS[ambienteId] ?? CenarioSalao;
 
   return (
     <div className={cn("absolute inset-0", className)}>
       <div aria-hidden className="h-full w-full">
         <Canvas
+          // Remonta ao trocar: ligar/desligar sombras exige recompilar os materiais.
+          key={modoLeve ? "leve" : "cheio"}
           flat
           frameloop="demand"
-          shadows
-          dpr={[1, 1.5]}
+          shadows={!modoLeve}
+          dpr={modoLeve ? [1, 1] : [1, 1.5]}
           camera={{ fov: 34, near: 0.1, far: 600, position: [12, 14, 16] }}
           onPointerMissed={aoVazio}
         >
@@ -153,11 +160,11 @@ export function Floor3D({
           <fog attach="fog" args={[cores.fundo, 300, 700]} />
 
           <Suspense fallback={null}>
-            <Luzes escuro={escuro} raio={raio} />
+            <Luzes escuro={escuro} raio={raio} sombras={!modoLeve} />
             <Cena cores={cores} c={cenario} />
             <ChaoToque cenario={cenario} onVazio={aoVazio} />
 
-            <Assentos itens={situacoes} cenario={cenario} cores={cores} />
+            {!modoLeve && <Assentos itens={situacoes} cenario={cenario} cores={cores} />}
 
             {situacoes.map(({ mesa, estado, esmaecida }) => (
               <Mesa3D
@@ -174,7 +181,6 @@ export function Floor3D({
               />
             ))}
 
-            <MedidorDeRotulos pontos={pontos} ativo={mostrarRotulos} onChange={aoMudar} />
             <Camera
               cenario={cenario}
               ambienteId={ambienteId}
@@ -183,14 +189,15 @@ export function Floor3D({
               zoom={zoom}
               foco={foco}
               sinalNorte={sinalNorte}
+              sinalSalvarVista={sinalSalvarVista}
+              sinalLimparVista={sinalLimparVista}
               onCameraChange={onCameraChange}
               folga={folga}
-              selecionada={selecionada}
               posicoes={posicoes}
               reduzMovimento={reduz}
             />
             {/* Depois da câmera: precisa ler a pose já atualizada deste quadro. */}
-            {mostrarRotulos && <ProjetorRotulos itens={itensRotulo} els={els} />}
+            {mostrarRotulos && <ProjetorRotulos itens={itensRotulo} els={els} priorizarLivres={filtro === "livre" || destacar !== undefined} />}
           </Suspense>
         </Canvas>
       </div>

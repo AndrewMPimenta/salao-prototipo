@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Ambiente, EstadoMesa, Limiares, Mesa } from "@/lib/types";
 import { derivarEstado, precisaAtencao } from "@/lib/state";
 import { resumir } from "@/components/shell/estatisticas";
@@ -20,8 +20,28 @@ export function useSalao(todas: Mesa[], ambientes: Ambiente[], limiares: Limiare
   const [vistaCamera, setVistaCamera] = useState<VistaCamera>("perspectiva");
   const [sinalReset, setSinalReset] = useState(0);
   const [sinalNorte, setSinalNorte] = useState(0);
+  const [sinalSalvarVista, setSinalSalvarVista] = useState(0);
+  const [sinalLimparVista, setSinalLimparVista] = useState(0);
   const [zoom, setZoom] = useState<{ direcao: 1 | -1; n: number } | null>(null);
   const [mostrarRotulos, setMostrarRotulos] = useState(true);
+
+  // Preferência explícita (localStorage) vence o automático; só é lida no cliente para não divergir da hidratação.
+  const [preferenciaLeve, setPreferenciaLeve] = useState<boolean | null>(null);
+  const [maquinaFraca, setMaquinaFraca] = useState(false);
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem("modoLeve");
+      if (v === "1" || v === "0") setPreferenciaLeve(v === "1");
+    } catch {}
+    setMaquinaFraca(typeof navigator !== "undefined" && navigator.hardwareConcurrency <= 4);
+  }, []);
+  const definirModoLeve = useCallback((v: boolean | null) => {
+    setPreferenciaLeve(v);
+    try {
+      if (v === null) localStorage.removeItem("modoLeve");
+      else localStorage.setItem("modoLeve", v ? "1" : "0");
+    } catch {}
+  }, []);
 
   // O azimute chega a ~10Hz; em estado re-renderizaria o shell inteiro. A bússola assina direto.
   const azimute = useRef(0);
@@ -37,6 +57,7 @@ export function useSalao(todas: Mesa[], ambientes: Ambiente[], limiares: Limiare
   const lerAzimute = useCallback(() => azimute.current, []);
 
   const mesas = useMemo(() => todas.filter((m) => m.ambienteId === ambienteId), [todas, ambienteId]);
+  const modoLeve = preferenciaLeve ?? (mesas.length > 60 || maquinaFraca);
   const resumo = useMemo(() => resumir(mesas, limiares), [mesas, limiares]);
   const mesasVisiveis = useMemo(
     () => (atencao ? mesas.filter((m) => precisaAtencao(derivarEstado(m, limiares))) : mesas),
@@ -107,12 +128,15 @@ export function useSalao(todas: Mesa[], ambientes: Ambiente[], limiares: Limiare
     alternarSelecao: (id: number) => setSelecionada((s) => (s === id ? null : id)),
     irParaMesa, foco,
     mostrarRotulos, setMostrarRotulos,
+    modoLeve, modoLeveAutomatico: preferenciaLeve === null, definirModoLeve,
     camera: {
-      vistaCamera, setVistaCamera, sinalReset, sinalNorte, zoom,
+      vistaCamera, setVistaCamera, sinalReset, sinalNorte, sinalSalvarVista, sinalLimparVista, zoom,
       ciclarPreset: () => setVistaCamera((v) => PRESETS[(PRESETS.indexOf(v) + 1) % PRESETS.length]),
       zoomar: (direcao: 1 | -1) => setZoom((z) => ({ direcao, n: (z?.n ?? 0) + 1 })),
       recentralizar: () => setSinalReset((n) => n + 1),
       norte: () => setSinalNorte((n) => n + 1),
+      salvarVista: () => setSinalSalvarVista((n) => n + 1),
+      limparVista: () => setSinalLimparVista((n) => n + 1),
       aoMudarCamera, assinarAzimute, lerAzimute,
     },
   };

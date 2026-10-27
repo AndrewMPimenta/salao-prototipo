@@ -85,6 +85,41 @@ export function CenarioSalao({ cores, c }: { cores: Cores; c: Cenario }) {
   );
 }
 
+/** Salão de banquetes: palco ao norte, pista de dança diante dele e buffet na lateral oeste, fora do campo de mesas. */
+export function CenarioEventos({ cores, c }: { cores: Cores; c: Cenario }) {
+  const z0 = -c.salaP / 2;
+  const x0 = -c.salaL / 2;
+
+  return (
+    <group>
+      <Laje c={c} cores={cores} piso={cores.piso} />
+
+      <Parede tam={[c.salaL, 0.8, 0.14]} pos={[0, 0.4, z0]} cores={cores} />
+      <Parede tam={[c.salaL, 0.8, 0.14]} pos={[0, 0.4, -z0]} cores={cores} />
+      <Parede tam={[0.14, 0.8, c.salaP]} pos={[x0, 0.4, 0]} cores={cores} />
+      <Parede tam={[0.14, 0.8, c.salaP]} pos={[-x0, 0.4, 0]} cores={cores} />
+
+      <group position={[0, 0, z0 + 3]}>
+        <Bloco tam={[20, 0.5, 5.4]} pos={[0, 0.25, 0]} cor={cores.madeira} />
+        <Bloco tam={[20.04, 0.52, 0.06]} pos={[0, 0.25, 2.72]} cor={cores.madeiraEscura} />
+        <Bloco tam={[3.2, 0.25, 0.6]} pos={[0, 0.12, 3.0]} cor={cores.madeiraEscura} />
+      </group>
+
+      {/* Pista: lâmina de madeira escura rente ao piso, sem sombra para não virar degrau. */}
+      <Bloco tam={[16, 0.03, 4.6]} pos={[0, 0.015, -16.5]} cor={cores.madeiraEscura} sombra={false} receber />
+
+      {/* Balcão do buffet ao longo da parede oeste. */}
+      <group position={[x0 + 1.4, 0, 0]}>
+        <Bloco tam={[1.1, 1.0, 22]} pos={[0, 0.5, 0]} cor={cores.parede} />
+        <Bloco tam={[1.34, 0.07, 22.24]} pos={[0, 1.035, 0]} cor={cores.madeira} />
+      </group>
+
+      <Porta x={-x0 - 0.12} z={-6} cores={cores} masculino />
+      <Porta x={-x0 - 0.12} z={-3.4} cores={cores} masculino={false} />
+    </group>
+  );
+}
+
 function Porta({ x, z, cores, masculino }: { x: number; z: number; cores: Cores; masculino: boolean }) {
   const m = mat(cores.icone);
   return (

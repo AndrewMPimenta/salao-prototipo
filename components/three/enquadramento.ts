@@ -13,6 +13,9 @@ export interface Viewport {
   fov: number;
 }
 
+/** Fração da região livre que a caixa ocupa no eixo limitante. */
+const PREENCHIMENTO = 0.9;
+
 function eixos(az: number, pol: number) {
   const back = new THREE.Vector3(
     Math.sin(pol) * Math.sin(az),
@@ -25,9 +28,8 @@ function eixos(az: number, pol: number) {
 }
 
 /*
-  A interface flutuante cobre parte do canvas. Em vez de padding em unidades
-  de mundo (que depende da distância), desloca-se o alvo para que o ponto
-  apareça no centro da região LIVRE, o que é linear na distância.
+  A interface flutuante cobre parte do canvas. A região LIVRE, em NDC, é onde
+  a cena deve ficar centrada; o centro do canvas não importa.
 */
 function regiaoLivre(f: Folga, vp: Viewport) {
   const l = Math.min(f.esquerda, vp.w * 0.35);
@@ -42,111 +44,97 @@ function regiaoLivre(f: Folga, vp: Viewport) {
   };
 }
 
-export function poseParaPonto(
-  centro: THREE.Vector3,
+/** Translação da câmera (no plano dela) que leva o ponto ao centro da região livre, sem mexer em distância nem rotação. */
+export function transladarParaPonto(
+  ponto: THREE.Vector3,
+  pos: THREE.Vector3,
   az: number,
   pol: number,
-  dist: number,
   folga: Folga,
   vp: Viewport,
 ) {
   const { back, right, up } = eixos(az, pol);
-  const tan = Math.tan(THREE.MathUtils.degToRad(vp.fov) / 2);
-  const aspecto = vp.w / vp.h;
+  const ty = Math.tan(THREE.MathUtils.degToRad(vp.fov) / 2);
+  const tx = ty * (vp.w / vp.h);
   const r = regiaoLivre(folga, vp);
-  const cx = (r.esq + r.dir) / 2;
-  const cy = (r.baixo + r.cima) / 2;
 
-  const alvo = centro
-    .clone()
-    .addScaledVector(right, -cx * aspecto * tan * dist)
-    .addScaledVector(up, -cy * tan * dist);
-  const pos = alvo.clone().addScaledVector(back, dist);
+  const rel = ponto.clone().sub(pos);
+  const prof = Math.max(0.1, -rel.dot(back));
+  const dx = rel.dot(right) - ((r.esq + r.dir) / 2) * tx * prof;
+  const dy = rel.dot(up) - ((r.baixo + r.cima) / 2) * ty * prof;
 
-  return { pos, alvo };
+  return right.multiplyScalar(dx).addScaledVector(up, dy);
 }
 
-/*
-  O centro da caixa não é o centro do que se vê: em perspectiva a borda
-  próxima aparece maior que a distante. Por isso o alvo é refinado até o
-  retângulo projetado dos cantos ficar centrado na região livre.
-*/
-function projetar(
-  cantos: THREE.Vector3[],
-  centro: THREE.Vector3,
-  az: number,
-  pol: number,
-  d: number,
-  folga: Folga,
-  vp: Viewport,
-) {
+/**
+ * Pose em que a caixa ocupa PREENCHIMENTO da região livre no eixo limitante,
+ * centrada nela. Em perspectiva a borda próxima aparece maior que a distante,
+ * então o centro é refinado por iteração e a distância por bisseção (o
+ * preenchimento só diminui conforme a câmera se afasta).
+ */
+export function enquadrarCaixa(caixa: THREE.Box3, az: number, pol: number, folga: Folga, vp: Viewport) {
   const { back, right, up } = eixos(az, pol);
-  const tan = Math.tan(THREE.MathUtils.degToRad(vp.fov) / 2);
-  const aspecto = vp.w / vp.h;
+  const ty = Math.tan(THREE.MathUtils.degToRad(vp.fov) / 2);
+  const tx = ty * (vp.w / vp.h);
   const r = regiaoLivre(folga, vp);
   const cx = (r.esq + r.dir) / 2;
   const cy = (r.baixo + r.cima) / 2;
+  const livreW = r.dir - r.esq;
+  const livreH = r.cima - r.baixo;
 
-  let { alvo, pos } = poseParaPonto(centro, az, pol, d, folga, vp);
-  let larg = Infinity;
-  let alt = Infinity;
-
-  for (let k = 0; k < 6; k++) {
-    let x0 = Infinity;
-    let x1 = -Infinity;
-    let y0 = Infinity;
-    let y1 = -Infinity;
-    for (const c of cantos) {
-      const rel = c.clone().sub(pos);
-      const prof = -rel.dot(back);
-      if (prof < 0.1) return { pos, alvo, larg: Infinity, alt: Infinity, r };
-      const nx = rel.dot(right) / (prof * tan * aspecto);
-      const ny = rel.dot(up) / (prof * tan);
-      x0 = Math.min(x0, nx);
-      x1 = Math.max(x1, nx);
-      y0 = Math.min(y0, ny);
-      y1 = Math.max(y1, ny);
-    }
-    larg = x1 - x0;
-    alt = y1 - y0;
-    const ex = (x0 + x1) / 2 - cx;
-    const ey = (y0 + y1) / 2 - cy;
-    alvo = alvo.clone().addScaledVector(right, ex * aspecto * tan * d).addScaledVector(up, ey * tan * d);
-    pos = alvo.clone().addScaledVector(back, d);
-  }
-
-  return { pos, alvo, larg, alt, r };
-}
-
-/** Menor distância em que a caixa inteira cabe, com 6% de folga, na região livre; a busca binária vale porque o ajuste é monotônico. */
-export function enquadrarCaixa(
-  caixa: THREE.Box3,
-  az: number,
-  pol: number,
-  folga: Folga,
-  vp: Viewport,
-  min: number,
-  max: number,
-) {
   const centro = caixa.getCenter(new THREE.Vector3());
-  const cantos: THREE.Vector3[] = [];
+  const cantos: { x: number; y: number; z: number }[] = [];
   for (const x of [caixa.min.x, caixa.max.x])
     for (const y of [caixa.min.y, caixa.max.y])
-      for (const z of [caixa.min.z, caixa.max.z]) cantos.push(new THREE.Vector3(x, y, z));
+      for (const z of [caixa.min.z, caixa.max.z]) {
+        const rel = new THREE.Vector3(x, y, z).sub(centro);
+        cantos.push({ x: rel.dot(right), y: rel.dot(up), z: rel.dot(back) });
+      }
 
-  const tenta = (d: number) => {
-    const p = projetar(cantos, centro, az, pol, d, folga, vp);
-    const ok = p.larg <= (p.r.dir - p.r.esq) * 0.88 && p.alt <= (p.r.cima - p.r.baixo) * 0.88;
-    return { ...p, d, ok };
+  // Para uma distância D da câmera ao centro, acha o deslocamento lateral (u, v) que centra a projeção.
+  const resolve = (D: number) => {
+    let u = 0;
+    let v = 0;
+    let fx = 0;
+    let fy = 0;
+    for (let k = 0; k < 12; k++) {
+      let x0 = Infinity;
+      let x1 = -Infinity;
+      let y0 = Infinity;
+      let y1 = -Infinity;
+      for (const c of cantos) {
+        const prof = D - c.z;
+        const nx = (c.x - u) / (prof * tx);
+        const ny = (c.y - v) / (prof * ty);
+        x0 = Math.min(x0, nx);
+        x1 = Math.max(x1, nx);
+        y0 = Math.min(y0, ny);
+        y1 = Math.max(y1, ny);
+      }
+      fx = (x1 - x0) / livreW;
+      fy = (y1 - y0) / livreH;
+      u += ((x0 + x1) / 2 - cx) * tx * D;
+      v += ((y0 + y1) / 2 - cy) * ty * D;
+    }
+    return { u, v, fill: Math.max(fx, fy) };
   };
 
-  let lo = min;
-  let hi = max;
-  if (!tenta(hi).ok) return tenta(hi);
-  for (let i = 0; i < 26; i++) {
+  let lo = Math.max(...cantos.map((c) => c.z)) + 0.5;
+  let hi = Math.hypot(caixa.max.x - caixa.min.x, caixa.max.z - caixa.min.z) * 12;
+  for (let i = 0; i < 40; i++) {
     const meio = (lo + hi) / 2;
-    if (tenta(meio).ok) hi = meio;
-    else lo = meio;
+    if (resolve(meio).fill > PREENCHIMENTO) lo = meio;
+    else hi = meio;
   }
-  return tenta(hi);
+
+  const D = hi;
+  const { u, v } = resolve(D);
+  const pos = centro.clone().addScaledVector(right, u).addScaledVector(up, v).addScaledVector(back, D);
+
+  // Qualquer ponto do raio central dá a mesma imagem; o do piso mantém o pan "no chão" e dentro do limite.
+  const plano = 0.3;
+  const t = pos.y > plano + 1 ? (pos.y - plano) / back.y : D;
+  const alvo = pos.clone().addScaledVector(back, -t);
+
+  return { pos, alvo, d: t };
 }

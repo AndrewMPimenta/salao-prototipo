@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { EV_CAMPO_L, EV_CAMPO_P } from "@/lib/data";
 
 /*
   Cada ambiente tem sua própria caixa e seu próprio cenário: o salão é uma
@@ -18,6 +19,8 @@ export const CENARIOS: Record<string, Cenario> = {
   principal: { salaL: 28, salaP: 22, campoL: 22, campoP: 15, campoZ0: -4.6 },
   varanda: { salaL: 19, salaP: 13, campoL: 15, campoP: 7.4, campoZ0: -1.9 },
   mezanino: { salaL: 20, salaP: 12.5, campoL: 15.5, campoP: 8.2, campoZ0: -2.4 },
+  // Campo gerado em lib/data.ts (grade de banquete); a sobra ao norte é palco e pista, a oeste o buffet.
+  eventos: { salaL: 58, salaP: 48, campoL: EV_CAMPO_L, campoP: EV_CAMPO_P, campoZ0: -13.5 },
 };
 
 export const obterCenario = (id: string) => CENARIOS[id] ?? CENARIOS.principal;

@@ -105,9 +105,12 @@ export function LayoutDesktop({ salao, imersivo, telaCheia, atalhos }: PropsLayo
             vistaCamera={salao.camera.vistaCamera}
             sinalReset={salao.camera.sinalReset}
             sinalNorte={salao.camera.sinalNorte}
+            sinalSalvarVista={salao.camera.sinalSalvarVista}
+            sinalLimparVista={salao.camera.sinalLimparVista}
             zoom={salao.camera.zoom}
             folga={folga}
             mostrarRotulos={salao.mostrarRotulos}
+            modoLeve={salao.modoLeve}
             foco={salao.foco}
             onCameraChange={salao.camera.aoMudarCamera}
           />
@@ -136,6 +139,9 @@ export function LayoutDesktop({ salao, imersivo, telaCheia, atalhos }: PropsLayo
               onAtalhos={atalhos.definir}
               rotulos={salao.mostrarRotulos}
               onRotulos={salao.setMostrarRotulos}
+              modoLeve={salao.modoLeve}
+              modoLeveAutomatico={salao.modoLeveAutomatico}
+              onModoLeve={salao.definirModoLeve}
             />
             <BotaoTelaCheia ativo={telaCheia.ativo} imersivoNoLugar={telaCheia.imersivoNoLugar} onClick={telaCheia.alternar} />
           </>
