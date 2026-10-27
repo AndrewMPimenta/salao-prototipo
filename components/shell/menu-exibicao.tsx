@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Salao } from "@/hooks/use-salao";
-import type { Destaque, Exibicao, ModoRotulos } from "@/lib/exibicao";
+import type { Destaque, Exibicao, ModoRotulos, Perfil } from "@/lib/exibicao";
 import { cn } from "@/lib/utils";
 import { ToggleGroup } from "../ui/toggle-group";
 import { BotaoIcone } from "./botao-icone";
@@ -43,6 +43,11 @@ const OPCOES_ROTULOS: { valor: ModoRotulos; rotulo: string }[] = [
   { valor: "sempre", rotulo: "Números" },
 ];
 
+const OPCOES_PERFIL: { valor: Perfil; rotulo: string }[] = [
+  { valor: "maitre", rotulo: "Maître" },
+  { valor: "completo", rotulo: "Completo" },
+];
+
 const OPCOES_DESTAQUE: { valor: Destaque; rotulo: string }[] = [
   { valor: "borda", rotulo: "Borda" },
   { valor: "tampo", rotulo: "Tampo" },
@@ -67,6 +72,18 @@ export const exibicaoDe = (s: Salao): PropsExibicao => ({
 export function PainelExibicao({ exibicao, onExibicao, personalizada, onRestaurar }: PropsExibicao) {
   return (
     <>
+      <p className="m-0 mt-2 mb-1.5 text-[13px] text-(--color-ink)">Perfil</p>
+      <ToggleGroup<Perfil>
+        rotulo="Perfil de visão"
+        tamanho="sm"
+        valor={exibicao.perfil}
+        onChange={(v) => onExibicao({ perfil: v })}
+        opcoes={OPCOES_PERFIL}
+        className="mb-1 w-full [&>button]:flex-1 [&>button]:px-1 [&>button]:text-[12px]"
+      />
+      <p className="m-0 mb-2 text-[11px] leading-4 text-(--color-ink-3)">
+        {exibicao.perfil === "maitre" ? "Só a ocupação: o que está livre, reservado e em atendimento." : "Acrescenta consumo, comandas e posições simulados."}
+      </p>
       <p className="m-0 mt-2 mb-1.5 text-[13px] text-(--color-ink)">Destaque da mesa</p>
       <ToggleGroup<Destaque>
         rotulo="Destaque da mesa"

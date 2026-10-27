@@ -4,14 +4,12 @@ import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import type { Alerta, EstadoMesa, Mesa } from "@/lib/types";
-import type { ArmazemHover } from "@/hooks/use-hover-mesa";
 import type { ModoRotulos } from "@/lib/exibicao";
 import { ROTULO_ALERTA, ROTULO_CURTO } from "@/lib/state";
 import { cn } from "@/lib/utils";
 import { estiloAlerta, GlifoAlerta } from "../selo-alerta";
 import type { Folga } from "./enquadramento";
 import { ALTURA_TAMPO, type Marco } from "./cenarios";
-import { ref } from "process";
 
 export interface ItemRotulo {
   mesa: Mesa;
@@ -22,7 +20,7 @@ export interface ItemRotulo {
   z: number;
   /** Raio do tampo em metros, para medir o tamanho dele na tela. */
   raio: number;
-  /** Fora do foco ou do filtro: o número some, mas o hover ainda explica a mesa. */
+  /** Fora do foco ou do filtro: o número some. */
   esmaecida: boolean;
   selecionada: boolean;
 }
@@ -39,45 +37,12 @@ function Numero({ i }: { i: ItemRotulo }) {
   );
 }
 
-/** Pílula do hover: número, estado e o alerta principal com os minutos. */
-function Pilula({ i }: { i: ItemRotulo }) {
-  const { mesa, estado, alertas } = i;
-
-  return (
-    <div className="absolute top-0 left-0 flex h-8 items-center gap-1.5 overflow-hidden whitespace-nowrap rounded-full border border-(--color-line-2) bg-(--color-surface) pl-3 text-[13px] font-semibold text-(--color-ink) shadow-[0_4px_14px_rgba(0,0,0,0.22)]">
-      <span className={cn("tnum", alertas.length === 0 && "pr-0")}>
-        Mesa {mesa.id}
-      </span>
-      <span
-        className={cn(
-          "font-medium text-(--color-ink-2)",
-          alertas.length === 0 && "pr-3",
-        )}
-      >
-        · {ROTULO_CURTO[estado]}
-      </span>
-      {alertas[0] && (
-        <span
-          className="tnum ml-0.5 flex h-8 items-center gap-1 pr-3 pl-2 text-[12px] font-bold"
-          style={estiloAlerta(alertas[0].tipo)}
-        >
-          <GlifoAlerta tipo={alertas[0].tipo} />
-          {ROTULO_ALERTA[alertas[0].tipo]} {alertas[0].minutos}′
-          {alertas.length > 1 && (
-            <span className="opacity-80">+{alertas.length - 1}</span>
-          )}
-        </span>
-      )}
-    </div>
-  );
-}
-
 export type MapaRotulos = Map<number, HTMLDivElement>;
 
 /*
   Os rótulos são DOM comum sobre o canvas, posicionados por projeção no mesmo quadro da
-  câmera. Cada item tem duas camadas: [0] o número (só no modo "Sempre") e [1] a pílula
-  do hover, que fica acima da mesa, nunca sobre o tampo. A mesa em foco não tem rótulo:
+  câmera. Cada item tem só o número (modo "Sempre"); os detalhes da mesa vão para o painel lateral.
+  A mesa em foco não tem rótulo:
   o holofote a identifica e o número está no cartão.
 */
 const FADE = "opacity 150ms ease";
@@ -127,13 +92,6 @@ export function CamadaRotulos({
           <div style={{ ...OCULTO, transition: FADE }}>
             <Numero i={i} />
           </div>
-          <div style={{ ...OCULTO, transition: FADE }}>
-            <div
-              className="absolute left-0 w-px"
-              style={{ background: corHaste, opacity: 0.4 }}
-            />
-            <Pilula i={i} />
-          </div>
         </div>
       ))}
     </div>
@@ -145,17 +103,9 @@ const CELULA = 64;
 /** Diâmetro do tampo, em px, abaixo do qual o número vira ruído. */
 const DIAMETRO_MINIMO_NUMERO = 16;
 const LADO_NUMERO = 22;
-const VAO = 12;
-/** Raio que envolve o tampo e as cadeiras, além do raio do tampo. */
-const ALEM_DO_TAMPO = 0.55;
 
 type Retangulo = { x0: number; y0: number; x1: number; y1: number };
-type Estado = {
-  numero: boolean | null;
-  pilula: boolean | null;
-  w: number;
-  h: number;
-};
+type Estado = { numero: boolean | null };
 
 /** Grade de buckets: consulta e inserção só tocam as células que o retângulo cobre. */
 class Grade {
@@ -216,7 +166,6 @@ export function ProjetorRotulos({
   itens,
   els,
   modo,
-  hover,
   folga,
   marcos,
   elsMarcos,
@@ -229,7 +178,6 @@ export function ProjetorRotulos({
   foco: boolean;
   els: React.RefObject<MapaRotulos>;
   modo: ModoRotulos;
-  hover: ArmazemHover;
   folga: Folga;
 }) {
   const { camera, size, invalidate } = useThree();
@@ -238,8 +186,8 @@ export function ProjetorRotulos({
   const tamMarcos = useRef(
     new WeakMap<HTMLDivElement, { w: number; h: number; vis: number }>(),
   );
-  const ultimo = useRef<{ m: number[]; hov: number | null } | null>(null);
-  // Ler offsetWidth força layout, então a pílula só é medida quando aparece. `null` = DOM em situação desconhecida.
+  const ultimo = useRef<number[] | null>(null);
+  // `null` = DOM em situação desconhecida.
   const estados = useRef(new WeakMap<HTMLDivElement, Estado>());
 
   // Mudou a lista (filtro, foco, dados): os elementos e o conteúdo são novos, então o cache não vale.
@@ -249,7 +197,6 @@ export function ProjetorRotulos({
     invalidate();
   }, [itens, modo, folga.topo, marcos, foco, invalidate]);
 
-  useEffect(() => hover.assinar(invalidate), [hover, invalidate]);
 
   useFrame(() => {
     camera.updateMatrixWorld();
@@ -261,10 +208,9 @@ export function ProjetorRotulos({
       size.width,
       size.height,
     ];
-    const hov = hover.ler();
     const u = ultimo.current;
-    if (u && u.hov === hov && u.m.every((v, k) => v === m[k])) return;
-    ultimo.current = { m, hov };
+    if (u && u.every((v, k) => v === m[k])) return;
+    ultimo.current = m;
 
     const {
       itens: lista,
@@ -295,69 +241,11 @@ export function ProjetorRotulos({
       e.style.visibility = vis ? "visible" : "hidden";
     };
 
-    const aplica = (el: HTMLDivElement, numero: boolean, pilula: boolean) => {
+    const aplica = (el: HTMLDivElement, numero: boolean) => {
       let e = estados.current.get(el);
-      if (!e)
-        estados.current.set(
-          el,
-          (e = { numero: null, pilula: null, w: 0, h: 0 }),
-        );
-      if (e.numero !== numero)
-        mostra(el.children[0] as HTMLElement, (e.numero = numero));
-      if (e.pilula !== pilula)
-        mostra(el.children[1] as HTMLElement, (e.pilula = pilula));
-      return e;
+      if (!e) estados.current.set(el, (e = { numero: null }));
+      if (e.numero !== numero) mostra(el.children[0] as HTMLElement, (e.numero = numero));
     };
-
-    // A pílula do hover entra primeiro na grade, para os números desviarem dela.
-    const daVez =
-      hov === null
-        ? undefined
-        : lista.find((i) => i.mesa.id === hov && !i.selecionada);
-    if (daVez) {
-      const el = els.current.get(daVez.mesa.id);
-      const centro = tela(
-        v.set(daVez.x, ALTURA_TAMPO, daVez.z).project(camera),
-      );
-      if (el && centro.z <= 1) {
-        const e = aplica(el, false, true);
-        const camada = el.children[1] as HTMLElement;
-        const pilula = camada.children[1] as HTMLElement;
-        if (e.w === 0) {
-          e.w = pilula.offsetWidth;
-          e.h = pilula.offsetHeight;
-        }
-
-        // Topo e base da esfera que envolve mesa e cadeiras, na tela.
-        const r = daVez.raio + ALEM_DO_TAMPO;
-        const topo = tela(
-          v
-            .set(daVez.x, ALTURA_TAMPO, daVez.z)
-            .addScaledVector(cima, r)
-            .project(camera),
-        );
-        const base = tela(
-          v
-            .set(daVez.x, ALTURA_TAMPO, daVez.z)
-            .addScaledVector(cima, -r)
-            .project(camera),
-        );
-        const acima = topo.y - VAO - e.h >= f.topo;
-        const y0 = acima ? topo.y - VAO - e.h : base.y + VAO;
-        const x0 = Math.min(
-          Math.max(centro.x - e.w / 2, f.esquerda),
-          size.width - f.direita - e.w,
-        );
-
-        el.style.zIndex = "4";
-        el.style.transform = `translate3d(${centro.x}px, ${y0}px, 0)`;
-        pilula.style.transform = `translateX(${x0 - centro.x}px)`;
-        const haste = camada.children[0] as HTMLElement;
-        haste.style.top = acima ? `${e.h}px` : `${-VAO}px`;
-        haste.style.height = `${VAO}px`;
-        grade.insere({ x0, y0, x1: x0 + e.w, y1: y0 + e.h });
-      }
-    }
 
     const candidatos: {
       i: ItemRotulo;
@@ -368,11 +256,11 @@ export function ProjetorRotulos({
     }[] = [];
     for (const i of lista) {
       const el = els.current.get(i.mesa.id);
-      if (!el || i === daVez) continue;
+      if (!el) continue;
 
       const quer = modoAtual === "sempre" && !i.esmaecida && !i.selecionada;
       if (!quer) {
-        aplica(el, false, false);
+        aplica(el, false);
         continue;
       }
 
@@ -385,7 +273,7 @@ export function ProjetorRotulos({
       );
       const diam = Math.hypot(lado.x - c.x, lado.y - c.y) * 2;
       if (c.z > 1 || diam < DIAMETRO_MINIMO_NUMERO) {
-        aplica(el, false, false);
+        aplica(el, false);
         continue;
       }
       candidatos.push({ i, el, x: c.x, y: c.y, prof: c.z });
@@ -408,7 +296,7 @@ export function ProjetorRotulos({
         r.x1 <= size.width - f.direita &&
         r.y1 <= size.height - f.base &&
         !grade.colide(r);
-      aplica(c.el, livre, false);
+      aplica(c.el, livre);
       if (!livre) continue;
       grade.insere(r);
       c.el.style.zIndex = "1";

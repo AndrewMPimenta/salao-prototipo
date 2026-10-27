@@ -34,9 +34,10 @@ function Linha({ mesa, estado, limiares, hover, selecionada, onIr }: LinhaProps)
       <button
         type="button"
         onClick={() => onIr(mesa.id)}
-        onPointerEnter={(e) => e.pointerType === "mouse" && hover.definir(mesa.id)}
+        data-linha={mesa.id}
+        onPointerEnter={(e) => e.pointerType === "mouse" && hover.definir(mesa.id, "lista")}
         onPointerLeave={() => hover.ler() === mesa.id && hover.definir(null)}
-        onFocus={() => hover.definir(mesa.id)}
+        onFocus={() => hover.definir(mesa.id, "lista")}
         onBlur={() => hover.ler() === mesa.id && hover.definir(null)}
         aria-current={selecionada || undefined}
         aria-label={`Mesa ${mesa.id}. ${[ROTULO_ESTADO[estado], ...alertas.map(textoAlerta)].join(". ")}`}

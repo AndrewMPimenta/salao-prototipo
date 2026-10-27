@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Limiares, Mesa } from "@/lib/types";
+import type { Perfil } from "@/lib/exibicao";
 import { AMBIENTES, posicoesHabilitadas, PRACAS } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
@@ -11,7 +12,9 @@ interface TableSheetProps {
   mesa: Mesa;
   limiares: Limiares;
   onClose: () => void;
-  variante?: "sheet" | "cartao";
+  /** `previa` é o cartão leve do hover: sem fechar, só o Resumo. */
+  variante?: "sheet" | "cartao" | "previa";
+  perfil?: Perfil;
   /** Estado compartilhado com a cena 3D; sem eles o painel guarda a própria aba. */
   aba?: IdAba;
   onAba?: (aba: IdAba) => void;
@@ -35,13 +38,14 @@ export function TableSheet({
   limiares,
   onClose,
   variante = "sheet",
+  perfil = "completo",
   aba: abaControlada,
   onAba,
   posicaoSelecionada,
   onSelecionarPosicao,
 }: TableSheetProps) {
   const [interna, setInterna] = useState<{ id: number; aba: IdAba }>({ id: mesa.id, aba: "resumo" });
-  const habilitada = mesa.pessoas > 0 && posicoesHabilitadas(mesa.ambienteId);
+  const habilitada = perfil === "completo" && mesa.pessoas > 0 && posicoesHabilitadas(mesa.ambienteId);
   const abaEscolhida = abaControlada ?? (interna.id === mesa.id ? interna.aba : "resumo");
   const aba = abaEscolhida === "posicoes" && !habilitada ? "resumo" : abaEscolhida;
   const aoMudarAba = (nova: IdAba) => {
@@ -50,14 +54,17 @@ export function TableSheet({
   };
   const praca = PRACAS.find((p) => p.id === mesa.pracaId && p.ambienteId === mesa.ambienteId);
   const ambiente = AMBIENTES.find((a) => a.id === mesa.ambienteId);
-  const cartao = variante === "cartao";
+  const previa = variante === "previa";
+  const cartao = variante !== "sheet";
 
   return (
     <div
-      role="dialog"
-      aria-label={`Mesa ${mesa.id}`}
+      role={previa ? "group" : "dialog"}
+      aria-label={previa ? `Prévia da mesa ${mesa.id}` : `Mesa ${mesa.id}`}
+      data-previa={previa || undefined}
       className={cn(
-        "animate-surgir",
+        // A prévia troca a cada passada de mouse: sem entrada animada, para não piscar.
+        !previa && "animate-surgir",
         cartao
           ? "glass relative flex max-h-[calc(100dvh-7rem)] w-full flex-col rounded-(--radius-panel) p-4"
           : [
@@ -72,7 +79,11 @@ export function TableSheet({
         <div aria-hidden className="mx-auto mb-3 h-1 flex-none w-9 rounded-full bg-(--color-line-2)" />
       )}
 
-      <div className={cn("flex flex-none items-center gap-4", cartao && "pr-11")}>
+      {previa && (
+        <p className="m-0 mb-1 text-[11px] font-semibold uppercase leading-4 tracking-[0.08em] text-(--color-ink-3)">Prévia</p>
+      )}
+
+      <div className={cn("flex flex-none items-center gap-4", cartao && !previa && "pr-11")}>
         <h4 className="font-display m-0 min-w-14 flex-none text-[44px] leading-none">{mesa.id}</h4>
 
         <p className="m-0 min-w-0 flex-1 text-[13px] font-medium leading-5 text-(--color-ink-2)">
@@ -80,7 +91,7 @@ export function TableSheet({
         </p>
       </div>
 
-      {cartao && (
+      {cartao && !previa && (
         <button
           type="button"
           onClick={onClose}
@@ -110,6 +121,8 @@ export function TableSheet({
           key={mesa.id}
           mesa={mesa}
           limiares={limiares}
+          perfil={perfil}
+          somenteResumo={previa}
           aba={aba}
           onAba={aoMudarAba}
           posicaoSelecionada={posicaoSelecionada}
@@ -119,7 +132,7 @@ export function TableSheet({
 
       <div className="mt-3 flex flex-none items-center justify-between gap-3 border-t border-(--color-line) pt-3">
         <p className="m-0 text-[12px] leading-4 text-(--color-ink-3)">
-          {aba === "posicoes" ? "Cobrança simulada — não altera o PDV" : "Somente consulta"}
+          {perfil === "completo" && aba === "posicoes" ? "Cobrança simulada — não altera o PDV" : "Somente consulta"}
         </p>
         {!cartao && (
           <Button variante="solido" className="min-w-28 justify-center" onClick={onClose}>

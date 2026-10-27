@@ -1,4 +1,5 @@
 import type { Limiares, Mesa } from "@/lib/types";
+import type { Perfil } from "@/lib/exibicao";
 import { derivarAlertas, derivarEstado, minutosAteLiberar, ROTULO_ALERTA, ROTULO_ESTADO } from "@/lib/state";
 import { formatarDuracao, formatarMoeda } from "@/lib/utils";
 import { AmostraEstado } from "../amostra-estado";
@@ -7,10 +8,12 @@ import { FichaAlerta } from "../selo-alerta";
 interface AbaResumoProps {
   mesa: Mesa;
   limiares: Limiares;
+  perfil?: Perfil;
 }
 
 /** O que o popup mostrava antes das abas: estado, alertas e os dados da mesa. */
-export function AbaResumo({ mesa, limiares }: AbaResumoProps) {
+export function AbaResumo({ mesa, limiares, perfil = "completo" }: AbaResumoProps) {
+  const completo = perfil === "completo";
   const estado = derivarEstado(mesa, limiares);
   const alertas = derivarAlertas(mesa, limiares);
   const ocupada = mesa.pessoas > 0;
@@ -42,18 +45,24 @@ export function AbaResumo({ mesa, limiares }: AbaResumoProps) {
         {ocupada ? (
           <>
             <Item rotulo="Pessoas" valor={`${mesa.pessoas} de ${mesa.lugares} lugares`} />
-            <Item
-              rotulo="Permanência"
-              valor={`${formatarDuracao(mesa.abertaHa ?? 0)} de ${formatarDuracao(limiares.permanenciaMedia)}`}
-            />
-            <Item rotulo="Último pedido há" valor={formatarDuracao(mesa.semPedido ?? 0)} />
-            <Item
-              rotulo="Pedidos pendentes"
-              valor={pendentes > 0 ? `${pendentes} · mais antigo ${formatarDuracao(mesa.pendenteHa ?? 0)}` : "Nenhum"}
-            />
-            {mesa.contaImpressa && <Item rotulo="Conta impressa há" valor={formatarDuracao(mesa.contaImpressaHa ?? 0)} />}
-            {mesa.total != null && <Item rotulo="Consumo" valor={formatarMoeda(mesa.total)} />}
-            {mesa.total != null && <Item rotulo="Por pessoa" valor={formatarMoeda(mesa.total / mesa.pessoas)} />}
+            {completo ? (
+              <Item
+                rotulo="Permanência"
+                valor={`${formatarDuracao(mesa.abertaHa ?? 0)} de ${formatarDuracao(limiares.permanenciaMedia)}`}
+              />
+            ) : (
+              <Item rotulo="Aberta há" valor={formatarDuracao(mesa.abertaHa ?? 0)} />
+            )}
+            {completo && <Item rotulo="Último pedido há" valor={formatarDuracao(mesa.semPedido ?? 0)} />}
+            {completo && (
+              <Item
+                rotulo="Pedidos pendentes"
+                valor={pendentes > 0 ? `${pendentes} · mais antigo ${formatarDuracao(mesa.pendenteHa ?? 0)}` : "Nenhum"}
+              />
+            )}
+            {completo && mesa.contaImpressa && <Item rotulo="Conta impressa há" valor={formatarDuracao(mesa.contaImpressaHa ?? 0)} />}
+            {completo && mesa.total != null && <Item rotulo="Consumo" valor={formatarMoeda(mesa.total)} />}
+            {completo && mesa.total != null && <Item rotulo="Por pessoa" valor={formatarMoeda(mesa.total / mesa.pessoas)} />}
             <Item rotulo="Previsão de liberação" valor={restam > 0 ? `em ${formatarDuracao(restam)}` : "Passou da média"} />
           </>
         ) : (

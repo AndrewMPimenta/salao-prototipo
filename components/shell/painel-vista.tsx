@@ -21,12 +21,18 @@ export function PainelVista({ salao, folga }: { salao: Salao; folga: Folga }) {
       <div className={vista === "planta" ? "h-full" : "mx-auto max-w-[1100px]"}>
         {vista === "planta" && (
           <FloorPlan
-            mesas={salao.mesasVisiveis}
+            mesas={salao.mesas}
             ambienteId={salao.ambienteId}
             limiares={salao.limiares}
             densidade="padrao"
+            exibicao={salao.exibicao}
             filtro={salao.filtro}
+            destacar={salao.destacar}
             selecionada={salao.selecionada}
+            hover={salao.hover}
+            layout={salao.layout}
+            posicaoSelecionada={salao.posicaoSelecionada}
+            onSelecionarPosicao={salao.selecionarPosicao}
             onSelect={salao.alternarSelecao}
             onEscape={() => salao.selecionar(null)}
           />

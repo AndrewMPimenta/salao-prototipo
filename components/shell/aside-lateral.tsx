@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Salao } from "@/hooks/use-salao";
 import { useFadeRolagem } from "@/hooks/use-fade-rolagem";
+import { usePreviaMesa } from "@/hooks/use-hover-mesa";
 import { gravarArmazenado, lerArmazenado } from "@/hooks/use-armazenado";
 import { cn } from "@/lib/utils";
 import { AttentionPanel } from "../attention-panel";
@@ -42,6 +43,22 @@ export function AsideLateral({ salao, aberto, largura, topo, onLargura }: AsideL
   const raiz = useRef<HTMLElement>(null);
   const rolagem = useFadeRolagem<HTMLDivElement>();
 
+  // Sem mesa fixada, passar o mouse numa mesa mostra os detalhes dela; sair devolve a lista após a carência.
+  const previa = usePreviaMesa(salao.hover, aberto && mesaSelecionada === null);
+  const mesaPrevia = previa ? (mesas.find((m) => m.id === previa.id) ?? null) : null;
+  const previaNoPainel = mesaPrevia !== null && previa?.origem === "mapa";
+  const previaFlutuante = mesaPrevia !== null && previa?.origem === "lista" ? mesaPrevia : null;
+  const [topoFlutuante, setTopoFlutuante] = useState(0);
+
+  // A prévia da lista flutua ao lado da linha para a lista continuar à vista e navegável.
+  useLayoutEffect(() => {
+    if (!previaFlutuante) return;
+    const linha = raiz.current?.querySelector<HTMLElement>(`[data-linha="${previaFlutuante.id}"]`);
+    if (!linha) return;
+    const r = linha.getBoundingClientRect();
+    setTopoFlutuante(Math.max(topo, Math.min(r.top - 24, window.innerHeight - 360)));
+  }, [previaFlutuante, topo]);
+
   // Uma mesa selecionada na cena precisa do cartão, então o painel abre sem mexer na preferência.
   const expandido = !recolhido || mesaSelecionada !== null;
   const n = resumo.atencao;
@@ -79,6 +96,7 @@ export function AsideLateral({ salao, aberto, largura, topo, onLargura }: AsideL
   }, [onLargura]);
 
   return (
+    <>
     <aside
       ref={raiz}
       aria-label="Atenção e mesas"
@@ -146,6 +164,7 @@ export function AsideLateral({ salao, aberto, largura, topo, onLargura }: AsideL
             <TableSheet
               key={mesaSelecionada.id}
               variante="cartao"
+              perfil={salao.exibicao.perfil}
               mesa={mesaSelecionada}
               limiares={salao.limiares}
               onClose={() => salao.selecionar(null)}
@@ -157,8 +176,9 @@ export function AsideLateral({ salao, aberto, largura, topo, onLargura }: AsideL
           </div>
         )}
 
+        <div className="relative flex min-h-0 flex-1 flex-col">
         {!mesaSelecionada && aba === "mesas" && (
-          <div className="flex-none px-3 pb-2">
+          <div className={cn("flex-none px-3 pb-2", previaNoPainel && "invisible")}>
             <input
               type="search"
               inputMode="numeric"
@@ -171,7 +191,11 @@ export function AsideLateral({ salao, aberto, largura, topo, onLargura }: AsideL
           </div>
         )}
 
-        <div ref={rolagem} hidden={mesaSelecionada !== null} className="rolagem-fade scrollbar-none min-h-0 flex-1 overflow-y-auto px-3 pb-3">
+        <div
+          ref={rolagem}
+          hidden={mesaSelecionada !== null}
+          className={cn("rolagem-fade scrollbar-none min-h-0 flex-1 overflow-y-auto px-3 pb-3", previaNoPainel && "invisible")}
+        >
           <div>
             {aba === "atencao" ? (
               <AttentionPanel mesas={salao.mesas} limiares={salao.limiares} onSelect={salao.irParaMesa} hover={salao.hover} />
@@ -187,8 +211,30 @@ export function AsideLateral({ salao, aberto, largura, topo, onLargura }: AsideL
             )}
           </div>
         </div>
+
+        {previaNoPainel && mesaPrevia && (
+          <div
+            className="cartao-embutido absolute inset-x-0 top-0 px-2 pb-2"
+            onPointerEnter={() => salao.hover.definir(mesaPrevia.id, "mapa")}
+            onPointerLeave={() => salao.hover.ler() === mesaPrevia.id && salao.hover.definir(null)}
+          >
+            <TableSheet variante="previa" perfil={salao.exibicao.perfil} mesa={mesaPrevia} limiares={salao.limiares} onClose={() => {}} />
+          </div>
+        )}
+        </div>
       </div>
     </aside>
+
+    {previaFlutuante && (
+      <div
+        aria-hidden
+        style={{ top: topoFlutuante, right: `calc(env(safe-area-inset-right) + 12px + ${largura}px + 10px)`, width: 340 }}
+        className="pointer-events-none fixed z-20"
+      >
+        <TableSheet variante="previa" perfil={salao.exibicao.perfil} mesa={previaFlutuante} limiares={salao.limiares} onClose={() => {}} />
+      </div>
+    )}
+    </>
   );
 }
 

@@ -13,7 +13,7 @@ import { exibicaoDe } from "./menu-exibicao";
 import { Cena } from "./cena";
 import { PilulaImersivo } from "./controles-janela";
 import { FiltrosRapidos } from "./filtros-rapidos";
-import { Atualizado, Estatisticas, textoComandas } from "./resumo";
+import { Atualizado, Estatisticas, textoAtendimento, textoComandas } from "./resumo";
 import type { PropsLayout } from "./tipos";
 
 // Alça do Drawer (h-6); o resto do peek é a altura medida do cabeçalho.
@@ -26,6 +26,7 @@ export function LayoutMovel({ salao, imersivo, telaCheia }: PropsLayout) {
   const [medirCabecalho, cabecalho] = useMedida();
   const [indice, setIndice] = useState(0);
   const { resumo, mesaSelecionada } = salao;
+  const maitre = salao.exibicao.perfil === "maitre";
   const ui = !imersivo;
   const s = janela.seguro;
 
@@ -107,10 +108,10 @@ export function LayoutMovel({ salao, imersivo, telaCheia }: PropsLayout) {
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="tnum m-0 font-[family-name:var(--font-mono)] text-[24px] font-semibold leading-8">
-                    {resumo.ocupadas} de {resumo.total}
+                    {maitre ? `${resumo.livres} livres` : `${resumo.ocupadas} de ${resumo.total}`}
                   </p>
                   <p className="tnum m-0 truncate text-[13px] leading-4 text-(--color-ink-2)">
-                    {textoComandas(resumo)}
+                    {maitre ? textoAtendimento(resumo) : textoComandas(resumo)}
                   </p>
                 </div>
                 <ToggleGroup<"3d" | "lista">
@@ -132,7 +133,12 @@ export function LayoutMovel({ salao, imersivo, telaCheia }: PropsLayout) {
           }
         >
           <div className="flex flex-col gap-3 px-4 pt-2">
-            <Estatisticas resumo={resumo} />
+            <Estatisticas
+              resumo={resumo}
+              perfil={salao.exibicao.perfil}
+              livresAtivo={salao.filtroRapido === "livres"}
+              onLivres={() => salao.definirRapido(salao.filtroRapido === "livres" ? "todas" : "livres")}
+            />
             <OccupancyBar
               variante="legenda"
               contagem={resumo.contagem}
@@ -158,6 +164,7 @@ export function LayoutMovel({ salao, imersivo, telaCheia }: PropsLayout) {
       {mesaSelecionada && (
         <div ref={ancora} className="contents">
           <TableSheet
+            perfil={salao.exibicao.perfil}
             mesa={mesaSelecionada}
             limiares={salao.limiares}
             onClose={() => salao.selecionar(null)}

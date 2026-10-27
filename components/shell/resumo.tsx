@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { Perfil } from "@/lib/exibicao";
 import { cn } from "@/lib/utils";
+import { AmostraEstado } from "../amostra-estado";
 import type { Resumo } from "./estatisticas";
 import "./shell.css";
 
@@ -32,6 +34,12 @@ export function textoComandas(r: Resumo) {
   return `${c} em ${r.ocupadas} ${r.ocupadas === 1 ? "mesa" : "mesas"}`;
 }
 
+/** Para o maître: o que ele precisa saber do salão, sem comanda nem valor. */
+export function textoAtendimento(r: Resumo) {
+  const m = `${r.ocupadas} ${r.ocupadas === 1 ? "mesa em atendimento" : "mesas em atendimento"}`;
+  return `${m} · ${r.pessoas} ${r.pessoas === 1 ? "pessoa" : "pessoas"}`;
+}
+
 const Rotulo = ({ children }: { children: string }) => (
   <span className="block text-[11px] font-semibold uppercase leading-4 tracking-[0.06em] text-(--color-ink-3)">{children}</span>
 );
@@ -43,6 +51,53 @@ function itens(r: Resumo) {
     { rotulo: "Com alerta", n: r.atencao },
     { rotulo: "Pessoas", n: r.pessoas },
   ];
+}
+
+function itensMaitre(r: Resumo) {
+  return [
+    { rotulo: "Em atendimento", n: r.ocupadas },
+    { rotulo: "Reservadas", n: r.contagem.reservada },
+  ];
+}
+
+interface PropsLivres {
+  resumo: Resumo;
+  /** Livres vira o filtro rápido: o atalho L faz o mesmo. */
+  onLivres?: () => void;
+  livresAtivo?: boolean;
+  tamanho: "grande" | "medio";
+}
+
+/** O numeral que o maître procura primeiro; clicar mostra só as livres. */
+function Livres({ resumo, onLivres, livresAtivo, tamanho }: PropsLivres) {
+  const grande = tamanho === "grande";
+  return (
+    <button
+      type="button"
+      onClick={onLivres}
+      aria-pressed={livresAtivo}
+      aria-label={`${resumo.livres} mesas livres. ${livresAtivo ? "Mostrar todas" : "Mostrar só as livres (L)"}`}
+      className={cn(
+        "-m-1.5 min-w-0 rounded-[14px] p-1.5 text-left transition-[background-color,scale] duration-100 hover:bg-(--color-ink)/6 active:scale-[0.97]",
+        "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--color-focus)",
+        livresAtivo && "bg-(--color-ink)/8",
+      )}
+    >
+      <span className="flex items-center gap-1.5">
+        <AmostraEstado estado="livre" className="size-3" />
+        <Rotulo>Livres</Rotulo>
+      </span>
+      <span
+        className={cn(
+          "tnum block font-[family-name:var(--font-mono)] font-semibold",
+          grande ? "text-[44px] leading-[48px]" : "text-[32px] leading-9",
+        )}
+      >
+        {resumo.livres}
+        <span className="ml-1.5 text-[13px] font-medium text-(--color-ink-3)">de {resumo.total}</span>
+      </span>
+    </button>
+  );
 }
 
 /** Lotação de cadeiras com um medidor fino. */
@@ -68,8 +123,32 @@ export function Lotacao({ resumo, className }: { resumo: Resumo; className?: str
   );
 }
 
-/** Grade 2×2 de numerais grandes, mais a lotação com um medidor fino. */
-export function Estatisticas({ resumo }: { resumo: Resumo }) {
+interface PropsEstatisticas {
+  resumo: Resumo;
+  perfil?: Perfil;
+  onLivres?: () => void;
+  livresAtivo?: boolean;
+}
+
+/** Grade 2×2 de numerais grandes, mais a lotação com um medidor fino. No Maître, Livres leva a cena. */
+export function Estatisticas({ resumo, perfil = "completo", onLivres, livresAtivo }: PropsEstatisticas) {
+  if (perfil === "maitre") {
+    return (
+      <div>
+        <Livres resumo={resumo} onLivres={onLivres} livresAtivo={livresAtivo} tamanho="grande" />
+        <dl className="m-0 mt-3 grid grid-cols-2 gap-x-6">
+          {itensMaitre(resumo).map((i) => (
+            <div key={i.rotulo}>
+              <dt><Rotulo>{i.rotulo}</Rotulo></dt>
+              <dd className="tnum m-0 font-[family-name:var(--font-mono)] text-[24px] font-semibold leading-8">{i.n}</dd>
+            </div>
+          ))}
+        </dl>
+        <Lotacao resumo={resumo} className="mt-3" />
+      </div>
+    );
+  }
+
   return (
     <div>
       <dl className="m-0 grid grid-cols-2 gap-x-6 gap-y-3">
@@ -87,7 +166,23 @@ export function Estatisticas({ resumo }: { resumo: Resumo }) {
 }
 
 /** Versão de uma linha para o peek do celular, onde a 2×2 não cabe. */
-export function EstatisticasLinha({ resumo }: { resumo: Resumo }) {
+export function EstatisticasLinha({ resumo, perfil = "completo", onLivres, livresAtivo }: PropsEstatisticas) {
+  if (perfil === "maitre") {
+    return (
+      <div className="flex items-end gap-5">
+        <Livres resumo={resumo} onLivres={onLivres} livresAtivo={livresAtivo} tamanho="medio" />
+        <dl className="m-0 grid min-w-0 flex-1 grid-cols-2 gap-x-3 pb-0.5">
+          {itensMaitre(resumo).map((i) => (
+            <div key={i.rotulo} className="min-w-0">
+              <dd className="tnum m-0 font-[family-name:var(--font-mono)] text-[20px] font-semibold leading-6">{i.n}</dd>
+              <dt className="truncate text-[11px] leading-4 text-(--color-ink-3)">{i.rotulo}</dt>
+            </div>
+          ))}
+        </dl>
+      </div>
+    );
+  }
+
   return (
     <dl className="m-0 grid grid-cols-4 gap-2">
       {itens(resumo).map((i) => (

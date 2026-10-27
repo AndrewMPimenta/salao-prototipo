@@ -12,6 +12,7 @@ import {
 import { posicoesHabilitadas } from "@/lib/data";
 import { cobrarPosicao, formatarCentavos, saldoMesa, type FormaPagamento, type OpcoesConta } from "@/lib/conta";
 import type { Limiares, Mesa } from "@/lib/types";
+import type { Perfil } from "@/lib/exibicao";
 import { cn } from "@/lib/utils";
 import { AbaComandas } from "./aba-comandas";
 import { AbaPosicoes } from "./aba-posicoes";
@@ -21,6 +22,10 @@ import { FolhaCobranca, rotuloForma } from "./folha-cobranca";
 export interface DetalheMesaProps {
   mesa: Mesa;
   limiares: Limiares;
+  /** Maître vê só o Resumo, sem consumo, comandas nem posições. */
+  perfil?: Perfil;
+  /** Prévia do hover: sem abas de Comandas e Posições. */
+  somenteResumo?: boolean;
   /** Chamado depois de uma cobrança simulada confirmada. */
   onCobrar?: (mesaId: number, posicao: number) => void;
   /** Controlada: o pai (a cena 3D) escolhe a posição; `null` limpa a escolha. */
@@ -37,14 +42,15 @@ export type IdAba = "resumo" | "comandas" | "posicoes";
  * Detalhe da mesa em abas: Resumo, Comandas e Posições. Sem o recurso de posições no ambiente, ou
  * em mesa aberta antes da ativação, a aba Posições não existe (ou explica por que está vazia).
  */
-export function DetalheMesa({ mesa, limiares, onCobrar, posicaoSelecionada, onSelecionarPosicao, aba: abaControlada, onAba }: DetalheMesaProps) {
+export function DetalheMesa({ mesa, limiares, perfil = "completo", somenteResumo = false, onCobrar, posicaoSelecionada, onSelecionarPosicao, aba: abaControlada, onAba }: DetalheMesaProps) {
   const base = useId();
   const mesaAtual = useMesaComCobrancas(mesa);
   const cobranca = useCobrancas(mesa.id);
 
   const ocupada = mesa.pessoas > 0;
-  const habilitada = ocupada && posicoesHabilitadas(mesa.ambienteId);
-  const abas: { id: IdAba; rotulo: string }[] = ocupada
+  const completo = perfil === "completo" && !somenteResumo;
+  const habilitada = completo && ocupada && posicoesHabilitadas(mesa.ambienteId);
+  const abas: { id: IdAba; rotulo: string }[] = completo && ocupada
     ? [
         { id: "resumo", rotulo: "Resumo" },
         { id: "comandas", rotulo: `Comandas ${mesa.comandas?.length ?? 0}` },
@@ -165,10 +171,10 @@ export function DetalheMesa({ mesa, limiares, onCobrar, posicaoSelecionada, onSe
           aria-labelledby={abas.length > 1 ? idAba("resumo") : undefined}
           hidden={abaAtiva !== "resumo"}
         >
-          <AbaResumo mesa={mesa} limiares={limiares} />
+          <AbaResumo mesa={mesa} limiares={limiares} perfil={perfil} />
         </div>
 
-        {ocupada && (
+        {completo && ocupada && (
           <div role="tabpanel" id={idPainel("comandas")} aria-labelledby={idAba("comandas")} hidden={abaAtiva !== "comandas"}>
             <AbaComandas mesa={mesa} />
           </div>

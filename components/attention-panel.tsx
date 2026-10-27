@@ -40,7 +40,8 @@ export function AttentionPanel({ mesas, limiares, onSelect, hover }: AttentionPa
             <button
               type="button"
               onClick={() => onSelect(mesa.id)}
-              onPointerEnter={(e) => e.pointerType === "mouse" && hover?.definir(mesa.id)}
+              data-linha={mesa.id}
+              onPointerEnter={(e) => e.pointerType === "mouse" && hover?.definir(mesa.id, "lista")}
               onPointerLeave={() => hover?.ler() === mesa.id && hover.definir(null)}
               aria-label={`Mesa ${mesa.id}. ${alertas.map(textoAlerta).join(". ")}`}
               className={cn(

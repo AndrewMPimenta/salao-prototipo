@@ -179,7 +179,7 @@ export function Floor3D({
     [mesas, selecionada, cobranca],
   );
   const mesaFoco = mesasCena.find((m) => m.id === selecionada);
-  const comPosicoes = Boolean(exibicao.cadeiras && mesaFoco?.posicoes && mesaFoco.pessoas > 0 && posicoesHabilitadas(ambienteId));
+  const comPosicoes = Boolean(exibicao.perfil === "completo" && exibicao.cadeiras && mesaFoco?.posicoes && mesaFoco.pessoas > 0 && posicoesHabilitadas(ambienteId));
   const pagas = useMemo(() => Object.keys(cobranca.pagas).map(Number), [cobranca.pagas]);
 
   const focoAssentos = useMemo<FocoAssentos | null>(
@@ -329,7 +329,6 @@ export function Floor3D({
               elsMarcos={elsMarcos}
               foco={selecionada !== null}
               modo={exibicao.rotulos}
-              hover={hover}
               folga={folga}
             />
           </Suspense>

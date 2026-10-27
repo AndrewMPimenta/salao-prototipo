@@ -404,6 +404,7 @@ export const FIXTURES: Record<string, Fixture[]> = {
     { x: 81, y: 14, largura: 17, altura: 58, nome: "Bar" },
     { x: 16, y: -2, largura: 42, altura: 5, nome: "Cozinha", solido: true },
     { x: 66, y: 97, largura: 24, altura: 5, nome: "Entrada", solido: true },
+    { x: 100.5, y: 22, largura: 5, altura: 14, nome: "Banheiros", solido: true },
   ],
   varanda: [{ x: 40, y: 96, largura: 30, altura: 5, nome: "Acesso ao salão", solido: true }],
   eventos: [

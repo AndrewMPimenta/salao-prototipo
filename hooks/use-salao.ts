@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Ambiente, EstadoMesa, Limiares, Mesa } from "@/lib/types";
 import { criarArmazemHover } from "@/hooks/use-hover-mesa";
 import { exibicaoPadrao, gravarAjustes, lerAjustes, type Exibicao } from "@/lib/exibicao";
+import { aplicarLayout, gravarLayout, lerLayout, type SubstituicoesLayout } from "@/lib/layout";
 import { derivarAlertas } from "@/lib/state";
 import { resumir } from "@/components/shell/estatisticas";
 import { PRESETS, type FiltroRapido, type Vista, type VistaCamera } from "@/components/shell/tipos";
@@ -63,11 +64,34 @@ export function useSalao(todas: Mesa[], ambientes: Ambiente[], limiares: Limiare
   }, []);
   const lerAzimute = useCallback(() => azimute.current, []);
 
-  const mesas = useMemo(() => todas.filter((m) => m.ambienteId === ambienteId), [todas, ambienteId]);
-  const { rotulos, destaque, cadeiras, pessoas, sombras } = { ...exibicaoPadrao(maquinaFraca), ...ajustes };
+  // Layout editado: as posições vivem no localStorage e entram aqui, a fonte única da planta e da cena 3D.
+  const [layouts, setLayouts] = useState<Record<string, SubstituicoesLayout>>({});
+  const [editando, setEditando] = useState(false);
+  useEffect(() => {
+    setLayouts(Object.fromEntries(ambientes.map((a) => [a.id, lerLayout(a.id)])));
+  }, [ambientes]);
+  const moverMesa = useCallback(
+    (id: number, x: number, y: number) => {
+      setLayouts((l) => {
+        const atual = { ...l[ambienteId], [id]: { x, y } };
+        gravarLayout(ambienteId, atual);
+        return { ...l, [ambienteId]: atual };
+      });
+    },
+    [ambienteId],
+  );
+  const restaurarLayout = useCallback(() => {
+    gravarLayout(ambienteId, {});
+    setLayouts((l) => ({ ...l, [ambienteId]: {} }));
+  }, [ambienteId]);
+  const layoutEditado = Object.keys(layouts[ambienteId] ?? {}).length > 0;
+
+  const mesasBase = useMemo(() => todas.filter((m) => m.ambienteId === ambienteId), [todas, ambienteId]);
+  const mesas = useMemo(() => aplicarLayout(mesasBase, layouts[ambienteId]), [mesasBase, layouts, ambienteId]);
+  const { perfil, rotulos, destaque, cadeiras, pessoas, sombras } = { ...exibicaoPadrao(maquinaFraca), ...ajustes };
   const exibicao = useMemo<Exibicao>(
-    () => ({ rotulos, destaque, cadeiras, pessoas: cadeiras && pessoas, sombras }),
-    [rotulos, destaque, cadeiras, pessoas, sombras],
+    () => ({ perfil, rotulos, destaque, cadeiras, pessoas: cadeiras && pessoas, sombras }),
+    [perfil, rotulos, destaque, cadeiras, pessoas, sombras],
   );
   // As amostras da legenda e das listas seguem o destaque escolhido, sem precisar receber a exibição.
   useEffect(() => {
@@ -116,6 +140,7 @@ export function useSalao(todas: Mesa[], ambientes: Ambiente[], limiares: Limiare
       if (id === ambienteId) return;
       setAmbienteId(id);
       hover.definir(null);
+      setEditando(false);
       setSelecionada(null);
       setFoco(null);
       filtrar(null);
@@ -148,7 +173,11 @@ export function useSalao(todas: Mesa[], ambientes: Ambiente[], limiares: Limiare
   return {
     todas, mesas, mesasVisiveis, destacar, ambientes, limiares, resumo,
     ambienteId, mudarAmbiente, ciclarAmbiente,
-    vista, setVista,
+    vista, setVista: (v: Vista) => {
+      setVista(v);
+      if (v !== "planta") setEditando(false);
+    },
+    layout: { editando, setEditando, editado: layoutEditado, mover: moverMesa, restaurar: restaurarLayout },
     filtro, filtrar, filtroRapido, definirRapido,
     selecionada, mesaSelecionada, selecionar: setSelecionada,
     alternarSelecao: (id: number) => setSelecionada((s) => (s === id ? null : id)),

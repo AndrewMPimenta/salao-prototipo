@@ -329,11 +329,29 @@ html {
 }
 
 /* O cartão da mesa dentro do painel de vidro: sem segundo vidro, só um fundo sutil. */
-.cartao-embutido > [role="dialog"] {
-  height: 100%;
+.cartao-embutido > [role="dialog"],
+.cartao-embutido > [data-previa] {
   max-height: 100%;
   background: color-mix(in srgb, var(--color-ink) 4%, transparent);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-ink) 7%, transparent);
+}
+.cartao-embutido > [role="dialog"] {
+  height: 100%;
+}
+
+/* Editor de layout da planta: a mesa arrastada sobe, e a que invadiria outra fica com contorno vermelho. */
+.mesa-plano[data-arrastando] {
+  z-index: 30;
+}
+.mesa-plano[data-arrastando] > .mesa-tampo {
+  scale: 1.04;
+  cursor: grabbing;
+  box-shadow: var(--shadow-float), inset 0 0 0 1px var(--color-line-2);
+}
+.mesa-plano[data-conflito] > .mesa-tampo,
+.mesa-plano[data-colide] > .mesa-tampo {
+  outline: 2px solid var(--color-alerta-critico);
+  outline-offset: 2px;
 }

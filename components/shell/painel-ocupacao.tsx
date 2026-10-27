@@ -4,7 +4,7 @@ import type { Ref } from "react";
 import type { Salao } from "@/hooks/use-salao";
 import { OccupancyBar } from "../occupancy-bar";
 import { FiltrosRapidos } from "./filtros-rapidos";
-import { Atualizado, EstatisticasLinha, Lotacao, textoComandas } from "./resumo";
+import { Atualizado, EstatisticasLinha, Lotacao, textoAtendimento, textoComandas } from "./resumo";
 import { materializar } from "./materializar";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +18,7 @@ interface PainelOcupacaoProps {
 /** Canto inferior esquerdo do desktop: o resumo do salão sempre à vista. */
 export function PainelOcupacao({ salao, nomeAmbiente, aberto, medir }: PainelOcupacaoProps) {
   const { resumo } = salao;
+  const maitre = salao.exibicao.perfil === "maitre";
 
   return (
     <section
@@ -37,8 +38,15 @@ export function PainelOcupacao({ salao, nomeAmbiente, aberto, medir }: PainelOcu
         <Atualizado className="flex-none" />
       </header>
 
-      <p className="tnum m-0 mb-3 text-[13px] leading-4 text-(--color-ink-2)">{textoComandas(resumo)}</p>
-      <EstatisticasLinha resumo={resumo} />
+      <p className="tnum m-0 mb-3 text-[13px] leading-4 text-(--color-ink-2)">
+        {maitre ? textoAtendimento(resumo) : textoComandas(resumo)}
+      </p>
+      <EstatisticasLinha
+        resumo={resumo}
+        perfil={salao.exibicao.perfil}
+        livresAtivo={salao.filtroRapido === "livres"}
+        onLivres={() => salao.definirRapido(salao.filtroRapido === "livres" ? "todas" : "livres")}
+      />
       <Lotacao resumo={resumo} className="mt-3" />
 
       <div className="mt-3 flex flex-col gap-1 border-t border-(--color-ink)/10 pt-3">
