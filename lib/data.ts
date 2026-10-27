@@ -2,6 +2,8 @@ import { gerarComandas } from "./gerar-comandas";
 import type { Ambiente, Mesa, Praca, Reserva } from "./types";
 
 export const AMBIENTES: Ambiente[] = [
+  { id: "terraco", nome: "Restaurante do Terraço" },
+  { id: "hotbeach", nome: "Hot Beach Celebration" },
   { id: "principal", nome: "Salão Principal" },
   { id: "varanda", nome: "Varanda" },
   { id: "mezanino", nome: "Mezanino" },
@@ -9,6 +11,13 @@ export const AMBIENTES: Ambiente[] = [
 ];
 
 export const PRACAS: Praca[] = [
+  { id: "A", ambienteId: "terraco", garcom: "Mari" },
+  { id: "B", ambienteId: "terraco", garcom: "Gui" },
+  { id: "C", ambienteId: "terraco", garcom: "Ana" },
+  { id: "A", ambienteId: "hotbeach", garcom: "Duda" },
+  { id: "B", ambienteId: "hotbeach", garcom: "Kauê" },
+  { id: "C", ambienteId: "hotbeach", garcom: "Lari" },
+  { id: "D", ambienteId: "hotbeach", garcom: "Theo" },
   { id: "A", ambienteId: "principal", garcom: "Rafa" },
   { id: "B", ambienteId: "principal", garcom: "Dani" },
   { id: "C", ambienteId: "principal", garcom: "Léo" },
@@ -32,6 +41,8 @@ export const POSICOES_HABILITADAS: Record<string, boolean> = {
   varanda: true,
   mezanino: true,
   eventos: false,
+  terraco: true,
+  hotbeach: false,
 };
 
 export function posicoesHabilitadas(ambienteId: string): boolean {
@@ -182,7 +193,7 @@ const SEM_POSICOES = new Set([33]);
 function comComandas(mesa: Mesa): Mesa {
   const garcom = PRACAS.find((p) => p.id === mesa.pracaId && p.ambienteId === mesa.ambienteId)?.garcom ?? "Caixa";
   // Nas mesas de evento a quantidade de comandas sai do id, para não consumir o sorteio do gerador.
-  const evento = mesa.ambienteId === "eventos";
+  const evento = mesa.ambienteId === "eventos" || mesa.ambienteId === "hotbeach";
   return gerarComandas(mesa, {
     garcom,
     comPosicoes: posicoesHabilitadas(mesa.ambienteId) && !SEM_POSICOES.has(mesa.id),
@@ -191,7 +202,180 @@ function comComandas(mesa: Mesa): Mesa {
   });
 }
 
-export const MESAS: Mesa[] = [...MESAS_BASE, ...gerarEventos()].map(comComandas);
+/*
+  Terraço e Hot Beach: mesmas regras do gerador de eventos (LCG semeado, metros no campo e depois
+  % do ambiente), mas a grade vem de células explícitas. O espaçamento garante pegada da mesa com
+  cadeiras mais 0,9 m de corredor; as medidas do campo precisam bater com `CENARIOS`.
+*/
+interface Celula {
+  xm: number;
+  zm: number;
+  forma: Mesa["forma"];
+  largura: number;
+  altura: number;
+  lugares: number;
+  pracaId: string;
+}
+
+interface ParamsSalao {
+  semente: number;
+  ambienteId: string;
+  idInicial: number;
+  campoL: number;
+  campoP: number;
+  /** Fração de mesas abertas; o sorteio acima de 0,9 vira alerta (~10% do total). */
+  ocupacao: number;
+  reservadas: number;
+  celulas: Celula[];
+}
+
+function gerarSalao(p: ParamsSalao): Mesa[] {
+  let semente = p.semente;
+  const sorteio = () => {
+    semente = (Math.imul(semente, 1664525) + 1013904223) >>> 0;
+    return semente / 4294967296;
+  };
+  const inteiro = (min: number, max: number) => min + Math.floor(sorteio() * (max - min + 1));
+
+  const mesas = p.celulas.map((cel, i): Mesa => {
+    const r = sorteio();
+    const mesa: Mesa = {
+      id: p.idInicial + i,
+      ambienteId: p.ambienteId,
+      pracaId: cel.pracaId,
+      forma: cel.forma,
+      x: Math.round((cel.xm / p.campoL) * 1000) / 10,
+      y: Math.round((cel.zm / p.campoP) * 1000) / 10,
+      largura: cel.largura,
+      altura: cel.altura,
+      lugares: cel.lugares,
+      pessoas: 0,
+    };
+
+    if (r >= 1 - p.ocupacao) {
+      mesa.pessoas = inteiro(Math.ceil(cel.lugares / 2), cel.lugares);
+      mesa.abertaHa = inteiro(8, 95);
+      mesa.semPedido = inteiro(2, 17);
+      if (r >= 0.9 && r < 0.95) mesa.semPedido = inteiro(20, 38);
+      else if (r >= 0.95 && r < 0.97) mesa.semPedido = inteiro(41, 70);
+      else if (r >= 0.97) {
+        mesa.contaImpressa = true;
+        mesa.contaImpressaHa = inteiro(1, 25);
+      }
+      mesa.abertaHa = Math.max(mesa.abertaHa, mesa.semPedido);
+      mesa.total = mesa.pessoas * inteiro(55, 190);
+      if (sorteio() < 0.25) {
+        mesa.pedidosPendentes = inteiro(1, 3);
+        mesa.pendenteHa = Math.min(mesa.abertaHa, mesa.semPedido + inteiro(0, 6));
+      }
+    } else {
+      mesa.livreHa = inteiro(2, 90);
+    }
+    return mesa;
+  });
+
+  // Reservas por contagem fixa, não por probabilidade: o cenário pede 2–3 mesas reservadas.
+  const livres = mesas.filter((m) => m.pessoas === 0);
+  const passo = Math.max(1, Math.floor(livres.length / p.reservadas));
+  for (let k = 0; k < p.reservadas && k * passo < livres.length; k++) {
+    const m = livres[k * passo];
+    m.reserva = reserva(inteiro(4, 29), NOMES[inteiro(0, NOMES.length - 1)], inteiro(2, m.lugares));
+  }
+  return mesas;
+}
+
+/*
+  Terraço: 10 colunas x 5 linhas, uma célula livre (passagem do bar). A linha do guarda-corpo
+  (sul) é de mesas de 2 lugares; três retangulares de 6.
+*/
+const TE_COLUNAS = 10;
+const TE_LINHAS = 5;
+const TE_PASSO_X = 2.6;
+const TE_PASSO_Z = 2.3;
+const TE_CORREDOR_X = 0.8;
+export const TE_CAMPO_L = TE_COLUNAS * TE_PASSO_X + TE_CORREDOR_X;
+export const TE_CAMPO_P = TE_LINHAS * TE_PASSO_Z;
+
+const TE_RETANGULARES = new Set(["1,1", "1,8", "3,4"]);
+
+export function celulasTerraco(): Celula[] {
+  const celulas: Celula[] = [];
+  for (let l = 0; l < TE_LINHAS; l++) {
+    for (let c = 0; c < TE_COLUNAS; c++) {
+      if (l === 2 && c === 5) continue;
+      const retangular = TE_RETANGULARES.has(`${l},${c}`);
+      const dois = !retangular && (l === TE_LINHAS - 1 || (c + l) % 3 === 0);
+      celulas.push({
+        xm: TE_PASSO_X / 2 + c * TE_PASSO_X + (c >= 5 ? TE_CORREDOR_X : 0),
+        zm: TE_PASSO_Z / 2 + l * TE_PASSO_Z,
+        forma: retangular ? "retangular" : "redonda",
+        largura: retangular ? 116 : dois ? 52 : 62,
+        altura: retangular ? 54 : dois ? 52 : 62,
+        lugares: retangular ? 6 : dois ? 2 : 4,
+        pracaId: "ABC"[c < 3 ? 0 : c < 7 ? 1 : 2],
+      });
+    }
+  }
+  return celulas;
+}
+
+/*
+  Hot Beach: grade 11 x 8 de mesas redondas de 6 e 8 lugares em volta da pista (5 x 3 células
+  centrais), com o canto sudeste para o lounge, a frente do DJ aberta e uma célula a menos no
+  canto sudoeste: 88 - 15 - 4 - 3 - 1 = 65.
+*/
+const HB_COLUNAS = 11;
+const HB_LINHAS = 8;
+const HB_PASSO = 3;
+export const HB_CAMPO_L = HB_COLUNAS * HB_PASSO;
+export const HB_CAMPO_P = HB_LINHAS * HB_PASSO;
+
+export function celulasHotBeach(): Celula[] {
+  const celulas: Celula[] = [];
+  for (let l = 0; l < HB_LINHAS; l++) {
+    for (let c = 0; c < HB_COLUNAS; c++) {
+      const pista = c >= 3 && c <= 7 && l >= 2 && l <= 4;
+      const lounge = c >= 9 && l >= 6;
+      const frenteDj = l === 0 && c >= 4 && c <= 6;
+      if (pista || lounge || frenteDj || (l === 7 && c === 0)) continue;
+      const oito = (c + l) % 2 === 0;
+      celulas.push({
+        xm: HB_PASSO / 2 + c * HB_PASSO,
+        zm: HB_PASSO / 2 + l * HB_PASSO,
+        forma: "redonda",
+        largura: oito ? 116 : 100,
+        altura: oito ? 116 : 100,
+        lugares: oito ? 8 : 6,
+        pracaId: "ABCD"[Math.min(3, Math.floor(c / 2.75))],
+      });
+    }
+  }
+  return celulas;
+}
+
+const MESAS_TERRACO = gerarSalao({
+  semente: 202608041,
+  ambienteId: "terraco",
+  idInicial: 300,
+  campoL: TE_CAMPO_L,
+  campoP: TE_CAMPO_P,
+  ocupacao: 0.6,
+  reservadas: 3,
+  celulas: celulasTerraco(),
+});
+
+const MESAS_HOTBEACH = gerarSalao({
+  semente: 20260944,
+  ambienteId: "hotbeach",
+  idInicial: 400,
+  campoL: HB_CAMPO_L,
+  campoP: HB_CAMPO_P,
+  ocupacao: 0.7,
+  reservadas: 5,
+  celulas: celulasHotBeach(),
+});
+
+export const MESAS: Mesa[] = [...MESAS_TERRACO, ...MESAS_HOTBEACH, ...MESAS_BASE, ...gerarEventos()].map(comComandas);
 
 export interface Fixture {
   x: number;
@@ -203,6 +387,19 @@ export interface Fixture {
 }
 
 export const FIXTURES: Record<string, Fixture[]> = {
+  terraco: [
+    { x: 4, y: -3, largura: 22, altura: 7, nome: "Bar", solido: true },
+    { x: 34, y: -3, largura: 34, altura: 4, nome: "Pérgola" },
+    { x: 86, y: -3, largura: 12, altura: 7, nome: "Elevador", solido: true },
+    { x: 0, y: 97, largura: 100, altura: 4, nome: "Varanda de vidro", solido: true },
+  ],
+  hotbeach: [
+    { x: 40, y: -3, largura: 20, altura: 6, nome: "DJ", solido: true },
+    { x: 29, y: 27, largura: 42, altura: 33, nome: "Pista" },
+    { x: -3, y: 8, largura: 6, altura: 70, nome: "Piscina" },
+    { x: 97, y: 6, largura: 5, altura: 70, nome: "Bar", solido: true },
+    { x: 82, y: 76, largura: 18, altura: 24, nome: "Lounge" },
+  ],
   principal: [
     { x: 81, y: 14, largura: 17, altura: 58, nome: "Bar" },
     { x: 16, y: -2, largura: 42, altura: 5, nome: "Cozinha", solido: true },

@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { EV_CAMPO_L, EV_CAMPO_P } from "@/lib/data";
+import { EV_CAMPO_L, EV_CAMPO_P, HB_CAMPO_L, HB_CAMPO_P, TE_CAMPO_L, TE_CAMPO_P } from "@/lib/data";
 
 /*
   Cada ambiente tem sua própria caixa e seu próprio cenário: o salão é uma
@@ -16,6 +16,10 @@ export interface Cenario {
 }
 
 export const CENARIOS: Record<string, Cenario> = {
+  // Faixa norte de 5,5 m para bar, pérgola e saguão do elevador; ao sul, 3,5 m de deck até o vidro.
+  terraco: { salaL: 33, salaP: 20.5, campoL: TE_CAMPO_L, campoP: TE_CAMPO_P, campoZ0: -4.75 },
+  // Palco e DJ ao norte, piscina a oeste e bar corrido a leste, fora do campo de mesas.
+  hotbeach: { salaL: 47, salaP: 34.5, campoL: HB_CAMPO_L, campoP: HB_CAMPO_P, campoZ0: -9.25 },
   principal: { salaL: 28, salaP: 22, campoL: 22, campoP: 15, campoZ0: -4.6 },
   varanda: { salaL: 19, salaP: 13, campoL: 15, campoP: 7.4, campoZ0: -1.9 },
   mezanino: { salaL: 20, salaP: 12.5, campoL: 15.5, campoP: 8.2, campoZ0: -2.4 },
@@ -63,6 +67,21 @@ export function marcosDe(ambienteId: string): Marco[] {
   const meiaP = c.salaP / 2;
 
   switch (ambienteId) {
+    case "terraco":
+      return [
+        { nome: "Bar", x: -meiaL + 6, y: 1.2, z: -meiaP + 1.2 },
+        { nome: "Pérgola", x: 0, y: 2.5, z: -meiaP + 2.6 },
+        { nome: "Elevador", x: meiaL - 3, y: 2.5, z: -meiaP + 1.2 },
+        { nome: "Varanda de vidro", x: 0, y: 1.05, z: meiaP },
+      ];
+    case "hotbeach":
+      return [
+        { nome: "DJ", x: 0, y: 1.9, z: -meiaP + 2.6 },
+        { nome: "Pista", x: 0, y: 0.04, z: 1.25 },
+        { nome: "Bar", x: meiaL - 1.4, y: 1.25, z: 2.75 },
+        { nome: "Piscina", x: -meiaL + 3, y: 0.1, z: 2.75 },
+        { nome: "Lounge", x: 13.5, y: 0.6, z: 11.75 },
+      ];
     case "eventos":
       return [
         { nome: "Palco", x: 0, y: 0.5, z: -meiaP + 3 },

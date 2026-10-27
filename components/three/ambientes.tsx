@@ -200,3 +200,149 @@ export function CenarioVaranda({ cores, c, sombras }: PropsCena) {
     </group>
   );
 }
+
+/** Painel de vidro entre montantes finos, com corrimão: o mesmo desenho do mezanino, em qualquer lado. */
+function Balaustrada({ comp, pos, rot = 0, cores }: { comp: number; pos: V3; rot?: number; cores: Cores }) {
+  const n = Math.max(2, Math.round(comp / 2.5));
+  return (
+    <group position={[...pos]} rotation={[0, rot, 0]}>
+      <Bloco tam={[comp, 1.0, 0.03]} pos={[0, 0.5, 0]} cor={cores.vidro} op={0.25} rug={0.15} />
+      <Bloco tam={[comp, 0.05, 0.08]} pos={[0, 1.02, 0]} cor={cores.trilho} />
+      {Array.from({ length: n + 1 }, (_, i) => (
+        <Bloco key={i} tam={[0.05, 1.0, 0.05]} pos={[-comp / 2 + (i * comp) / n, 0.5, 0]} cor={cores.trilho} />
+      ))}
+    </group>
+  );
+}
+
+function Jardineira({ x, z, cores, sombras }: { x: number; z: number; cores: Cores; sombras: boolean }) {
+  return (
+    <group position={[x, 0, z]}>
+      <mesh geometry={cilindro(0.32, 0.26, 0.6, 24)} material={mat(cores.vaso)} position={[0, 0.3, 0]} />
+      <mesh geometry={esfera(0.36, 12)} material={mat(cores.verde)} position={[0, 0.78, 0]} />
+      {sombras && <Sombra x={0} z={0} l={0.5} p={0.5} />}
+    </group>
+  );
+}
+
+/**
+ * Terraço de cobertura: deck aberto com vidro ao sul e a leste (a vista), bar e pérgola na faixa
+ * norte e o saguão do elevador no canto nordeste, de onde o cliente chega.
+ */
+export function CenarioTerraco({ cores, c, sombras }: PropsCena) {
+  const meiaL = c.salaL / 2;
+  const meiaP = c.salaP / 2;
+  const ripas = Math.floor(c.salaP / 0.45);
+  const zBar = -meiaP + 1.6;
+  const xBar = -meiaL + 6;
+  const xElev = meiaL - 3;
+  const zPergola = -meiaP + 2.8;
+
+  return (
+    <group>
+      <Laje c={c} piso={cores.deck} />
+
+      {Array.from({ length: ripas }, (_, i) => (
+        <Bloco key={i} tam={[c.salaL - 0.1, 0.004, 0.035]} pos={[0, 0.006, -meiaP + 0.225 + i * 0.45]} cor={cores.ripaDeck} />
+      ))}
+
+      <Parede tam={[c.salaL, 0.8, 0.14]} pos={[0, 0.4, -meiaP]} cores={cores} />
+      <Parede tam={[0.14, 0.8, c.salaP]} pos={[-meiaL, 0.4, 0]} cores={cores} />
+      <Balaustrada comp={c.salaL} pos={[0, 0, meiaP]} cores={cores} />
+      <Balaustrada comp={c.salaP} pos={[meiaL, 0, 0]} rot={Math.PI / 2} cores={cores} />
+
+      {/* Bar pequeno: balcão e prateleira de fundo encostada na parede norte. */}
+      <Bloco tam={[7, 1.1, 0.8]} pos={[xBar, 0.55, zBar]} cor={cores.balcao} />
+      <Bloco tam={[7.24, 0.07, 1.04]} pos={[xBar, 1.135, zBar]} cor={cores.balcaoTopo} />
+      <Bloco tam={[7, 1.5, 0.4]} pos={[xBar, 0.75, -meiaP + 0.5]} cor={cores.sofa} />
+      {sombras && <Sombra x={xBar} z={zBar} l={7} p={0.9} />}
+
+      {/* Saguão do elevador: caixa fechada com duas folhas de porta voltadas para o terraço. */}
+      <Bloco tam={[4, 2.6, 1.6]} pos={[xElev, 1.3, -meiaP + 0.9]} cor={cores.parede} />
+      <Bloco tam={[4.04, 0.06, 1.64]} pos={[xElev, 2.63, -meiaP + 0.9]} cor={cores.capa} />
+      <Bloco tam={[0.9, 2.0, 0.04]} pos={[xElev - 0.47, 1.0, -meiaP + 1.72]} cor={cores.porta} />
+      <Bloco tam={[0.9, 2.0, 0.04]} pos={[xElev + 0.47, 1.0, -meiaP + 1.72]} cor={cores.porta} />
+      {sombras && <Sombra x={xElev} z={-meiaP + 0.9} l={4} p={1.6} />}
+
+      {/* Pérgola: quatro pilares, vigas no sentido da largura e ripas cruzadas. */}
+      {([-6, 6] as const).flatMap((x) =>
+        ([-1.6, 1.6] as const).map((dz) => (
+          <Bloco key={`${x}${dz}`} tam={[0.14, 2.5, 0.14]} pos={[x, 1.25, zPergola + dz]} cor={cores.trilho} />
+        )),
+      )}
+      {([-1.6, 1.6] as const).map((dz) => (
+        <Bloco key={dz} tam={[12.4, 0.12, 0.16]} pos={[0, 2.56, zPergola + dz]} cor={cores.madeira} />
+      ))}
+      {Array.from({ length: 14 }, (_, i) => (
+        <Bloco key={i} tam={[0.08, 0.06, 3.6]} pos={[-5.85 + i * 0.9, 2.65, zPergola]} cor={cores.madeiraEscura} />
+      ))}
+
+      {[-meiaL + 0.8, -8, 0, 8].map((x) => (
+        <Jardineira key={x} x={x} z={meiaP - 0.7} cores={cores} sombras={sombras} />
+      ))}
+      <Jardineira x={meiaL - 0.8} z={meiaP - 0.8} cores={cores} sombras={sombras} />
+      <Jardineira x={-meiaL + 0.8} z={-meiaP + 5} cores={cores} sombras={sombras} />
+    </group>
+  );
+}
+
+/**
+ * Beach club: areia (deck) em todo o piso, piscina rasa a oeste, palco do DJ ao norte, pista no
+ * centro do campo, bar corrido a leste e lounge de pufes no canto sudeste.
+ */
+export function CenarioHotBeach({ cores, c, sombras }: PropsCena) {
+  const meiaL = c.salaL / 2;
+  const meiaP = c.salaP / 2;
+  const zPalco = -meiaP + 2.6;
+  const zCampoMeio = c.campoZ0 + c.campoP / 2;
+  const pufes = Array.from({ length: 7 }, (_, i) => {
+    const a = (i / 7) * Math.PI * 2;
+    return { x: 13.5 + Math.cos(a) * 1.9, z: 11.75 + Math.sin(a) * 1.9, esc: 0.9 + (i % 3) * 0.1 };
+  });
+
+  return (
+    <group>
+      <Laje c={c} piso={cores.deck} />
+
+      <Parede tam={[c.salaL, 0.8, 0.14]} pos={[0, 0.4, -meiaP]} cores={cores} />
+      <Parede tam={[c.salaL, 0.8, 0.14]} pos={[0, 0.4, meiaP]} cores={cores} />
+      <Parede tam={[0.14, 0.8, c.salaP]} pos={[-meiaL, 0.4, 0]} cores={cores} />
+      <Parede tam={[0.14, 0.8, c.salaP]} pos={[meiaL, 0.4, 0]} cores={cores} />
+
+      {/* Piscina: borda mais clara e lâmina de água translúcida, rente ao piso. */}
+      <Bloco tam={[5.6, 0.06, 21]} pos={[-20.5, 0.03, 2.75]} cor={cores.capa} />
+      <Bloco tam={[4.8, 0.02, 20.2]} pos={[-20.5, 0.062, 2.75]} cor={cores.vidro} op={0.7} rug={0.2} />
+
+      {/* Palco do DJ com cabine e duas caixas de som. */}
+      <Bloco tam={[12, 0.5, 3.6]} pos={[0, 0.25, zPalco]} cor={cores.madeira} />
+      <mesh geometry={juntas(12, 3.6, 0.32)} material={mat(cores.madeiraEscura)} position={[0, 0.502, zPalco]} />
+      <Bloco tam={[3.2, 1.05, 0.9]} pos={[0, 1.025, zPalco]} cor={cores.balcao} />
+      <Bloco tam={[3.4, 0.06, 1.1]} pos={[0, 1.58, zPalco]} cor={cores.balcaoTopo} />
+      <Bloco tam={[0.8, 1.7, 0.7]} pos={[-5, 1.35, zPalco]} cor={cores.sofa} />
+      <Bloco tam={[0.8, 1.7, 0.7]} pos={[5, 1.35, zPalco]} cor={cores.sofa} />
+      {sombras && <Sombra x={0} z={zPalco} l={12} p={3.6} />}
+
+      {/* Pista de dança no miolo do campo. */}
+      <Bloco tam={[14, 0.03, 8]} pos={[0, 0.015, zCampoMeio - 0.5]} cor={cores.pista} rug={0.45} />
+      <mesh geometry={juntas(14, 8, 1, true)} material={mat(cores.juntaPista)} position={[0, 0.032, zCampoMeio - 0.5]} />
+
+      {/* Bar corrido na parede leste. */}
+      <Bloco tam={[1.2, 1.1, 18]} pos={[meiaL - 1.4, 0.55, 2.75]} cor={cores.balcao} />
+      <Bloco tam={[1.44, 0.07, 18.24]} pos={[meiaL - 1.4, 1.135, 2.75]} cor={cores.balcaoTopo} />
+      {sombras && <Sombra x={meiaL - 1.4} z={2.75} l={1.2} p={18} />}
+
+      {/* Lounge: tapete e pufes em roda de uma mesa baixa. */}
+      <Bloco tam={[5.6, 0.02, 5.6]} pos={[13.5, 0.01, 11.75]} cor={cores.pista} rug={0.6} />
+      <mesh geometry={cilindro(0.45, 0.45, 0.32, 24)} material={mat(cores.madeira)} position={[13.5, 0.16, 11.75]} />
+      {pufes.map((p, i) => (
+        <mesh
+          key={i}
+          geometry={esfera(0.5, 14)}
+          material={mat(i % 2 ? cores.sofa : cores.almofada)}
+          position={[p.x, 0.22, p.z]}
+          scale={[p.esc, 0.5, p.esc]}
+        />
+      ))}
+    </group>
+  );
+}
