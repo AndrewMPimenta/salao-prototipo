@@ -1,16 +1,18 @@
 "use client";
 
 import * as React from "react";
-import type { EstadoMesa, Mesa } from "@/lib/types";
-import { GLIFO_ESTADO, ROTULO_ESTADO, TRACO_ESTADO } from "@/lib/state";
+import type { Alerta, EstadoMesa, Mesa } from "@/lib/types";
+import { GLIFO_ESTADO, ROTULO_ESTADO, textoAlerta, TRACO_ESTADO } from "@/lib/state";
 import { posicoesCadeiras } from "@/lib/geometria";
 import { cn, formatarDuracao } from "@/lib/utils";
+import { SeloAlerta } from "./selo-alerta";
 
 export type Densidade = "minimo" | "padrao" | "completo";
 
 interface TableShapeProps {
   mesa: Mesa;
   estado: EstadoMesa;
+  alertas: Alerta[];
   densidade: Densidade;
   escala?: number;
   selecionada: boolean;
@@ -23,6 +25,7 @@ interface TableShapeProps {
 export function TableShape({
   mesa,
   estado,
+  alertas,
   densidade,
   escala = 1,
   selecionada,
@@ -34,14 +37,13 @@ export function TableShape({
   const largura = mesa.largura * escala;
   const altura = mesa.altura * escala;
   const glifo = GLIFO_ESTADO[estado];
-  const alerta = estado === "alerta1" || estado === "alerta2";
 
   const descricao = [
     `Mesa ${mesa.id}.`,
     ROTULO_ESTADO[estado],
     mesa.pessoas === 0 ? `${mesa.lugares} lugares` : `${mesa.pessoas} pessoas`,
-    mesa.semPedido ? `${mesa.semPedido} minutos sem pedido` : null,
     mesa.abertaHa ? `aberta há ${formatarDuracao(mesa.abertaHa)}` : null,
+    ...alertas.map(textoAlerta),
   ]
     .filter(Boolean)
     .join(", ");
@@ -61,12 +63,12 @@ export function TableShape({
         )}
       </span>
 
-      {densidade !== "minimo" && alerta && (
-        <span className="tnum font-[family-name:var(--font-mono)] text-[15px] font-semibold leading-none">
-          {mesa.semPedido}
+      {densidade !== "minimo" && estado === "reservada" && mesa.reserva && (
+        <span className="tnum font-[family-name:var(--font-mono)] text-[11px] font-semibold leading-none">
+          {mesa.reserva.hora}
         </span>
       )}
-      {densidade !== "minimo" && !alerta && estado !== "livre" && (
+      {densidade !== "minimo" && (estado === "ocupada" || estado === "conta") && (
         <span className="tnum font-[family-name:var(--font-mono)] text-[11px] font-medium leading-none opacity-80">
           {mesa.pessoas}
         </span>
@@ -76,6 +78,12 @@ export function TableShape({
           {formatarDuracao(mesa.abertaHa)}
         </span>
       )}
+
+      <SeloAlerta
+        alertas={alertas}
+        semMinutos={densidade === "minimo"}
+        className="absolute -right-2.5 -top-2.5 rounded-full px-1.5 shadow-[0_1px_3px_rgba(0,0,0,0.3)]"
+      />
     </>
   );
 
@@ -87,10 +95,10 @@ export function TableShape({
     background: `var(--color-${estado}-fill)`,
     borderColor: `var(--color-${estado}-stroke)`,
     borderWidth: TRACO_ESTADO[estado],
-    borderStyle: estado === "livre" ? "dashed" : "solid",
+    borderStyle: estado === "reservada" ? "dashed" : "solid",
     color: `var(--color-${estado}-ink)`,
     // Elevação é o que separa a mesa do piso. O preenchimento não dá conta.
-    boxShadow: estado === "livre" ? "none" : "var(--shadow-table)",
+    boxShadow: estado === "livre" || estado === "reservada" ? "none" : "var(--shadow-table)",
     backgroundImage:
       estado === "conta"
         ? "repeating-linear-gradient(45deg, transparent 0 6px, color-mix(in srgb, var(--color-conta-stroke) 20%, transparent) 6px 12px)"

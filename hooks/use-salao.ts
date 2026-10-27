@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Ambiente, EstadoMesa, Limiares, Mesa } from "@/lib/types";
-import { derivarEstado, precisaAtencao } from "@/lib/state";
+import { derivarAlertas } from "@/lib/state";
 import { resumir } from "@/components/shell/estatisticas";
 import { PRESETS, type FiltroRapido, type Vista, type VistaCamera } from "@/components/shell/tipos";
 
@@ -60,11 +60,11 @@ export function useSalao(todas: Mesa[], ambientes: Ambiente[], limiares: Limiare
   const modoLeve = preferenciaLeve ?? (mesas.length > 60 || maquinaFraca);
   const resumo = useMemo(() => resumir(mesas, limiares), [mesas, limiares]);
   const mesasVisiveis = useMemo(
-    () => (atencao ? mesas.filter((m) => precisaAtencao(derivarEstado(m, limiares))) : mesas),
+    () => (atencao ? mesas.filter((m) => derivarAlertas(m, limiares).length > 0) : mesas),
     [atencao, mesas, limiares],
   );
   const destacar = useMemo(
-    () => (atencao ? (m: Mesa) => precisaAtencao(derivarEstado(m, limiares)) : undefined),
+    () => (atencao ? (m: Mesa) => derivarAlertas(m, limiares).length > 0 : undefined),
     [atencao, limiares],
   );
   const mesaSelecionada = mesas.find((m) => m.id === selecionada) ?? null;

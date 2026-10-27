@@ -1,11 +1,18 @@
 "use client";
 
-import { useState } from "react";
 import type { Limiares, Mesa } from "@/lib/types";
 import { AMBIENTES, PRACAS } from "@/lib/data";
-import { derivarEstado, ROTULO_ESTADO, TRACO_ESTADO } from "@/lib/state";
-import { cn, formatarDuracao } from "@/lib/utils";
+import {
+  derivarAlertas,
+  derivarEstado,
+  minutosAteLiberar,
+  ROTULO_ALERTA,
+  ROTULO_ESTADO,
+  TRACO_ESTADO,
+} from "@/lib/state";
+import { cn, formatarDuracao, formatarMoeda } from "@/lib/utils";
 import { Button } from "./ui/button";
+import { FichaAlerta } from "./selo-alerta";
 
 interface TableSheetProps {
   mesa: Mesa;
@@ -15,9 +22,10 @@ interface TableSheetProps {
 }
 
 /**
- * Painel de detalhe em dois estágios: o primeiro mostra identidade e estado,
- * o segundo abre os detalhes. Não-bloqueante — overlay no caminho do mapa é
- * atrito medido em pesquisa de usabilidade de seleção espacial.
+ * Painel de detalhe, não-bloqueante — overlay no caminho do mapa é atrito
+ * medido em pesquisa de usabilidade de seleção espacial. A ordem responde
+ * "o que está acontecendo nesta mesa?" em um olhar: identidade, estado e
+ * alertas, depois os dados.
  *
  * `sheet` é a folha fixa do celular; `cartao` é o mesmo conteúdo como cartão
  * de vidro sem posicionamento próprio, para o pai ancorá-lo onde a cena
@@ -25,12 +33,14 @@ interface TableSheetProps {
  * tem a faixa inferior de ações da folha.
  */
 export function TableSheet({ mesa, limiares, onClose, variante = "sheet" }: TableSheetProps) {
-  const [expandido, setExpandido] = useState(false);
   const estado = derivarEstado(mesa, limiares);
+  const alertas = derivarAlertas(mesa, limiares);
   const praca = PRACAS.find((p) => p.id === mesa.pracaId && p.ambienteId === mesa.ambienteId);
   const ambiente = AMBIENTES.find((a) => a.id === mesa.ambienteId);
-  const pendentes = mesa.pedidosPendentes ?? 0;
   const cartao = variante === "cartao";
+  const ocupada = mesa.pessoas > 0;
+  const pendentes = mesa.pedidosPendentes ?? 0;
+  const restam = minutosAteLiberar(mesa, limiares);
 
   return (
     <div
@@ -52,37 +62,12 @@ export function TableSheet({ mesa, limiares, onClose, variante = "sheet" }: Tabl
         <div aria-hidden className="mx-auto mb-3 h-1 w-9 rounded-full bg-(--color-line-2)" />
       )}
 
-      <div className={cn("flex items-start gap-4", cartao && "pr-11")}>
+      <div className={cn("flex items-center gap-4", cartao && "pr-11")}>
         <h4 className="font-display m-0 min-w-14 flex-none text-[44px] leading-none">{mesa.id}</h4>
 
-        <div className="min-w-0 flex-1">
-          <p className="m-0 truncate text-[11px] font-semibold uppercase leading-4 tracking-[0.06em] text-(--color-ink-3)">
-            {[ambiente?.nome, praca && `Praça ${praca.id}`].filter(Boolean).join(" · ") || "Mesa"}
-          </p>
-          {/* O estado em TEXTO aqui é o que dispensa legenda fixa no celular. */}
-          <p className="m-0 mt-1 flex items-center gap-2 text-[15px] font-semibold leading-5 text-(--color-ink)">
-            <span
-              aria-hidden
-              className="size-3.5 flex-none rounded-full"
-              style={{
-                background: `var(--color-${estado}-fill)`,
-                boxShadow: `inset 0 0 0 ${Math.min(TRACO_ESTADO[estado], 2.5)}px var(--color-${estado}-stroke)`,
-              }}
-            />
-            <span className="min-w-0">{ROTULO_ESTADO[estado]}</span>
-          </p>
-          {pendentes > 0 && (
-            <p className="tnum m-0 mt-1 text-[13px] leading-4 text-(--color-ink-2)">
-              Pedidos pendentes de entrega: {pendentes}
-            </p>
-          )}
-          {mesa.pessoas > 0 && (
-            <p className="tnum m-0 mt-1 text-[13px] leading-4 text-(--color-ink-2)">
-              {mesa.pessoas} {mesa.pessoas === 1 ? "pessoa" : "pessoas"} · {mesa.lugares} lugares
-              {mesa.abertaHa ? ` · aberta há ${formatarDuracao(mesa.abertaHa)}` : ""}
-            </p>
-          )}
-        </div>
+        <p className="m-0 min-w-0 flex-1 text-[13px] font-medium leading-5 text-(--color-ink-2)">
+          {[ambiente?.nome, praca && `Praça ${praca.id}`, praca?.garcom].filter(Boolean).join(" · ") || "Mesa"}
+        </p>
       </div>
 
       {cartao && (
@@ -110,29 +95,76 @@ export function TableSheet({ mesa, limiares, onClose, variante = "sheet" }: Tabl
         </button>
       )}
 
-      {expandido && (
-        <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 border-t border-(--color-line) pt-4 text-sm">
-          <Item rotulo="Lugares" valor={String(mesa.lugares)} />
-          {mesa.pessoas > 0 && <Item rotulo="Pessoas" valor={String(mesa.pessoas)} />}
-          {mesa.abertaHa && <Item rotulo="Aberta há" valor={formatarDuracao(mesa.abertaHa)} />}
-          {pendentes > 0 && <Item rotulo="Pedidos pendentes de entrega" valor={String(pendentes)} />}
-          {mesa.semPedido != null && <Item rotulo="Sem pedido" valor={`${mesa.semPedido} min`} />}
-          {mesa.total && <Item rotulo="Total" valor={mesa.total} />}
-          {praca && <Item rotulo="Praça" valor={`${praca.id} · ${praca.garcom}`} />}
-          {ambiente && <Item rotulo="Ambiente" valor={ambiente.nome} />}
-        </dl>
-      )}
+      {/* O estado em TEXTO aqui é o que dispensa legenda fixa no celular. */}
+      <ul className="m-0 mt-3 flex list-none flex-col gap-2 border-t border-(--color-line) p-0 pt-3">
+        <li className="flex items-center gap-2.5 text-[15px] font-semibold leading-6 text-(--color-ink)">
+          <span className="grid size-6 flex-none place-items-center">
+            <span
+              aria-hidden
+              className="size-3.5 rounded-full"
+              style={{
+                background: `var(--color-${estado}-fill)`,
+                boxShadow: `inset 0 0 0 ${Math.min(TRACO_ESTADO[estado], 2.5)}px var(--color-${estado}-stroke)`,
+              }}
+            />
+          </span>
+          {ROTULO_ESTADO[estado]}
+        </li>
+        {alertas.map((a) => (
+          <li key={a.tipo} className="flex items-center gap-2.5 text-[15px] leading-6 text-(--color-ink)">
+            <FichaAlerta tipo={a.tipo} />
+            <span className="min-w-0 flex-1">
+              <b className="font-semibold">{ROTULO_ALERTA[a.tipo]}</b>{" "}
+              <span className="tnum text-(--color-ink-2)">há {formatarDuracao(a.minutos)}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
 
-      <div className="mt-4 flex gap-2">
-        <Button
-          variante={cartao ? "silencioso" : "padrao"}
-          className="flex-1 justify-center"
-          onClick={() => setExpandido((v) => !v)}
-        >
-          {expandido ? "Menos" : "Ver detalhes"}
-        </Button>
+      <dl className="m-0 mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 border-t border-(--color-line) pt-3 text-[13px] leading-5">
+        {ocupada ? (
+          <>
+            <Item rotulo="Pessoas" valor={`${mesa.pessoas} de ${mesa.lugares} lugares`} />
+            <Item rotulo="Aberta há" valor={formatarDuracao(mesa.abertaHa ?? 0)} />
+            <Item rotulo="Último pedido há" valor={formatarDuracao(mesa.semPedido ?? 0)} />
+            <Item
+              rotulo="Pedidos pendentes"
+              valor={
+                pendentes > 0
+                  ? `${pendentes} · mais antigo ${formatarDuracao(mesa.pendenteHa ?? 0)}`
+                  : "Nenhum"
+              }
+            />
+            {mesa.contaImpressa && <Item rotulo="Conta impressa há" valor={formatarDuracao(mesa.contaImpressaHa ?? 0)} />}
+            {mesa.total != null && <Item rotulo="Consumo" valor={formatarMoeda(mesa.total)} />}
+            {mesa.total != null && (
+              <Item rotulo="Por pessoa" valor={formatarMoeda(mesa.total / mesa.pessoas)} />
+            )}
+            <Item
+              rotulo="Previsão de liberação"
+              valor={restam > 0 ? `em ${formatarDuracao(restam)}` : "Passou da média"}
+            />
+          </>
+        ) : (
+          <>
+            <Item rotulo="Lugares" valor={String(mesa.lugares)} />
+            {mesa.livreHa != null && <Item rotulo="Livre há" valor={formatarDuracao(mesa.livreHa)} />}
+            <Item
+              rotulo="Próxima reserva"
+              valor={
+                mesa.reserva
+                  ? `${mesa.reserva.hora} · ${mesa.reserva.nome} · ${mesa.reserva.pessoas} pessoas`
+                  : "Sem reservas"
+              }
+            />
+          </>
+        )}
+      </dl>
+
+      <div className="mt-3 flex items-center justify-between gap-3 border-t border-(--color-line) pt-3">
+        <p className="m-0 text-[12px] leading-4 text-(--color-ink-3)">Somente consulta</p>
         {!cartao && (
-          <Button variante="solido" className="flex-1 justify-center" onClick={onClose}>
+          <Button variante="solido" className="min-w-28 justify-center" onClick={onClose}>
             Fechar
           </Button>
         )}
@@ -145,7 +177,7 @@ function Item({ rotulo, valor }: { rotulo: string; valor: string }) {
   return (
     <>
       <dt className="text-(--color-ink-2)">{rotulo}</dt>
-      <dd className="tnum m-0 text-right font-medium">{valor}</dd>
+      <dd className="tnum m-0 text-right text-[15px] font-medium leading-5">{valor}</dd>
     </>
   );
 }

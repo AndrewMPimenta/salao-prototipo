@@ -3,47 +3,32 @@
 import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
-import type { EstadoMesa, Mesa } from "@/lib/types";
-import { GLIFO_ESTADO, ROTULO_CURTO } from "@/lib/state";
+import type { Alerta, EstadoMesa, Mesa } from "@/lib/types";
+import { ROTULO_CURTO, ROTULO_ALERTA } from "@/lib/state";
 import { cn } from "@/lib/utils";
+import { estiloAlerta, SeloAlerta } from "../selo-alerta";
 import { ALTURA_ROTULO_3D, ALTURA_TAMPO } from "./cenarios";
 import type { Par } from "./materiais";
 
 export interface ItemRotulo {
   mesa: Mesa;
   estado: EstadoMesa;
+  /** Já ordenados pela prioridade do selo. */
+  alertas: Alerta[];
   par: Par;
   x: number;
   z: number;
   selecionada: boolean;
 }
 
-const ESTADOS_ALERTA = new Set<EstadoMesa>(["alerta1", "alerta2", "conta"]);
-
-const IconeAlerta = () => (
-  <svg aria-hidden viewBox="0 0 12 12" className="size-2.5 flex-none" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round">
-    <path d="M6 1.5 11 10.5H1Z" />
-    <path d="M6 4.8v2.6M6 9v.01" />
-  </svg>
-);
-
-const IconeBandeja = () => (
-  <svg aria-hidden viewBox="0 0 12 12" className="size-2.5 flex-none" fill="none" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round">
-    <path d="M1 8.5h10M2.2 8.5a3.8 3.8 0 0 1 7.6 0M6 3.2V4.7" />
-  </svg>
-);
-
 /**
  * Pino de 26px com o número. Livre é tinta cheia (luminância máxima, sem matiz
- * nova); ocupada recua em superfície com texto secundário; alertas ganham uma
- * etiqueta colada à direita. Selecionada expande com lugares e situação.
+ * nova) porque é o que a recepção procura; reservada vira contorno com o
+ * horário; ocupada recua. Só o alerta mais urgente ganha selo, colado à direita.
+ * Selecionada expande com lugares e situação.
  */
 function Pino({ i }: { i: ItemRotulo }) {
-  const { mesa, estado, selecionada } = i;
-  const glifo = GLIFO_ESTADO[estado];
-  const alerta = ESTADOS_ALERTA.has(estado);
-  const pendentes = mesa.pedidosPendentes ?? 0;
-  const minutos = estado === "alerta1" || estado === "alerta2" ? `${mesa.semPedido}′` : null;
+  const { mesa, estado, alertas, selecionada } = i;
 
   if (selecionada) {
     return (
@@ -53,7 +38,7 @@ function Pino({ i }: { i: ItemRotulo }) {
       >
         <span className="tnum">Mesa {mesa.id}</span>
         <span className="font-medium text-(--color-ink-2)">
-          · {mesa.lugares} lugares · {ROTULO_CURTO[estado]}
+          · {mesa.lugares} lugares · {alertas[0] ? ROTULO_ALERTA[alertas[0].tipo] : ROTULO_CURTO[estado]}
         </span>
       </div>
     );
@@ -67,39 +52,20 @@ function Pino({ i }: { i: ItemRotulo }) {
       <span
         className={cn(
           "tnum z-10 grid size-[26px] flex-none place-items-center rounded-full border text-[13px] font-bold shadow-[0_1px_5px_rgba(0,0,0,0.22)]",
-          estado === "livre"
-            ? "border-(--color-ink) bg-(--color-ink) text-(--color-surface)"
-            : "border-(--color-line-2) bg-(--color-surface) text-(--color-ink)",
-          estado === "ocupada" && "text-(--color-ink-2) opacity-85",
+          estado === "livre" && "border-(--color-ink) bg-(--color-ink) text-(--color-surface)",
+          estado === "reservada" && "border-[1.5px] border-(--color-ink-2) bg-(--color-surface) text-(--color-ink)",
+          estado === "ocupada" && "border-(--color-line-2) bg-(--color-surface) text-(--color-ink-2) opacity-85",
+          estado === "conta" && "border-2 border-(--color-conta-stroke) bg-(--color-surface) text-(--color-ink)",
         )}
       >
         {mesa.id}
       </span>
-      {alerta && (
-        <span
-          className="-ml-2 flex h-5 items-center gap-1 rounded-r-full border pr-2 pl-3 text-[11px] font-bold whitespace-nowrap"
-          style={{
-            background: `var(--color-${estado}-fill)`,
-            color: `var(--color-${estado}-ink)`,
-            borderColor: `var(--color-${estado}-stroke)`,
-          }}
-        >
-          {minutos ? <IconeAlerta /> : glifo}
-          {minutos && <span className="tnum">{minutos}</span>}
+      {estado === "reservada" && mesa.reserva && (
+        <span className="tnum -ml-2 flex h-5 items-center rounded-r-full border border-l-0 border-(--color-ink-2) bg-(--color-surface) pr-2 pl-3 text-[11px] font-bold whitespace-nowrap text-(--color-ink)">
+          {mesa.reserva.hora}
         </span>
       )}
-      {pendentes > 0 && (
-        <span
-          title={`${pendentes} ${pendentes === 1 ? "pedido pendente" : "pedidos pendentes"} de entrega`}
-          className={cn(
-            "flex h-5 items-center gap-0.5 rounded-r-full border border-l-0 border-(--color-line-2) bg-(--color-surface) pr-1.5 pl-2.5 text-[11px] font-bold whitespace-nowrap text-(--color-ink)",
-            alerta ? "-ml-1" : "-ml-2",
-          )}
-        >
-          <IconeBandeja />
-          <span className="tnum">{pendentes}</span>
-        </span>
-      )}
+      <SeloAlerta alertas={alertas} className="-ml-2 rounded-r-full pr-2 pl-3" />
     </div>
   );
 }
@@ -141,8 +107,12 @@ export function CamadaRotulos({ itens, corHaste, els }: { itens: ItemRotulo[]; c
               ...OCULTO,
               transition: FADE,
               transform: "translate(-50%, -50%)",
-              background: i.estado === "livre" ? "var(--color-ink)" : `var(--color-${i.estado}-fill)`,
-              borderColor: i.estado === "livre" ? "var(--color-ink)" : `var(--color-${i.estado}-stroke)`,
+              ...(i.alertas[0]
+                ? { ...estiloAlerta(i.alertas[0].tipo), borderColor: "transparent" }
+                : {
+                    background: i.estado === "livre" ? "var(--color-ink)" : `var(--color-${i.estado}-fill)`,
+                    borderColor: i.estado === "livre" ? "var(--color-ink)" : `var(--color-${i.estado}-stroke)`,
+                  }),
             }}
           />
         </div>
@@ -154,7 +124,12 @@ export function CamadaRotulos({ itens, corHaste, els }: { itens: ItemRotulo[]; c
 const FOLGA = 4;
 const CELULA = 64;
 const LADO_PONTO = 8;
-const PRIORIDADE: Record<EstadoMesa, number> = { alerta2: 1, conta: 2, alerta1: 3, livre: 4, ocupada: 5 };
+/** Menor vence a disputa por espaço: alerta pela prioridade do selo, depois livre/reservada, conta e ocupada. */
+function prioridade(i: ItemRotulo) {
+  const a = i.alertas[0];
+  if (a) return { semPedidoCritico: 1, entregaAtrasada: 2, semPedido: 3, contaParada: 4 }[a.tipo];
+  return { livre: 5, reservada: 5, conta: 6, ocupada: 7 }[i.estado];
+}
 
 type Retangulo = { x0: number; y0: number; x1: number; y1: number };
 type Candidato = { i: ItemRotulo; el: HTMLDivElement; x: number; y: number; yBase: number; prof: number; rank: number };
@@ -265,7 +240,7 @@ export function ProjetorRotulos({
       }
       base.set(i.x, ALTURA_TAMPO + 0.03, i.z).project(camera);
 
-      const rank = i.selecionada ? -2 : priorizarLivres && i.estado === "livre" ? -1 : PRIORIDADE[i.estado];
+      const rank = i.selecionada ? -2 : priorizarLivres && i.estado === "livre" ? -1 : prioridade(i);
       cands.push({
         i,
         el,

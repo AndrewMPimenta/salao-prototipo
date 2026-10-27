@@ -124,6 +124,9 @@ export function LayoutMovel({ salao, imersivo, telaCheia }: PropsLayout) {
               total={resumo.total}
               filtro={salao.filtro}
               onFiltrar={salao.filtrar}
+              alertas={resumo.atencao}
+              alertaAtivo={salao.filtroRapido === "atencao"}
+              onAlertas={() => salao.definirRapido(salao.filtroRapido === "atencao" ? "todas" : "atencao")}
             />
             <Atualizado />
           </div>

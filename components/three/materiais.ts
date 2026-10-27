@@ -1,22 +1,21 @@
 import * as THREE from "three";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { EstadoMesa } from "@/lib/types";
 
 export type Par = { fill: string; stroke: string };
 
 export const CLARO: Record<EstadoMesa, Par> = {
   livre: { fill: "#ffffff", stroke: "#8a8479" },
+  reservada: { fill: "#ffffff", stroke: "#67625a" },
   ocupada: { fill: "#cfc8bb", stroke: "#4a463f" },
-  alerta1: { fill: "#d4941a", stroke: "#5c3f00" },
-  alerta2: { fill: "#7b2436", stroke: "#4a121f" },
   conta: { fill: "#cfe3f5", stroke: "#0043ce" },
 };
 
 export const ESCURO: Record<EstadoMesa, Par> = {
   // Livre é o único tampo claro no tema escuro: a luminância é o que o destaca, sem nova matiz.
   livre: { fill: "#ece3d3", stroke: "#8f897e" },
+  reservada: { fill: "#ece3d3", stroke: "#a39d92" },
   ocupada: { fill: "#3f3b36", stroke: "#cdc6ba" },
-  alerta1: { fill: "#8a6700", stroke: "#ffe0a3" },
-  alerta2: { fill: "#5e1a28", stroke: "#ff93a6" },
   conta: { fill: "#1c3a5e", stroke: "#64b5f6" },
 };
 
@@ -133,6 +132,25 @@ export const circulo = () => obter("circ", () => new THREE.CircleGeometry(1, 40)
 
 export const anel = (ri: number, ro: number) =>
   obter(`a${ri},${ro}`, () => new THREE.RingGeometry(ri, ro, 64));
+
+const PASSOS_ARCO = 48;
+
+/** Arco horário a partir das 12h; a fração é quantizada para o cache não crescer sem limite. */
+export const arco = (ri: number, ro: number, fracao: number) => {
+  const passos = Math.max(1, Math.round(Math.min(Math.max(fracao, 0), 1) * PASSOS_ARCO));
+  const comp = (passos / PASSOS_ARCO) * Math.PI * 2;
+  return obter(`r${ri},${ro},${passos}`, () => new THREE.RingGeometry(ri, ro, Math.max(2, passos * 2), 1, Math.PI / 2 - comp, comp));
+};
+
+const SEGMENTOS_TRACEJADO = 28;
+
+/** Anel tracejado numa só geometria: 28 arcos fundidos custam uma chamada de desenho. */
+export const anelTracejado = (ri: number, ro: number) =>
+  obter(`t${ri},${ro}`, () => {
+    const passo = (Math.PI * 2) / SEGMENTOS_TRACEJADO;
+    const partes = Array.from({ length: SEGMENTOS_TRACEJADO }, (_, k) => new THREE.RingGeometry(ri, ro, 3, 1, k * passo, passo * 0.55));
+    return mergeGeometries(partes)!;
+  });
 
 export function mat(cor: string, opacidade = 1, rugosidade = 0.9) {
   const chave = `${cor}|${opacidade}|${rugosidade}`;

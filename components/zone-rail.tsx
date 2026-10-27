@@ -1,7 +1,7 @@
 "use client";
 
 import type { Ambiente, Limiares, Mesa } from "@/lib/types";
-import { derivarEstado, precisaAtencao } from "@/lib/state";
+import { derivarAlertas } from "@/lib/state";
 import { cn } from "@/lib/utils";
 
 interface ZoneRailProps {
@@ -22,7 +22,7 @@ export function ZoneRail({ ambientes, mesas, limiares, ativo, onChange }: ZoneRa
       {ambientes.map((ambiente) => {
         const doAmbiente = mesas.filter((m) => m.ambienteId === ambiente.id);
         const livres = doAmbiente.filter((m) => m.pessoas === 0).length;
-        const atencao = doAmbiente.filter((m) => precisaAtencao(derivarEstado(m, limiares))).length;
+        const atencao = doAmbiente.filter((m) => derivarAlertas(m, limiares).length > 0).length;
         const vazio = doAmbiente.length === 0;
         const selecionado = ativo === ambiente.id;
 
@@ -65,10 +65,7 @@ export function ZoneRail({ ambientes, mesas, limiares, ativo, onChange }: ZoneRa
                       <span
                         aria-hidden
                         className="size-2 rounded-full"
-                        style={{
-                          background: "var(--color-alerta2-fill)",
-                          boxShadow: "inset 0 0 0 1.5px var(--color-alerta2-stroke)",
-                        }}
+                        style={{ background: "var(--color-alerta-critico)" }}
                       />
                       {atencao}
                     </span>

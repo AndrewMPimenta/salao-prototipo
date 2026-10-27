@@ -53,6 +53,9 @@ export function PainelOcupacao({ salao, nomeAmbiente, aberto, medir }: PainelOcu
           total={resumo.total}
           filtro={salao.filtro}
           onFiltrar={salao.filtrar}
+          alertas={resumo.atencao}
+          alertaAtivo={salao.filtroRapido === "atencao"}
+          onAlertas={() => salao.definirRapido(salao.filtroRapido === "atencao" ? "todas" : "atencao")}
         />
       </div>
     </section>

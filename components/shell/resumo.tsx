@@ -33,8 +33,8 @@ const Rotulo = ({ children }: { children: string }) => (
 function itens(r: Resumo) {
   return [
     { rotulo: "Livres", n: r.livres },
-    { rotulo: "Em atendimento", n: r.emAtendimento },
-    { rotulo: "Atenção", n: r.atencao },
+    { rotulo: "Ocupadas", n: r.ocupadas },
+    { rotulo: "Com alerta", n: r.atencao },
     { rotulo: "Pessoas", n: r.pessoas },
   ];
 }
@@ -87,7 +87,7 @@ export function EstatisticasLinha({ resumo }: { resumo: Resumo }) {
       {itens(resumo).map((i) => (
         <div key={i.rotulo} className="min-w-0">
           <dd className="tnum m-0 font-[family-name:var(--font-mono)] text-[20px] font-semibold leading-6">{i.n}</dd>
-          <dt className="truncate text-[11px] leading-4 text-(--color-ink-3)">{i.rotulo === "Em atendimento" ? "Atendimento" : i.rotulo}</dt>
+          <dt className="truncate text-[11px] leading-4 text-(--color-ink-3)">{i.rotulo}</dt>
         </div>
       ))}
     </dl>

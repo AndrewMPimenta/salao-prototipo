@@ -3,14 +3,17 @@
 import type { EstadoMesa, Limiares, Mesa } from "@/lib/types";
 import { PRACAS } from "@/lib/data";
 import {
+  derivarAlertas,
   derivarEstado,
-  pesoTriagem,
-  precisaAtencao,
+  ROTULO_ALERTA,
   ROTULO_CURTO,
   ROTULO_ESTADO,
+  textoAlerta,
   TRACO_ESTADO,
+  triarMesas,
 } from "@/lib/state";
 import { cn, formatarDuracao } from "@/lib/utils";
+import { FichaAlerta } from "./selo-alerta";
 
 interface MobileListProps {
   mesas: Mesa[];
@@ -30,16 +33,10 @@ export function MobileList({ mesas, limiares, filtro, onSelect }: MobileListProp
     ? mesas.filter((m) => derivarEstado(m, limiares) === filtro)
     : mesas;
 
-  const atencao = visiveis
-    .filter((m) => precisaAtencao(derivarEstado(m, limiares)))
-    .sort(
-      (a, b) =>
-        pesoTriagem(derivarEstado(b, limiares), b.semPedido) -
-        pesoTriagem(derivarEstado(a, limiares), a.semPedido),
-    );
+  const atencao = triarMesas(visiveis, limiares).map((t) => t.mesa);
 
   const resto = visiveis
-    .filter((m) => !precisaAtencao(derivarEstado(m, limiares)))
+    .filter((m) => derivarAlertas(m, limiares).length === 0)
     .sort((a, b) => a.y - b.y || a.x - b.x);
 
   return (
@@ -86,14 +83,15 @@ function Secao({
         const praca = PRACAS.find(
           (p) => p.id === mesa.pracaId && p.ambienteId === mesa.ambienteId,
         );
-        const destaque = estado === "alerta1" || estado === "alerta2";
+        const alertas = derivarAlertas(mesa, limiares);
+        const principal = alertas[0];
 
         return (
           <li key={mesa.id} className={cn(i > 0 && "border-t border-(--color-line)")}>
             <button
               type="button"
               onClick={() => onSelect(mesa.id)}
-              aria-label={`Mesa ${mesa.id}. ${ROTULO_ESTADO[estado]}`}
+              aria-label={`Mesa ${mesa.id}. ${[ROTULO_ESTADO[estado], ...alertas.map(textoAlerta)].join(". ")}`}
               className={cn(
                 "-mx-2 flex min-h-14 w-[calc(100%+1rem)] items-center gap-3 rounded-(--radius-control) px-2 py-2 text-left",
                 "transition-[background-color,transform] duration-100 active:scale-[0.98] active:bg-(--color-ink)/5",
@@ -114,16 +112,20 @@ function Secao({
 
               <span className="min-w-0 flex-1">
                 <span className="block text-[15px] font-semibold leading-5">Mesa {mesa.id}</span>
-                <span className="mt-0.5 block truncate text-xs leading-4 text-(--color-ink-2)">
-                  {ROTULO_CURTO[estado]}
-                  {praca ? ` · ${praca.garcom}` : ""}
+                <span className="mt-0.5 flex items-center gap-1.5 text-xs leading-4 text-(--color-ink-2)">
+                  {principal && <FichaAlerta tipo={principal.tipo} className="size-4 text-[10px]" />}
+                  <span className="truncate">
+                    {principal ? ROTULO_ALERTA[principal.tipo] : ROTULO_CURTO[estado]}
+                    {alertas.length > 1 ? ` +${alertas.length - 1}` : ""}
+                    {praca ? ` · ${praca.garcom}` : ""}
+                  </span>
                 </span>
               </span>
 
               <span className="tnum flex-none text-right font-[family-name:var(--font-mono)] font-semibold">
-                {destaque ? (
+                {principal ? (
                   <span className="text-[17px]">
-                    {mesa.semPedido}
+                    {principal.minutos}
                     <small className="ml-0.5 font-sans text-[11px] font-medium text-(--color-ink-3)">
                       min
                     </small>

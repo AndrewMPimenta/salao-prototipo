@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useMemo, useRef, useState } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import type { EstadoMesa, Limiares, Mesa } from "@/lib/types";
-import { derivarEstado, ROTULO_ESTADO } from "@/lib/state";
+import { derivarAlertas, derivarEstado, ROTULO_ESTADO, textoAlerta } from "@/lib/state";
 import { cn } from "@/lib/utils";
 import { useTemaEscuro } from "@/hooks/use-tema";
 import { CenarioEventos, CenarioSalao, CenarioVaranda } from "./three/ambientes";
@@ -124,18 +124,19 @@ export function Floor3D({
     () =>
       mesas.map((mesa) => {
         const estado = derivarEstado(mesa, limiares);
+        const alertas = derivarAlertas(mesa, limiares);
         const esmaecida = destacar ? !destacar(mesa) : filtro !== null && filtro !== estado;
-        return { mesa, estado, esmaecida };
+        return { mesa, estado, alertas, esmaecida };
       }),
     [mesas, limiares, destacar, filtro],
   );
 
   const itensRotulo = useMemo<ItemRotulo[]>(
     () =>
-      situacoes.flatMap(({ mesa, estado, esmaecida }) => {
+      situacoes.flatMap(({ mesa, estado, alertas, esmaecida }) => {
         if (esmaecida) return [];
         const [x, z] = posicoes.get(mesa.id)!;
-        return [{ mesa, estado, par: paleta[estado], x, z, selecionada: selecionada === mesa.id }];
+        return [{ mesa, estado, alertas, par: paleta[estado], x, z, selecionada: selecionada === mesa.id }];
       }),
     [situacoes, posicoes, paleta, selecionada],
   );
@@ -166,11 +167,14 @@ export function Floor3D({
 
             {!modoLeve && <Assentos itens={situacoes} cenario={cenario} cores={cores} />}
 
-            {situacoes.map(({ mesa, estado, esmaecida }) => (
+            {situacoes.map(({ mesa, estado, alertas, esmaecida }) => (
               <Mesa3D
                 key={mesa.id}
                 mesa={mesa}
                 estado={estado}
+                alertas={alertas}
+                progresso={mesa.pessoas > 0 ? (mesa.abertaHa ?? 0) / limiares.permanenciaMedia : null}
+                leve={modoLeve}
                 par={paleta[estado]}
                 cores={cores}
                 escuro={escuro}
@@ -219,7 +223,9 @@ export function Floor3D({
           {mesas.map((m) => (
             <tr key={m.id}>
               <td>Mesa {m.id}</td>
-              <td>{ROTULO_ESTADO[derivarEstado(m, limiares)]}</td>
+              <td>
+                {[ROTULO_ESTADO[derivarEstado(m, limiares)], ...derivarAlertas(m, limiares).map(textoAlerta)].join(". ")}
+              </td>
               <td>{m.pessoas}</td>
               <td>{m.lugares}</td>
             </tr>

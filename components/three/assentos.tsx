@@ -3,13 +3,14 @@
 import { useLayoutEffect, useMemo, useRef } from "react";
 import { useThree } from "@react-three/fiber";
 import * as THREE from "three";
-import type { EstadoMesa, Mesa } from "@/lib/types";
+import type { Alerta, EstadoMesa, Mesa } from "@/lib/types";
 import { ms, mx, mz, type Cenario } from "./cenarios";
 import { caixa, capsula, cilindro, esfera, mat, type Cores } from "./materiais";
 
 export interface ItemAssento {
   mesa: Mesa;
   estado: EstadoMesa;
+  alertas: Alerta[];
   esmaecida: boolean;
 }
 

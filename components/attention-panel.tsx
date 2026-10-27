@@ -2,8 +2,9 @@
 
 import type { Limiares, Mesa } from "@/lib/types";
 import { PRACAS } from "@/lib/data";
-import { derivarEstado, precisaAtencao, ROTULO_CURTO, TRACO_ESTADO } from "@/lib/state";
+import { derivarEstado, ROTULO_ALERTA, textoAlerta, TRACO_ESTADO, triarMesas } from "@/lib/state";
 import { cn, formatarDuracao } from "@/lib/utils";
+import { FichaAlerta } from "./selo-alerta";
 
 interface AttentionPanelProps {
   mesas: Mesa[];
@@ -12,9 +13,7 @@ interface AttentionPanelProps {
 }
 
 export function AttentionPanel({ mesas, limiares, onSelect }: AttentionPanelProps) {
-  const lista = mesas
-    .filter((m) => precisaAtencao(derivarEstado(m, limiares)))
-    .sort((a, b) => (b.semPedido ?? 0) - (a.semPedido ?? 0));
+  const lista = triarMesas(mesas, limiares);
 
   if (lista.length === 0) {
     return (
@@ -30,8 +29,9 @@ export function AttentionPanel({ mesas, limiares, onSelect }: AttentionPanelProp
   */
   return (
     <ul className="m-0 flex list-none flex-col p-0">
-      {lista.map((mesa, i) => {
+      {lista.map(({ mesa, alertas }, i) => {
         const estado = derivarEstado(mesa, limiares);
+        const [principal, ...outros] = alertas;
         const praca = PRACAS.find((p) => p.id === mesa.pracaId && p.ambienteId === mesa.ambienteId);
 
         return (
@@ -39,7 +39,7 @@ export function AttentionPanel({ mesas, limiares, onSelect }: AttentionPanelProp
             <button
               type="button"
               onClick={() => onSelect(mesa.id)}
-              aria-label={`Mesa ${mesa.id}, ${ROTULO_CURTO[estado]}`}
+              aria-label={`Mesa ${mesa.id}. ${alertas.map(textoAlerta).join(". ")}`}
               className={cn(
                 "-mx-2 flex min-h-16 w-[calc(100%+1rem)] items-center gap-3 rounded-(--radius-control) px-2 py-3 text-left",
                 "transition-[background-color,transform] duration-100 hover:bg-(--color-ink)/5 active:scale-[0.98]",
@@ -59,29 +59,24 @@ export function AttentionPanel({ mesas, limiares, onSelect }: AttentionPanelProp
               </span>
 
               <span className="min-w-0 flex-1">
-                <span className="block text-[15px] font-semibold leading-5">
-                  {ROTULO_CURTO[estado]}
+                <span className="flex items-center gap-1.5 text-[15px] font-semibold leading-5">
+                  <FichaAlerta tipo={principal.tipo} className="size-5 text-[11px]" />
+                  <span className="truncate">{ROTULO_ALERTA[principal.tipo]}</span>
+                  {outros.length > 0 && (
+                    <span className="tnum flex-none text-[12px] font-medium text-(--color-ink-2)">+{outros.length}</span>
+                  )}
                 </span>
                 <span className="tnum mt-0.5 block truncate text-xs leading-4 text-(--color-ink-2)">
                   {mesa.pessoas} pessoas
                   {mesa.abertaHa ? ` · ${formatarDuracao(mesa.abertaHa)}` : ""}
                   {praca ? ` · ${praca.garcom}` : ""}
-                  {mesa.pedidosPendentes ? ` · ${mesa.pedidosPendentes} ${mesa.pedidosPendentes === 1 ? "pedido pendente" : "pedidos pendentes"}` : ""}
                 </span>
               </span>
 
-              {estado === "conta" ? (
-                <span className="tnum flex-none font-[family-name:var(--font-mono)] text-[15px] font-semibold">
-                  {mesa.total}
-                </span>
-              ) : (
-                <span className="tnum flex-none font-[family-name:var(--font-mono)] text-[17px] font-semibold leading-none">
-                  {mesa.semPedido}
-                  <span className="ml-1 font-sans text-[11px] font-medium text-(--color-ink-3)">
-                    min
-                  </span>
-                </span>
-              )}
+              <span className="tnum flex-none font-[family-name:var(--font-mono)] text-[17px] font-semibold leading-none">
+                {principal.minutos}
+                <span className="ml-1 font-sans text-[11px] font-medium text-(--color-ink-3)">min</span>
+              </span>
             </button>
           </li>
         );

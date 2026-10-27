@@ -11,7 +11,7 @@ interface FiltrosRapidosProps {
 }
 
 /**
- * O trio é o controle primário; os chips finos do OccupancyBar ficam para
+ * O trio é o controle primário; os chips do OccupancyBar (estados de base) ficam para
  * quem quer um estado específico. "outro" (um chip fino ativo) não acende
  * nenhum segmento, porque nenhum dos três descreve o filtro.
  */

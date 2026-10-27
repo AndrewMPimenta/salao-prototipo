@@ -14,12 +14,12 @@
 
   ESTADO DA MESA
 
-  Princípio ISA-101 invertido: `livre` e `ocupada` não têm matiz, e toda a cor
-  saturada vai para os três estados que pedem ação. Verde e vermelho estão
-  fora do sistema — o par convencional amarelo/vermelho dá 2,97:1 e falha a
-  SC 1.4.11 do WCAG 2.2. A escalada vai de âmbar a bordô e é carregada pela
-  luminosidade, então sobrevive à escala de cinza. Cada estado também tem
-  traço, glifo e numeral — a cor nunca está sozinha.
+  O tampo carrega só o estado de base (livre, reservada, ocupada, conta), todos
+  de baixa saturação: ocupada em andamento normal não pede nada, e pintá-la
+  esconderia as que pedem. A cor saturada fica nos selos de alerta, que nunca
+  recolorem o tampo. Vermelho = receita parada (sem pedido), âmbar = cozinha
+  (entrega), azul = informativo (conta); ícone e glifo repetem a distinção, então
+  a cor nunca está sozinha e sobrevive à escala de cinza.
 */
 /*
   `static` é obrigatório: as cores de estado são montadas em tempo de execução
@@ -50,18 +50,24 @@
   --color-livre-stroke: #8a8479;
   --color-ocupada-fill: #d9d3c8;
   --color-ocupada-stroke: #4a463f;
-  --color-alerta1-fill: #d4941a;
-  --color-alerta1-stroke: #5c3f00;
-  --color-alerta2-fill: #7b2436;
-  --color-alerta2-stroke: #4a121f;
+  --color-reservada-fill: #ffffff;
+  --color-reservada-stroke: #67625a;
   --color-conta-fill: #cfe3f5;
   --color-conta-stroke: #0043ce;
 
   --color-livre-ink: #1b1a17;
+  --color-reservada-ink: #1b1a17;
   --color-ocupada-ink: #1b1a17;
-  --color-alerta1-ink: #1b1a17;
-  --color-alerta2-ink: #ffffff;
   --color-conta-ink: #1b1a17;
+
+  --color-alerta-critico: #c62828;
+  --color-alerta-critico-ink: #ffffff;
+  --color-alerta-atencao: #c62828;
+  --color-alerta-atencao-ink: #ffffff;
+  --color-alerta-entrega: #d4941a;
+  --color-alerta-entrega-ink: #1b1a17;
+  --color-alerta-conta: #0043ce;
+  --color-alerta-conta-ink: #ffffff;
 
   --color-glass: rgb(251 250 247 / 0.74);
   --color-glass-strong: rgb(251 250 247 / 0.9);
@@ -99,18 +105,24 @@
     --color-livre-stroke: #8f897e;
     --color-ocupada-fill: #4a4640;
     --color-ocupada-stroke: #cdc6ba;
-    --color-alerta1-fill: #8a6700;
-    --color-alerta1-stroke: #ffe0a3;
-    --color-alerta2-fill: #5e1a28;
-    --color-alerta2-stroke: #ff93a6;
+    --color-reservada-fill: #2c2a26;
+    --color-reservada-stroke: #a39d92;
     --color-conta-fill: #1c3a5e;
     --color-conta-stroke: #64b5f6;
 
     --color-livre-ink: #f4f1ea;
+    --color-reservada-ink: #f4f1ea;
     --color-ocupada-ink: #f4f1ea;
-    --color-alerta1-ink: #f4f1ea;
-    --color-alerta2-ink: #f4f1ea;
     --color-conta-ink: #f4f1ea;
+
+    --color-alerta-critico: #ff6b6b;
+    --color-alerta-critico-ink: #1a1917;
+    --color-alerta-atencao: #ff6b6b;
+    --color-alerta-atencao-ink: #1a1917;
+    --color-alerta-entrega: #e0a526;
+    --color-alerta-entrega-ink: #1a1917;
+    --color-alerta-conta: #64b5f6;
+    --color-alerta-conta-ink: #1a1917;
 
     --color-glass: rgb(26 25 23 / 0.7);
     --color-glass-strong: rgb(26 25 23 / 0.9);
@@ -143,17 +155,22 @@
   --color-livre-stroke: #8f897e;
   --color-ocupada-fill: #4a4640;
   --color-ocupada-stroke: #cdc6ba;
-  --color-alerta1-fill: #8a6700;
-  --color-alerta1-stroke: #ffe0a3;
-  --color-alerta2-fill: #5e1a28;
-  --color-alerta2-stroke: #ff93a6;
+  --color-reservada-fill: #2c2a26;
+  --color-reservada-stroke: #a39d92;
   --color-conta-fill: #1c3a5e;
   --color-conta-stroke: #64b5f6;
   --color-livre-ink: #f4f1ea;
+  --color-reservada-ink: #f4f1ea;
   --color-ocupada-ink: #f4f1ea;
-  --color-alerta1-ink: #f4f1ea;
-  --color-alerta2-ink: #f4f1ea;
   --color-conta-ink: #f4f1ea;
+  --color-alerta-critico: #ff6b6b;
+  --color-alerta-critico-ink: #1a1917;
+  --color-alerta-atencao: #ff6b6b;
+  --color-alerta-atencao-ink: #1a1917;
+  --color-alerta-entrega: #e0a526;
+  --color-alerta-entrega-ink: #1a1917;
+  --color-alerta-conta: #64b5f6;
+  --color-alerta-conta-ink: #1a1917;
   --color-glass: rgb(26 25 23 / 0.7);
   --color-glass-strong: rgb(26 25 23 / 0.9);
   --color-glass-edge: rgb(255 255 255 / 0.08);

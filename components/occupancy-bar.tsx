@@ -6,9 +6,8 @@ import { cn } from "@/lib/utils";
 
 const ROTULO_FAIXA: Record<EstadoMesa, string> = {
   livre: "Livres",
+  reservada: "Reservadas",
   ocupada: "Ocupadas",
-  alerta1: "20 min",
-  alerta2: "40 min",
   conta: "Conta",
 };
 
@@ -17,6 +16,10 @@ interface OccupancyBarProps {
   total: number;
   filtro: EstadoMesa | null;
   onFiltrar: (estado: EstadoMesa | null) => void;
+  /** Mesas com alerta: alerta não é estado, então ganha um chip à parte. */
+  alertas: number;
+  alertaAtivo: boolean;
+  onAlertas: () => void;
   variante?: "faixa" | "flutuante" | "legenda";
 }
 
@@ -35,6 +38,9 @@ export function OccupancyBar({
   total,
   filtro,
   onFiltrar,
+  alertas,
+  alertaAtivo,
+  onAlertas,
   variante = "faixa",
 }: OccupancyBarProps) {
   const flutuante = variante === "flutuante";
@@ -78,6 +84,24 @@ export function OccupancyBar({
             </button>
           );
         })}
+        <button
+          type="button"
+          disabled={alertas === 0}
+          aria-pressed={alertaAtivo}
+          aria-label={`Com alerta: ${alertas} de ${total} mesas.`}
+          onClick={onAlertas}
+          className={cn(
+            "flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium pointer-coarse:min-h-11",
+            "transition-[background-color,scale] duration-100 active:scale-[0.97]",
+            "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)",
+            "disabled:cursor-default disabled:opacity-35",
+            alertaAtivo ? "bg-(--color-accent) text-(--color-accent-ink)" : "text-(--color-ink-2) hover:bg-(--color-ink)/6",
+          )}
+        >
+          <span aria-hidden className="size-2.5 flex-none rounded-full" style={{ background: "var(--color-alerta-critico)" }} />
+          Com alerta
+          <span className="tnum font-[family-name:var(--font-mono)]">{alertas}</span>
+        </button>
       </section>
     );
   }
@@ -185,6 +209,40 @@ export function OccupancyBar({
             </button>
           );
         })}
+        <button
+          type="button"
+          disabled={alertas === 0}
+          aria-pressed={alertaAtivo}
+          aria-label={`Com alerta: ${alertas} de ${total} mesas.`}
+          onClick={onAlertas}
+          className={cn(
+            "group flex flex-none items-center rounded-full",
+            "transition-transform duration-100 active:scale-[0.97]",
+            "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)",
+            "disabled:cursor-default disabled:opacity-35",
+            "min-h-11",
+          )}
+        >
+          <span
+            className={cn(
+              "flex items-center gap-2 rounded-full transition-colors duration-150",
+              flutuante ? "h-8 pl-2 pr-3" : "h-10 pl-2.5 pr-4",
+              alertaAtivo
+                ? "bg-(--color-accent) text-(--color-accent-ink)"
+                : "text-(--color-ink) shadow-[inset_0_0_0_1px_var(--color-line)] group-hover:shadow-[inset_0_0_0_1px_var(--color-line-2)]",
+            )}
+          >
+            <span
+              aria-hidden
+              className={cn("flex-none rounded-full", flutuante ? "size-3" : "size-4")}
+              style={{ background: "var(--color-alerta-critico)" }}
+            />
+            <span className="tnum font-[family-name:var(--font-mono)] text-sm font-semibold leading-none">{alertas}</span>
+            <span className={cn("text-xs font-medium leading-none", alertaAtivo ? "opacity-85" : "text-(--color-ink-2)")}>
+              Com alerta
+            </span>
+          </span>
+        </button>
       </div>
     </section>
   );

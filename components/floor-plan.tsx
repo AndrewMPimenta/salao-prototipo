@@ -2,7 +2,7 @@
 
 import type { EstadoMesa, Limiares, Mesa } from "@/lib/types";
 import { FIXTURES } from "@/lib/data";
-import { derivarEstado } from "@/lib/state";
+import { derivarAlertas, derivarEstado } from "@/lib/state";
 import { Cadeiras, TableShape, type Densidade } from "./table-shape";
 import { useSpatialKeyboard } from "@/hooks/use-spatial-keyboard";
 import { cn } from "@/lib/utils";
@@ -82,6 +82,7 @@ export function FloorPlan({
             <TableShape
               mesa={mesa}
               estado={estado}
+              alertas={derivarAlertas(mesa, limiares)}
               densidade={densidade}
               escala={escala}
               selecionada={selecionada === mesa.id}

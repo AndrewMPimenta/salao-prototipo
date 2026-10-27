@@ -3,16 +3,25 @@
 import { useRef, useState } from "react";
 import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
-import type { EstadoMesa, Mesa } from "@/lib/types";
+import type { Alerta, EstadoMesa, Mesa } from "@/lib/types";
 import { ALTURA_TAMPO, ESPESSURA_TAMPO, ms, mx, mz, type Cenario } from "./cenarios";
-import { anel, caixa, cilindro, circulo, mat, matAlvo, matHalo, type Cores, type Par } from "./materiais";
+import { anel, anelTracejado, arco, caixa, cilindro, circulo, mat, matAlvo, matHalo, type Cores, type Par } from "./materiais";
 
 const OPACIDADE_FILTRO = 0.2;
 const LEVANTE_HOVER = 0.03;
 
+// Faixa do anel de tempo: fora das cadeiras (~0,55 m do tampo) e dentro do anel de seleção (0,66 m).
+const ANEL_TEMPO_INTERNO = 0.57;
+const ANEL_TEMPO_EXTERNO = 0.63;
+
 interface Props {
   mesa: Mesa;
   estado: EstadoMesa;
+  alertas: Alerta[];
+  /** Permanência dividida pela média da casa; só faz sentido com comanda aberta. */
+  progresso: number | null;
+  /** Sem o halo vermelho, para máquinas fracas. */
+  leve: boolean;
   par: Par;
   cores: Cores;
   escuro: boolean;
@@ -26,7 +35,7 @@ interface Props {
  * Só o tampo, a borda e o pedestal: cadeiras e figuras são instanciadas em
  * `assentos.tsx`. Sombra só no que é grande o bastante para ler como sombra.
  */
-export function Mesa3D({ mesa, estado, par, cores, escuro, cenario, esmaecida, selecionada, onSelect }: Props) {
+export function Mesa3D({ mesa, estado, alertas, progresso, leve, par, cores, escuro, cenario, esmaecida, selecionada, onSelect }: Props) {
   const gl = useThree((s) => s.gl);
   const tampoRef = useRef<THREE.Group>(null);
   const [hover, setHover] = useState(false);
@@ -71,6 +80,9 @@ export function Mesa3D({ mesa, estado, par, cores, escuro, cenario, esmaecida, s
   };
 
   const raioAnel = Math.max(raioX, raioZ) + 0.36 + 0.42;
+  const raioMaior = Math.max(raioX, raioZ);
+  const critico = !esmaecida && !leve && alertas[0]?.tipo === "semPedidoCritico";
+  const completo = progresso !== null && progresso >= 1;
 
   return (
     <group
@@ -103,6 +115,45 @@ export function Mesa3D({ mesa, estado, par, cores, escuro, cenario, esmaecida, s
           position={[0, 0.008, 0]}
           rotation={[-Math.PI / 2, 0, 0]}
           scale={[raioX + 1.1, raioZ + 1.1, 1]}
+        />
+      )}
+
+      {/* Halo estático: sem animação, para não forçar quadros no frameloop sob demanda. */}
+      {critico && (
+        <mesh
+          geometry={circulo()}
+          material={matHalo(escuro ? "#ff6b6b" : "#c62828", escuro ? 0.5 : 0.55)}
+          position={[0, 0.006, 0]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          scale={[raioX + 1.35, raioZ + 1.35, 1]}
+        />
+      )}
+
+      {/* Anel de tempo: trilho fraco e arco da permanência contra a média da casa. */}
+      {!esmaecida && progresso !== null && (
+        <>
+          <mesh
+            geometry={anel(raioMaior + ANEL_TEMPO_INTERNO, raioMaior + ANEL_TEMPO_EXTERNO)}
+            material={mat(escuro ? "#7c776d" : "#8c867c", 0.16)}
+            position={[0, 0.011, 0]}
+            rotation={[-Math.PI / 2, 0, 0]}
+          />
+          <mesh
+            geometry={arco(raioMaior + ANEL_TEMPO_INTERNO, raioMaior + ANEL_TEMPO_EXTERNO, progresso)}
+            material={completo ? mat(escuro ? "#cdc6ba" : "#4a463f", 0.85) : mat(escuro ? "#7c776d" : "#8c867c", 0.6)}
+            position={[0, 0.012, 0]}
+            rotation={[-Math.PI / 2, 0, 0]}
+          />
+        </>
+      )}
+
+      {/* Reserva próxima: anel tracejado, no lugar do arco de tempo. */}
+      {!esmaecida && estado === "reservada" && (
+        <mesh
+          geometry={anelTracejado(raioMaior + ANEL_TEMPO_INTERNO, raioMaior + ANEL_TEMPO_EXTERNO + 0.02)}
+          material={mat(escuro ? "#a39d92" : "#67625a", 0.85)}
+          position={[0, 0.012, 0]}
+          rotation={[-Math.PI / 2, 0, 0]}
         />
       )}
 
