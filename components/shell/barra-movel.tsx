@@ -57,7 +57,7 @@ export function BarraMovel({ salao, aberto, telaCheia, medir }: BarraMovelProps)
         ) : (
           <>
             <h1 className="m-0 flex min-w-0 flex-1 items-center">
-              <span className="sr-only">Ocupação do salão — Restaurante Sede</span>
+              <span className="sr-only">Ocupação do salão — Protótipo V1</span>
               <LogoMulticlubes className="h-[18px] w-auto text-(--color-brand)" />
             </h1>
             <BotaoIcone rotulo="Ir para mesa" onClick={() => setBuscando(true)}>

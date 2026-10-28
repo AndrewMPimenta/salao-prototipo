@@ -36,10 +36,10 @@ export function BarraDesktop({ salao, aberto, medir, busca, acoes }: BarraDeskto
       )}
     >
       <div className="glass pointer-events-auto flex-none rounded-[22px] px-5 py-3">
-        <h1 className="sr-only">Ocupação do salão — Restaurante Sede</h1>
+        <h1 className="sr-only">Ocupação do salão — Protótipo V1</h1>
         <LogoMulticlubes className="h-5 w-auto text-(--color-brand)" />
         <p className="m-0 mt-2 text-[12px] leading-4 text-(--color-ink-2)">
-          Restaurante Sede · somente consulta
+          Protótipo V1
           <span className="sr-only"> · {nomeAmbiente}</span>
         </p>
       </div>

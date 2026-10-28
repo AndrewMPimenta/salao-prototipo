@@ -59,8 +59,12 @@ export function AsideLateral({ salao, aberto, largura, topo, onLargura }: AsideL
     setTopoFlutuante(Math.max(topo, Math.min(r.top - 24, window.innerHeight - 360)));
   }, [previaFlutuante, topo]);
 
-  // Uma mesa selecionada na cena precisa do cartão, então o painel abre sem mexer na preferência.
-  const expandido = !recolhido || mesaSelecionada !== null;
+  // Fixar uma mesa abre o painel para mostrar o cartão, sem gravar a preferência; recolher continua possível a qualquer momento.
+  const idSelecionada = mesaSelecionada?.id ?? null;
+  useEffect(() => {
+    if (idSelecionada !== null) setRecolhido(false);
+  }, [idSelecionada]);
+  const expandido = !recolhido;
   const n = resumo.atencao;
 
   const definirRecolhido = (v: boolean) => {
@@ -123,6 +127,7 @@ export function AsideLateral({ salao, aberto, largura, topo, onLargura }: AsideL
         </BotaoIcone>
         <ContagemTrilho rotulo="Atenção" valor={n} alerta={n > 0} onClick={() => abrirAba("atencao")} />
         <ContagemTrilho rotulo="Mesas" valor={mesas.length} onClick={() => abrirAba("mesas")} />
+        {mesaSelecionada && <ContagemTrilho rotulo="Mesa" valor={mesaSelecionada.id} onClick={() => definirRecolhido(false)} />}
       </div>
 
       <div
@@ -144,11 +149,9 @@ export function AsideLateral({ salao, aberto, largura, topo, onLargura }: AsideL
               { valor: "mesas", rotulo: `Mesas (${mesas.length})` },
             ]}
           />
-          {!mesaSelecionada && (
-            <BotaoIcone rotulo="Recolher painel" expandido onClick={() => definirRecolhido(true)}>
-              <IconeChevronLado direita />
-            </BotaoIcone>
-          )}
+          <BotaoIcone rotulo="Recolher painel" expandido onClick={() => definirRecolhido(true)}>
+            <IconeChevronLado direita />
+          </BotaoIcone>
         </header>
 
         {mesaSelecionada && (
