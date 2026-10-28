@@ -34,10 +34,8 @@ export function useSalao(todas: Mesa[], ambientes: Ambiente[], limiares: Limiare
 
   // Ajustes explícitos (localStorage) vencem o automático; só são lidos no cliente para não divergir da hidratação.
   const [ajustes, setAjustes] = useState<Partial<Exibicao>>({});
-  const [maquinaFraca, setMaquinaFraca] = useState(false);
   useEffect(() => {
     setAjustes(lerAjustes());
-    setMaquinaFraca(typeof navigator !== "undefined" && navigator.hardwareConcurrency <= 4);
   }, []);
   const definirExibicao = useCallback((patch: Partial<Exibicao>) => {
     setAjustes((a) => {
@@ -88,11 +86,8 @@ export function useSalao(todas: Mesa[], ambientes: Ambiente[], limiares: Limiare
 
   const mesasBase = useMemo(() => todas.filter((m) => m.ambienteId === ambienteId), [todas, ambienteId]);
   const mesas = useMemo(() => aplicarLayout(mesasBase, layouts[ambienteId]), [mesasBase, layouts, ambienteId]);
-  const { perfil, rotulos, destaque, cadeiras, pessoas, sombras } = { ...exibicaoPadrao(maquinaFraca), ...ajustes };
-  const exibicao = useMemo<Exibicao>(
-    () => ({ perfil, rotulos, destaque, cadeiras, pessoas: cadeiras && pessoas, sombras }),
-    [perfil, rotulos, destaque, cadeiras, pessoas, sombras],
-  );
+  const { perfil, rotulos, destaque, assentos, sombras } = { ...exibicaoPadrao(), ...ajustes };
+  const exibicao = useMemo<Exibicao>(() => ({ perfil, rotulos, destaque, assentos, sombras }), [perfil, rotulos, destaque, assentos, sombras]);
   // As amostras da legenda e das listas seguem o destaque escolhido, sem precisar receber a exibição.
   useEffect(() => {
     document.documentElement.dataset.destaque = destaque;

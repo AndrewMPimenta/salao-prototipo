@@ -7,7 +7,7 @@ import type { Mesa } from "@/lib/types";
 import type { Destaque } from "@/lib/exibicao";
 import type { ArmazemHover } from "@/hooks/use-hover-mesa";
 import { ALTURA_TAMPO, ESPESSURA_TAMPO, ms, mx, mz, type Cenario } from "./cenarios";
-import { caixa, cilindro, friso, mat, moldura, type Par } from "./materiais";
+import { caixa, cilindro, friso, frisoGrosso, mat, moldura, OCUPADA, type Par } from "./materiais";
 import { useEsmaecimento } from "./util";
 
 export const LEVANTE_HOVER = 0.03;
@@ -85,6 +85,8 @@ function Pecas({
  * uma malha por peça custava centenas de chamadas de desenho por quadro. O esmaecimento funde a
  * cor ao piso, e o levante do hover e do foco escreve só as matrizes da mesa afetada.
  * O destaque "borda" acrescenta um friso colorido na borda do tampo; "tampo" pinta o próprio tampo.
+ * Mesa ocupada pesa mais que a livre em qualquer destaque: tampo puxado para a tinta (ou sólido no
+ * "tampo") e, na "borda", aro grosso; alerta e conta mantêm a cor própria no aro.
  */
 export function Mesas({
   mesas,
@@ -92,6 +94,8 @@ export function Mesas({
   par,
   piso,
   sinais,
+  ocupadas,
+  escuro,
   destaque,
   hover,
   selecionada,
@@ -104,6 +108,9 @@ export function Mesas({
   piso: string;
   /** Cor do sinal de cada mesa (alerta vence estado); ausente = mesa neutra. */
   sinais: ReadonlyMap<number, string>;
+  /** Mesas em estado "ocupada": ganham o tratamento de peso, com ou sem alerta. */
+  ocupadas: ReadonlySet<number>;
+  escuro: boolean;
   destaque: Destaque;
   hover: ArmazemHover;
   selecionada: number | null;
@@ -125,6 +132,10 @@ export function Mesas({
     };
     const corTampo = new THREE.Color(par.fill);
     const corBisel = new THREE.Color(par.stroke);
+    const o = OCUPADA[escuro ? "escuro" : "claro"];
+    const tinta = new THREE.Color(o.tinta);
+    const tampoOcupado = corTampo.clone().lerp(tinta, 0.25);
+    const biselOcupado = corBisel.clone().lerp(tinta, 0.5);
 
     for (const mesa of mesas) {
       const x = mx(mesa.x, cenario);
@@ -133,27 +144,47 @@ export function Mesas({
       const rz = ms(mesa.altura) / 2;
       const base = { id: mesa.id, x, z };
       const sinal = sinais.get(mesa.id);
-      const tampo = destaque === "tampo" && sinal ? new THREE.Color(sinal) : corTampo;
+      const ocupada = ocupadas.has(mesa.id);
+      const bisel = ocupada ? biselOcupado : corBisel;
+      const rim = Math.min(rx, rz);
+      let tampo = destaque === "tampo" && sinal ? new THREE.Color(sinal) : corTampo;
+      let corFriso: THREE.Color | null = destaque === "borda" && sinal ? new THREE.Color(sinal) : null;
+      let grosso = false;
 
-      em("pe", () => cilindro(0.05, 0.09, ALTURA_PE, 14)).push({ ...base, y: ALTURA_PE / 2, sx: 1, sy: 1, sz: 1, cor: corBisel, sobe: false });
+      if (ocupada) {
+        if (destaque === "tampo") {
+          tampo = new THREE.Color(o.tampo);
+          corFriso = sinal ? new THREE.Color(sinal) : null;
+        } else {
+          tampo = tampoOcupado;
+          if (destaque === "borda") {
+            corFriso = sinal ? new THREE.Color(sinal) : tinta;
+            grosso = true;
+          }
+        }
+      }
+
+      em("pe", () => cilindro(0.05, 0.09, ALTURA_PE, 14)).push({ ...base, y: ALTURA_PE / 2, sx: 1, sy: 1, sz: 1, cor: bisel, sobe: false });
 
       // O bisel fica um fio abaixo do tampo e 1,5 cm para fora, sem face coplanar com ele.
       if (mesa.forma === "redonda") {
-        em("biselR", () => cilindro(1, 1, ESPESSURA_TAMPO - 0.004, 40)).push({ ...base, y: ALTURA_TAMPO - 0.002, sx: rx + 0.015, sy: 1, sz: rx + 0.015, cor: corBisel, sobe: true });
+        em("biselR", () => cilindro(1, 1, ESPESSURA_TAMPO - 0.004, 40)).push({ ...base, y: ALTURA_TAMPO - 0.002, sx: rx + 0.015, sy: 1, sz: rx + 0.015, cor: bisel, sobe: true });
         em("tampoR", () => cilindro(1, 1, ESPESSURA_TAMPO, 40)).push({ ...base, y: ALTURA_TAMPO, sx: rx, sy: 1, sz: rx, cor: tampo, sobe: true });
-        if (destaque === "borda" && sinal)
-          em("frisoR", friso).push({ ...base, y: TOPO + 0.002, sx: rx, sy: rx, sz: rx, cor: new THREE.Color(sinal), sobe: true });
+        if (corFriso)
+          em(grosso ? "frisoGrossoR" : "frisoR", grosso ? frisoGrosso : friso).push({ ...base, y: TOPO + 0.002, sx: rx, sy: rx, sz: rx, cor: corFriso, sobe: true });
       } else {
-        em("biselQ", () => caixa(1, ESPESSURA_TAMPO - 0.004, 1)).push({ ...base, y: ALTURA_TAMPO - 0.002, sx: rx * 2 + 0.03, sy: 1, sz: rz * 2 + 0.03, cor: corBisel, sobe: true });
+        em("biselQ", () => caixa(1, ESPESSURA_TAMPO - 0.004, 1)).push({ ...base, y: ALTURA_TAMPO - 0.002, sx: rx * 2 + 0.03, sy: 1, sz: rz * 2 + 0.03, cor: bisel, sobe: true });
         em("tampoQ", () => caixa(1, ESPESSURA_TAMPO, 1)).push({ ...base, y: ALTURA_TAMPO, sx: rx * 2, sy: 1, sz: rz * 2, cor: tampo, sobe: true });
         // A moldura reta não escala sem deformar a espessura: uma geometria por tamanho de mesa.
-        if (destaque === "borda" && sinal)
-          em(`frisoQ${rx},${rz}`, () => moldura(rx * 2, rz * 2)).push({ ...base, y: TOPO + 0.001, sx: 1, sy: 1, sz: 1, cor: new THREE.Color(sinal), sobe: true });
+        if (corFriso) {
+          const e = grosso ? Math.max(0.06, rim * 0.12) : undefined;
+          em(`frisoQ${rx},${rz},${e}`, () => moldura(rx * 2, rz * 2, e)).push({ ...base, y: TOPO + 0.001, sx: 1, sy: 1, sz: 1, cor: corFriso, sobe: true });
+        }
       }
     }
 
     return [...mapa.values()];
-  }, [mesas, cenario, par, sinais, destaque]);
+  }, [mesas, cenario, par, sinais, ocupadas, escuro, destaque]);
 
   const registrar = useMemo(
     () => (m: THREE.InstancedMesh | null, lista: Instancia[]) => {

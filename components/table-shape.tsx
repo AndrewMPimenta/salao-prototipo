@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import type { Alerta, EstadoMesa, Mesa } from "@/lib/types";
-import type { Destaque } from "@/lib/exibicao";
+import type { Assentos, Destaque } from "@/lib/exibicao";
 import { useHoverMesa, type ArmazemHover } from "@/hooks/use-hover-mesa";
 import { GLIFO_ESTADO, ROTULO_ESTADO, textoAlerta } from "@/lib/state";
 import { posicoesCadeiras } from "@/lib/geometria";
@@ -23,8 +23,28 @@ export function corSinal(estado: EstadoMesa, alertas: Alerta[]): string | null {
 }
 
 /** Friso, tampo pintado ou brilho: o mesmo vocabulário do destaque escolhido para a cena. */
-function estiloTampo(destaque: Destaque, cor: string | null): React.CSSProperties {
+function estiloTampo(destaque: Destaque, cor: string | null, ocupada: boolean, raio: number): React.CSSProperties {
   const base: React.CSSProperties = { background: "var(--color-raised)", color: "var(--color-ink)", boxShadow: "var(--shadow-table), inset 0 0 0 1px var(--color-line-2)" };
+
+  if (ocupada) {
+    // Luminância oposta à da livre: aro grosso (~7,5% do raio) ou tampo sólido; alerta e conta trocam só a cor do aro.
+    const tinta = "var(--color-ocupada-tinta)";
+    const pesado = { ...base, background: `color-mix(in srgb, ${tinta} 25%, var(--color-raised))` };
+    if (destaque === "tampo")
+      return {
+        ...base,
+        background: "var(--color-ocupada-tampo)",
+        color: "var(--color-ocupada-tampo-texto)",
+        boxShadow: cor ? `var(--shadow-table), inset 0 0 0 2.5px ${cor}` : "var(--shadow-table)",
+      };
+    if (destaque === "borda") return { ...pesado, boxShadow: `var(--shadow-table), inset 0 0 0 ${Math.max(3, Math.round(raio * 0.075))}px ${cor ?? tinta}` };
+    const luz = cor ?? tinta;
+    return {
+      ...pesado,
+      boxShadow: `var(--shadow-table), inset 0 0 0 1px var(--color-line-2), 0 0 0 3px color-mix(in srgb, ${luz} 55%, transparent), 0 0 16px 5px color-mix(in srgb, ${luz} 50%, transparent)`,
+    };
+  }
+
   if (!cor) return base;
 
   if (destaque === "borda") return { ...base, boxShadow: `var(--shadow-table), inset 0 0 0 2.5px ${cor}` };
@@ -121,7 +141,7 @@ export function TableShape({
     </>
   );
 
-  const estilo: React.CSSProperties = { width: largura, height: altura, ...estiloTampo(destaque, cor) };
+  const estilo: React.CSSProperties = { width: largura, height: altura, ...estiloTampo(destaque, cor, estado === "ocupada", Math.min(largura, altura) / 2) };
 
   const classes = cn(
     "mesa-tampo absolute left-0 top-0 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-[2px]",
@@ -171,37 +191,63 @@ const SEM_HOVER: ArmazemHover = {
 interface CadeirasProps {
   mesa: Mesa;
   escala?: number;
-  /** Com `pessoas` desligado todas as cadeiras ficam iguais, sem contar quem está sentado. */
-  pessoas?: boolean;
+  /** Simplificado: círculos pequenos; completo: cadeiras com ponto de pessoa. */
+  nivel: Exclude<Assentos, "nenhum">;
+  /** Mesa ocupada pesa mais: os lugares vazios também ficam mais firmes. */
+  pesada?: boolean;
   /** Mesa fixada no perfil Completo: etiquetas P1…Pn clicáveis em cada cadeira. */
   posicoes?: { selecionada: number | null; onSelecionar: (numero: number) => void };
 }
 
 /**
- * As cadeiras ficam do lado de fora da mesa e contam pessoas — o carregador de
- * informação que não depende de cor nenhuma. Ficam deliberadamente discretas:
- * são contexto, não sinal.
+ * Os assentos ficam do lado de fora da mesa e contam pessoas — o carregador de
+ * informação que não depende de cor nenhuma. No simplificado, círculo cheio = ocupado e contorno
+ * = vazio; no completo, cadeira com um ponto onde há gente.
  */
-export function Cadeiras({ mesa, escala = 1, pessoas = true, posicoes }: CadeirasProps) {
+export function Cadeiras({ mesa, escala = 1, nivel, pesada = false, posicoes }: CadeirasProps) {
+  const simples = nivel === "simplificado";
+  const vazio = pesada ? 55 : 38;
+
   return (
     <div aria-hidden={posicoes ? undefined : true} className="absolute left-0 top-0 h-0 w-0">
-      {posicoesCadeiras(mesa).map((c, i) => (
-        <span
-          key={i}
-          aria-hidden
-          className="absolute -translate-x-1/2 -translate-y-1/2 rounded-[2px]"
-          style={{
-            left: c.x * escala,
-            top: c.y * escala,
-            width: c.largura * escala,
-            height: c.altura * escala,
-            background:
-              pessoas && i < mesa.pessoas
-                ? "color-mix(in srgb, var(--color-ink) 45%, transparent)"
-                : "color-mix(in srgb, var(--color-ink) 13%, transparent)",
-          }}
-        />
-      ))}
+      {posicoesCadeiras(mesa).map((c, i) => {
+        const ocupada = i < mesa.pessoas;
+        const lado = Math.min(Math.max(Math.min(c.largura, c.altura) * escala * 0.9, 6), 10);
+
+        if (simples)
+          return (
+            <span
+              key={i}
+              aria-hidden
+              className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full"
+              style={{
+                left: c.x * escala,
+                top: c.y * escala,
+                width: lado,
+                height: lado,
+                background: ocupada ? "var(--color-ink)" : "transparent",
+                boxShadow: ocupada ? undefined : `inset 0 0 0 1.5px color-mix(in srgb, var(--color-ink) ${vazio}%, transparent)`,
+              }}
+            />
+          );
+
+        return (
+          <span
+            key={i}
+            aria-hidden
+            className="absolute grid -translate-x-1/2 -translate-y-1/2 place-items-center rounded-[2px]"
+            style={{
+              left: c.x * escala,
+              top: c.y * escala,
+              width: c.largura * escala,
+              height: c.altura * escala,
+              background: ocupada ? "color-mix(in srgb, var(--color-ink) 55%, transparent)" : `color-mix(in srgb, var(--color-ink) ${pesada ? 20 : 13}%, transparent)`,
+            }}
+          >
+            {ocupada && <span className="size-[55%] rounded-full bg-(--color-ink)" />}
+          </span>
+        );
+      })}
       {posicoes &&
         cadeirasNumeradas(mesa).map((c) => {
           const ocupada = mesa.posicoes?.find((p) => p.numero === c.numero)?.ocupada ?? false;
@@ -242,8 +288,7 @@ export interface MesaNoPlanoProps extends Omit<TableShapeProps, "tabIndex"> {
   tabIndex: number;
   esmaecida: boolean;
   conflito: boolean;
-  cadeiras: boolean;
-  pessoas: boolean;
+  assentos: Assentos;
   posicoes?: CadeirasProps["posicoes"];
 }
 
@@ -252,9 +297,11 @@ export interface MesaNoPlanoProps extends Omit<TableShapeProps, "tabIndex"> {
  * move tudo junto por `transform`, sem recalcular layout, e o esmaecimento cobre as cadeiras.
  * Memoizado: com 120 mesas, só re-renderiza quem teve prop alterada (o hover vem do armazém).
  */
-export const MesaNoPlano = React.memo(function MesaNoPlano({ esmaecida, conflito, cadeiras, pessoas, posicoes, ...forma }: MesaNoPlanoProps) {
+export const MesaNoPlano = React.memo(function MesaNoPlano({ esmaecida, conflito, assentos, posicoes, ...forma }: MesaNoPlanoProps) {
   const { mesa, escala = 1, selecionada, editando } = forma;
-  const comCadeiras = cadeiras && Math.min(mesa.largura, mesa.altura) * escala >= TAMPO_MIN_CADEIRAS_PX;
+  // A mesa fixada mostra o detalhe completo (salvo "nenhum"), como na cena 3D.
+  const nivel = assentos === "nenhum" ? null : selecionada ? "completo" : assentos;
+  const comCadeiras = nivel !== null && Math.min(mesa.largura, mesa.altura) * escala >= TAMPO_MIN_CADEIRAS_PX;
 
   return (
     <div
@@ -263,7 +310,7 @@ export const MesaNoPlano = React.memo(function MesaNoPlano({ esmaecida, conflito
       className={cn("mesa-plano absolute h-0 w-0 transition-opacity duration-150", esmaecida && "opacity-25", selecionada ? "z-20" : "z-0")}
       style={{ left: `${mesa.x}%`, top: `${mesa.y}%` }}
     >
-      {comCadeiras && <Cadeiras mesa={mesa} escala={escala} pessoas={pessoas} posicoes={editando ? undefined : posicoes} />}
+      {comCadeiras && <Cadeiras mesa={mesa} escala={escala} nivel={nivel} pesada={forma.estado === "ocupada"} posicoes={editando ? undefined : posicoes} />}
       <TableShape {...forma} />
     </div>
   );

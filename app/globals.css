@@ -16,7 +16,7 @@
 
   O mobiliário é neutro; a cor da cena vem só do brilho no piso sob cada mesa
   (`--color-brilho-*`): verde = livre, violeta = reservada, azul = conta, e
-  ocupada sem alerta não brilha. Alerta vence o estado: vermelho = receita
+  ocupada pesa por luminância (tinta escura no tema claro, clara no escuro), não por cor. Alerta vence o estado: vermelho = receita
   parada (sem pedido), âmbar = cozinha (entrega), azul = conta parada. O brilho
   de alerta é maior e mais forte, e o texto do hover e do cartão repete tudo,
   então a cor nunca está sozinha.
@@ -58,6 +58,9 @@
   --color-brilho-reservada: #7c5cd6;
   --color-brilho-conta: #0043ce;
   --color-brilho-ocupada: #b5aea2;
+  --color-ocupada-tinta: #2b2723;
+  --color-ocupada-tampo: #34302b;
+  --color-ocupada-tampo-texto: #f6f2ea;
 
   --color-livre-ink: #1b1a17;
   --color-reservada-ink: #1b1a17;
@@ -117,6 +120,9 @@
     --color-brilho-reservada: #a08cf0;
     --color-brilho-conta: #64b5f6;
     --color-brilho-ocupada: #6f6a61;
+    --color-ocupada-tinta: #f3eee4;
+    --color-ocupada-tampo: #e9e3d6;
+    --color-ocupada-tampo-texto: #1b1a17;
 
     --color-livre-ink: #f4f1ea;
     --color-reservada-ink: #f4f1ea;
@@ -171,6 +177,9 @@
   --color-brilho-reservada: #a08cf0;
   --color-brilho-conta: #64b5f6;
   --color-brilho-ocupada: #6f6a61;
+  --color-ocupada-tinta: #f3eee4;
+  --color-ocupada-tampo: #e9e3d6;
+  --color-ocupada-tampo-texto: #1b1a17;
   --color-livre-ink: #f4f1ea;
   --color-reservada-ink: #f4f1ea;
   --color-ocupada-ink: #f4f1ea;
@@ -236,7 +245,7 @@ html {
 
 /*
   Amostra de estado na legenda e nas listas: segue o destaque escolhido para a cena
-  (`data-destaque` na raiz) — friso, tampo pintado ou brilho. Ocupada é neutra.
+  (`data-destaque` na raiz) — friso, tampo pintado ou brilho. Ocupada usa a tinta do tema.
 */
 .amostra {
   border-radius: 9999px;
@@ -251,10 +260,20 @@ html {
   background: radial-gradient(circle, color-mix(in srgb, var(--c) 85%, transparent) 0 38%, transparent 72%);
   box-shadow: none;
 }
-.amostra-neutra {
+/* Ocupada: luminância oposta à da livre (tinta escura no claro, clara no escuro), em cada destaque. */
+.amostra-ocupada {
+  --c: var(--color-ocupada-tinta);
   border-radius: 9999px;
-  background: var(--color-sunken);
-  box-shadow: inset 0 0 0 1px var(--color-line-2);
+  background: color-mix(in srgb, var(--c) 25%, var(--color-raised));
+  box-shadow: inset 0 0 0 3px var(--c);
+}
+:root[data-destaque="tampo"] .amostra-ocupada {
+  background: var(--color-ocupada-tampo);
+  box-shadow: none;
+}
+:root[data-destaque="brilho"] .amostra-ocupada {
+  background: radial-gradient(circle, color-mix(in srgb, var(--c) 95%, transparent) 0 45%, color-mix(in srgb, var(--c) 40%, transparent) 62%, transparent 78%);
+  box-shadow: none;
 }
 
 .scrollbar-none {

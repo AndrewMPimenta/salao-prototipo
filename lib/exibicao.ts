@@ -7,24 +7,25 @@ export type Destaque = "borda" | "tampo" | "brilho";
 /** Maître só consulta a ocupação (US 24358); Completo acrescenta consumo, comandas e posições simulados. */
 export type Perfil = "maitre" | "completo";
 
+/** Simplificado: lugares como pinos (base baixa, pino onde há gente); Completo: cadeiras e figuras sentadas. */
+export type Assentos = "nenhum" | "simplificado" | "completo";
+
 export interface Exibicao {
   perfil: Perfil;
   rotulos: ModoRotulos;
   destaque: Destaque;
-  cadeiras: boolean;
-  /** Só aparecem com cadeiras: ficam sentadas nelas. */
-  pessoas: boolean;
+  assentos: Assentos;
   sombras: boolean;
 }
 
 const CHAVE = "exibicao";
 
 /**
- * Máquina fraca começa sem cadeiras e pessoas. O tamanho do salão não pesa: tudo é instanciado
- * e de longe as cadeiras somem sozinhas. As sombras de contato custam uma chamada de desenho.
+ * Simplificado é o padrão em qualquer máquina: custa duas malhas instanciadas e só a mesa em foco
+ * paga a cadeira completa. As sombras de contato custam uma chamada de desenho.
  */
-export function exibicaoPadrao(maquinaFraca: boolean): Exibicao {
-  return { perfil: "maitre", rotulos: "hover", destaque: "borda", cadeiras: !maquinaFraca, pessoas: !maquinaFraca, sombras: true };
+export function exibicaoPadrao(): Exibicao {
+  return { perfil: "maitre", rotulos: "hover", destaque: "borda", assentos: "simplificado", sombras: true };
 }
 
 export function lerAjustes(): Partial<Exibicao> {
@@ -34,7 +35,14 @@ export function lerAjustes(): Partial<Exibicao> {
     if (bruto.perfil === "maitre" || bruto.perfil === "completo") out.perfil = bruto.perfil;
     if (bruto.rotulos === "sempre" || bruto.rotulos === "hover") out.rotulos = bruto.rotulos;
     if (bruto.destaque === "borda" || bruto.destaque === "tampo" || bruto.destaque === "brilho") out.destaque = bruto.destaque;
-    for (const k of ["cadeiras", "pessoas", "sombras"] as const) if (typeof bruto[k] === "boolean") out[k] = bruto[k];
+    if (typeof bruto.sombras === "boolean") out.sombras = bruto.sombras;
+
+    if (bruto.assentos === "nenhum" || bruto.assentos === "simplificado" || bruto.assentos === "completo") out.assentos = bruto.assentos;
+    // Ajuste gravado antes do ajuste único: cadeiras desligadas = nenhum; com pessoas = completo; só cadeiras = simplificado.
+    else if (typeof bruto.cadeiras === "boolean" || typeof bruto.pessoas === "boolean") {
+      if (bruto.cadeiras === false) out.assentos = "nenhum";
+      else out.assentos = bruto.pessoas === true ? "completo" : "simplificado";
+    }
     return out;
   } catch {
     return {};

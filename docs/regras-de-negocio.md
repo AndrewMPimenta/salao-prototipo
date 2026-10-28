@@ -27,7 +27,7 @@ e das listas seguem o mesmo destaque.
 |---|---|---|
 | **Livre** | sem comanda e sem reserva nos próximos 30 min | verde — o sinal universal de "disponível", que o cliente e a recepção procuram |
 | **Reservada** | sem comanda, com reserva em até 30 min | violeta |
-| **Ocupada** | comanda aberta | nenhum — só a sombra de contato; a mesa recua para o fundo |
+| **Ocupada** | comanda aberta | tom escuro (claro no tema escuro), de luminância oposta à da livre, com as pessoas visíveis; distinguível mesmo em escala de cinza |
 | **Conta** | conta impressa, aguardando pagamento | azul |
 
 Ocupada **não é alerta**. Uma mesa ocupada em andamento normal não pede nada do operador; destacá-la

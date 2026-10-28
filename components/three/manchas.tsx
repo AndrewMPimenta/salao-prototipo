@@ -5,7 +5,7 @@ import { useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import type { Alerta, EstadoMesa, Mesa } from "@/lib/types";
 import { ms, mx, mz, type Cenario } from "./cenarios";
-import { corBrilho, corSelecao, matMancha, quadPiso, type Cores, type NivelBrilho } from "./materiais";
+import { corBrilho, corSelecao, matMancha, OCUPADA, quadPiso, type Cores, type NivelBrilho } from "./materiais";
 import { useEsmaecimento } from "./util";
 
 export interface ItemMancha {
@@ -14,7 +14,9 @@ export interface ItemMancha {
   alertas: Alerta[];
 }
 
-type Camada = "sombra" | NivelBrilho;
+/** "tinta" é o brilho da mesa ocupada: curto e escuro (ou claro no tema escuro), para pesar sem ser alerta. */
+type Nivel = NivelBrilho | "tinta";
+type Camada = "sombra" | Nivel;
 
 interface Instancia {
   id: number;
@@ -26,17 +28,18 @@ interface Instancia {
 }
 
 // Acima do piso de madeira, em degraus de 2 mm.
-const Y: Record<Camada, number> = { sombra: 0.012, estado: 0.014, alerta: 0.016, critico: 0.018 };
-const ORDEM: Record<Camada, number> = { sombra: 1, estado: 2, alerta: 3, critico: 4 };
+const Y: Record<Camada, number> = { sombra: 0.012, tinta: 0.013, estado: 0.014, alerta: 0.016, critico: 0.018 };
+const ORDEM: Record<Camada, number> = { sombra: 1, tinta: 2, estado: 3, alerta: 4, critico: 5 };
 // Folga além do tampo: a sombra cobre as cadeiras, o brilho passa delas e o alerta vai mais longe.
-const ALCANCE: Record<Camada, number> = { sombra: 0.8, estado: 1.05, alerta: 1.3, critico: 1.65 };
+const ALCANCE: Record<Camada, number> = { sombra: 0.8, tinta: 0.85, estado: 1.05, alerta: 1.3, critico: 1.65 };
 const OPACIDADE: Record<Camada, [number, number]> = {
   sombra: [0.3, 0.46],
+  tinta: [0.5, 0.5],
   estado: [0.5, 0.62],
   alerta: [0.68, 0.8],
   critico: [0.9, 1],
 };
-const CAMADAS: Camada[] = ["sombra", "estado", "alerta", "critico"];
+const CAMADAS: Camada[] = ["sombra", "tinta", "estado", "alerta", "critico"];
 
 const um = new THREE.Vector3();
 const escala = new THREE.Vector3();
@@ -117,8 +120,9 @@ export function Manchas({
   instantaneo: boolean;
 }) {
   const camadas = useMemo(() => {
-    const out: Record<Camada, Instancia[]> = { sombra: [], estado: [], alerta: [], critico: [] };
+    const out: Record<Camada, Instancia[]> = { sombra: [], tinta: [], estado: [], alerta: [], critico: [] };
     const preto = new THREE.Color("#000000");
+    const tinta = OCUPADA[escuro ? "escuro" : "claro"].tinta;
 
     for (const { mesa, estado, alertas } of itens) {
       const x = mx(mesa.x, cenario);
@@ -131,10 +135,12 @@ export function Manchas({
       if (!brilho) continue;
 
       const foco = selecionada === mesa.id;
-      const sinal = corBrilho(estado, alertas[0]?.tipo, escuro) ?? (foco ? { cor: corSelecao(escuro), nivel: "estado" as const } : null);
+      const sinal: { cor: string; nivel: Nivel } | null =
+        corBrilho(estado, alertas[0]?.tipo, escuro) ??
+        (estado === "ocupada" ? { cor: tinta, nivel: "tinta" } : foco ? { cor: corSelecao(escuro), nivel: "estado" } : null);
       if (!sinal) continue;
       // A mesa em foco sobe um degrau de intensidade.
-      const nivel: NivelBrilho = foco && sinal.nivel === "estado" ? "alerta" : sinal.nivel;
+      const nivel: Nivel = foco && (sinal.nivel === "estado" || sinal.nivel === "tinta") ? "alerta" : sinal.nivel;
       const r = ALCANCE[nivel] * (foco ? 1.12 : 1);
       out[nivel].push({ ...base, rx: rx + r, rz: rz + r, cor: new THREE.Color(sinal.cor) });
     }

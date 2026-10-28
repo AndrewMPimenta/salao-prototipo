@@ -10,6 +10,15 @@ export const TAMPO: Record<"claro" | "escuro", Par> = {
   escuro: { fill: "#2b2723", stroke: "#4f463d" },
 };
 
+/*
+  Ocupada se distingue pela LUMINÂNCIA, oposta à da mesa livre, para sobreviver a daltonismo e a tela
+  em tons de cinza: tinta escura no tema claro, quase branca no escuro. O tampo sólido é o do destaque "tampo".
+*/
+export const OCUPADA: Record<"claro" | "escuro", { tinta: string; tampo: string; pino: string }> = {
+  claro: { tinta: "#2b2723", tampo: "#34302b", pino: "#2b2723" },
+  escuro: { tinta: "#f3eee4", tampo: "#e9e3d6", pino: "#f3eee4" },
+};
+
 /** Intensidade do brilho: alerta é maior e mais forte que estado, para não depender só da cor. */
 export type NivelBrilho = "estado" | "alerta" | "critico";
 
@@ -391,6 +400,18 @@ export const quadPiso = () => obter("quadPiso", () => new THREE.PlaneGeometry(2,
 /** Friso do destaque "borda" na mesa redonda: raio 1, tubo de 5,5% do raio, deitado no plano xz. */
 export const friso = () => obter("friso", () => new THREE.TorusGeometry(0.97, 0.055, 8, 72).rotateX(Math.PI / 2));
 
+/** Friso da mesa ocupada: ~7,5% do raio de espessura, para ler de longe como aro escuro. */
+export const frisoGrosso = () => obter("frisoGrosso", () => new THREE.TorusGeometry(0.955, 0.075, 8, 72).rotateX(Math.PI / 2));
+
+/** Pino de pessoa do assento simplificado: corpo e cabeça numa só geometria, ~0,16 m de largura por 0,34 m de altura, base em y = 0. */
+export const pino = () =>
+  obter("pino", () =>
+    mergeGeometries([
+      new THREE.CapsuleGeometry(0.075, 0.1, 3, 10).translate(0, 0.125, 0),
+      new THREE.SphereGeometry(0.06, 10, 8).translate(0, 0.28, 0),
+    ])!,
+  );
+
 const ESPESSURA_MOLDURA = 0.045;
 const RAIO_CANTO = 0.06;
 
@@ -411,9 +432,8 @@ function retanguloArredondado(l: number, p: number, r: number) {
 }
 
 /** Moldura do destaque "borda" na mesa retangular: retângulo arredondado vazado, na medida do tampo. */
-export const moldura = (l: number, p: number) =>
-  obter(`m${l},${p}`, () => {
-    const e = ESPESSURA_MOLDURA;
+export const moldura = (l: number, p: number, e = ESPESSURA_MOLDURA) =>
+  obter(`m${l},${p},${e}`, () => {
     const forma = retanguloArredondado(l, p, RAIO_CANTO);
     forma.holes.push(retanguloArredondado(l - e * 2, p - e * 2, Math.max(0.01, RAIO_CANTO - e)));
     return new THREE.ExtrudeGeometry(forma, { depth: 0.022, bevelEnabled: false, curveSegments: 4 }).rotateX(-Math.PI / 2);

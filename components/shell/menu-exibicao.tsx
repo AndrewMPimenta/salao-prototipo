@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Salao } from "@/hooks/use-salao";
-import type { Destaque, Exibicao, ModoRotulos, Perfil } from "@/lib/exibicao";
+import type { Assentos, Destaque, Exibicao, ModoRotulos, Perfil } from "@/lib/exibicao";
 import { cn } from "@/lib/utils";
 import { ToggleGroup } from "../ui/toggle-group";
 import { BotaoIcone } from "./botao-icone";
@@ -54,6 +54,12 @@ const OPCOES_DESTAQUE: { valor: Destaque; rotulo: string }[] = [
   { valor: "brilho", rotulo: "Brilho" },
 ];
 
+const OPCOES_ASSENTOS: { valor: Assentos; rotulo: string }[] = [
+  { valor: "nenhum", rotulo: "Nenhum" },
+  { valor: "simplificado", rotulo: "Simplificado" },
+  { valor: "completo", rotulo: "Completo" },
+];
+
 export interface PropsExibicao {
   exibicao: Exibicao;
   onExibicao: (patch: Partial<Exibicao>) => void;
@@ -93,8 +99,16 @@ export function PainelExibicao({ exibicao, onExibicao, personalizada, onRestaura
         opcoes={OPCOES_DESTAQUE}
         className="mb-1 w-full [&>button]:flex-1 [&>button]:px-1 [&>button]:text-[12px]"
       />
-      <Chave ligada={exibicao.cadeiras} onChange={(v) => onExibicao({ cadeiras: v })} rotulo="Cadeiras" />
-      <Chave ligada={exibicao.pessoas} onChange={(v) => onExibicao({ pessoas: v })} rotulo="Pessoas" desabilitada={!exibicao.cadeiras} />
+      <p className="m-0 mt-2 mb-1.5 text-[13px] text-(--color-ink)">Assentos</p>
+      <ToggleGroup<Assentos>
+        rotulo="Nível de detalhe dos assentos"
+        tamanho="sm"
+        valor={exibicao.assentos}
+        onChange={(v) => onExibicao({ assentos: v })}
+        opcoes={OPCOES_ASSENTOS}
+        className="mb-1 w-full [&>button]:flex-1 [&>button]:px-1 [&>button]:text-[12px]"
+      />
+      <p className="m-0 mb-1 text-[11px] leading-4 text-(--color-ink-3)">Simplificado: lugares como pinos; Completo: cadeiras e pessoas</p>
       <Chave ligada={exibicao.sombras} onChange={(v) => onExibicao({ sombras: v })} rotulo="Sombras" />
       <p className="m-0 mt-1 mb-1.5 text-[13px] text-(--color-ink)">Rótulos</p>
       <ToggleGroup<ModoRotulos>
@@ -106,7 +120,7 @@ export function PainelExibicao({ exibicao, onExibicao, personalizada, onRestaura
         className="w-full [&>button]:flex-1 [&>button]:whitespace-nowrap [&>button]:px-1 [&>button]:text-[12px]"
       />
       <p className="m-0 flex items-center justify-between gap-2 pt-2 pb-1 text-[11px] leading-4 text-(--color-ink-3)">
-        {personalizada ? "Ajuste manual." : "De longe, cadeiras e pessoas somem sozinhas."}
+        {personalizada ? "Ajuste manual." : "De longe, os assentos somem sozinhos."}
         {personalizada && (
           <button type="button" onClick={onRestaurar} className="flex-none font-medium text-(--color-ink-2) underline underline-offset-2">
             Restaurar padrão

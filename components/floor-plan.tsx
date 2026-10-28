@@ -189,7 +189,7 @@ export function FloorPlan({
   const aoPosicao = useCallback((n: number) => ultimos.current.onSelecionarPosicao?.(n), []);
   const posicoes = useMemo(() => ({ selecionada: posicaoSelecionada, onSelecionar: aoPosicao }), [posicaoSelecionada, aoPosicao]);
 
-  const mostraPosicoes = exibicao.perfil === "completo" && exibicao.cadeiras && posicoesHabilitadas(ambienteId);
+  const mostraPosicoes = exibicao.perfil === "completo" && exibicao.assentos !== "nenhum" && posicoesHabilitadas(ambienteId);
 
   // ---- Editor de layout ----
   const plano = useRef<HTMLDivElement>(null);
@@ -426,8 +426,7 @@ export function FloorPlan({
                     selecionada={fixada}
                     esmaecida={esmaecida}
                     conflito={conflitos.has(mesa.id)}
-                    cadeiras={exibicao.cadeiras}
-                    pessoas={exibicao.pessoas}
+                    assentos={exibicao.assentos}
                     posicoes={fixada && mostraPosicoes && mesa.pessoas > 0 && mesa.posicoes ? posicoes : undefined}
                     somenteLeitura={somenteLeitura}
                     editando={editando}

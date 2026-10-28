@@ -52,7 +52,7 @@ export interface Floor3DProps {
   onCameraChange?: (azimuteRad: number) => void;
   /** Folga em px que a interface flutuante ocupa sobre o canvas. */
   folga: { topo: number; base: number; esquerda: number; direita: number };
-  /** Cadeiras, pessoas, sombras de contato e o modo dos rótulos. */
+  /** Nível dos assentos, sombras de contato e o modo dos rótulos. */
   exibicao: Exibicao;
   /** Mesa sob o ponteiro, compartilhada com as listas do shell. */
   hover: ArmazemHover;
@@ -182,7 +182,7 @@ export function Floor3D({
     [mesas, selecionada, cobranca],
   );
   const mesaFoco = mesasCena.find((m) => m.id === selecionada);
-  const comPosicoes = Boolean(exibicao.perfil === "completo" && exibicao.cadeiras && mesaFoco?.posicoes && mesaFoco.pessoas > 0 && posicoesHabilitadas(ambienteId));
+  const comPosicoes = Boolean(exibicao.perfil === "completo" && exibicao.assentos !== "nenhum" && mesaFoco?.posicoes && mesaFoco.pessoas > 0 && posicoesHabilitadas(ambienteId));
   const pagas = useMemo(() => Object.keys(cobranca.pagas).map(Number), [cobranca.pagas]);
 
   const focoAssentos = useMemo<FocoAssentos | null>(
@@ -254,6 +254,8 @@ export function Floor3D({
     return m;
   }, [situacoes, escuro]);
 
+  const ocupadas = useMemo(() => new Set(situacoes.filter((x) => x.estado === "ocupada").map((x) => x.mesa.id)), [situacoes]);
+
   const foco = selecionada === null ? null : posicoes.get(selecionada);
   const alvoLuz = useMemo(() => (foco ? { x: foco[0], z: foco[1], raio: foco[2] } : null), [foco]);
 
@@ -295,14 +297,27 @@ export function Floor3D({
               par={tampo}
               piso={cores.piso}
               sinais={sinais}
+              ocupadas={ocupadas}
+              escuro={escuro}
               destaque={exibicao.destaque}
               hover={hover}
               selecionada={selecionada}
               esmaecidas={esmaecidas}
               instantaneo={reduz}
             />
-            {exibicao.cadeiras && (
-              <Assentos itens={situacoes} cenario={cenario} cores={cores} pessoas={exibicao.pessoas} esmaecidas={esmaecidas} instantaneo={reduz} foco={focoAssentos} />
+            {exibicao.assentos !== "nenhum" && (
+              <Assentos
+                itens={situacoes}
+                cenario={cenario}
+                cores={cores}
+                escuro={escuro}
+                modo={exibicao.assentos}
+                esmaecidas={esmaecidas}
+                instantaneo={reduz}
+                foco={focoAssentos}
+                selecionada={selecionada}
+                hover={hover}
+              />
             )}
             {mesas.map((mesa) => (
               <Mesa3D key={mesa.id} mesa={mesa} hover={hover} cenario={cenario} onSelect={aoSelecionar} cadeirasAtivas={comPosicoes && mesa.id === selecionada} />
