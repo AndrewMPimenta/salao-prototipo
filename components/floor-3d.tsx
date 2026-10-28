@@ -8,7 +8,7 @@ import { aplicarCobrancas, useCobrancas } from "@/hooks/use-cobrancas";
 import { derivarAlertas, derivarEstado, ROTULO_ESTADO, textoAlerta } from "@/lib/state";
 import { cn } from "@/lib/utils";
 import { useTemaEscuro } from "@/hooks/use-tema";
-import { CenarioEventos, CenarioHotBeach, CenarioSalao, CenarioTerraco, CenarioVaranda, type PropsCena } from "./three/ambientes";
+import { CenarioEventos, CenarioHotBeach, CenarioHotBeachResort, CenarioHotBeachSuites, CenarioSalao, CenarioTerraco, CenarioVaranda, type PropsCena } from "./three/ambientes";
 import { CenarioMezanino } from "./three/mezanino";
 import { Camera } from "./three/camera";
 import { ChaoToque } from "./three/chao";
@@ -117,6 +117,8 @@ const CENAS: Record<string, (p: PropsCena) => React.ReactNode> = {
   eventos: CenarioEventos,
   terraco: CenarioTerraco,
   hotbeach: CenarioHotBeach,
+  "hotbeach-suites": CenarioHotBeachSuites,
+  "hotbeach-resort": CenarioHotBeachResort,
 };
 
 export function Floor3D({

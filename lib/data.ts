@@ -2,8 +2,10 @@ import { gerarComandas } from "./gerar-comandas";
 import type { Ambiente, Mesa, Praca, Reserva } from "./types";
 
 export const AMBIENTES: Ambiente[] = [
-  { id: "terraco", nome: "Restaurante do Terraço" },
-  { id: "hotbeach", nome: "Hot Beach Celebration" },
+  { id: "terraco", nome: "Restaurante do Terraço", ilustrativo: true },
+  { id: "hotbeach", nome: "Hot Beach Celebration", ilustrativo: true },
+  { id: "hotbeach-suites", nome: "Hot Beach Suites", ilustrativo: true },
+  { id: "hotbeach-resort", nome: "Hot Beach Resort", ilustrativo: true },
   { id: "principal", nome: "Salão Principal" },
   { id: "varanda", nome: "Varanda" },
   { id: "mezanino", nome: "Mezanino" },
@@ -18,6 +20,14 @@ export const PRACAS: Praca[] = [
   { id: "B", ambienteId: "hotbeach", garcom: "Kauê" },
   { id: "C", ambienteId: "hotbeach", garcom: "Lari" },
   { id: "D", ambienteId: "hotbeach", garcom: "Theo" },
+  { id: "A", ambienteId: "hotbeach-suites", garcom: "Patrícia" },
+  { id: "B", ambienteId: "hotbeach-suites", garcom: "Rogério" },
+  { id: "C", ambienteId: "hotbeach-suites", garcom: "Vanessa" },
+  { id: "D", ambienteId: "hotbeach-suites", garcom: "Anderson" },
+  { id: "A", ambienteId: "hotbeach-resort", garcom: "Cíntia" },
+  { id: "B", ambienteId: "hotbeach-resort", garcom: "Edson" },
+  { id: "C", ambienteId: "hotbeach-resort", garcom: "Luana" },
+  { id: "D", ambienteId: "hotbeach-resort", garcom: "Marcelo" },
   { id: "A", ambienteId: "principal", garcom: "Rafa" },
   { id: "B", ambienteId: "principal", garcom: "Dani" },
   { id: "C", ambienteId: "principal", garcom: "Léo" },
@@ -43,6 +53,8 @@ export const POSICOES_HABILITADAS: Record<string, boolean> = {
   eventos: false,
   terraco: true,
   hotbeach: false,
+  "hotbeach-suites": false,
+  "hotbeach-resort": false,
 };
 
 export function posicoesHabilitadas(ambienteId: string): boolean {
@@ -193,7 +205,7 @@ const SEM_POSICOES = new Set([33]);
 function comComandas(mesa: Mesa): Mesa {
   const garcom = PRACAS.find((p) => p.id === mesa.pracaId && p.ambienteId === mesa.ambienteId)?.garcom ?? "Caixa";
   // Nas mesas de evento a quantidade de comandas sai do id, para não consumir o sorteio do gerador.
-  const evento = mesa.ambienteId === "eventos" || mesa.ambienteId === "hotbeach";
+  const evento = ["eventos", "hotbeach", "hotbeach-suites", "hotbeach-resort"].includes(mesa.ambienteId);
   return gerarComandas(mesa, {
     garcom,
     comPosicoes: posicoesHabilitadas(mesa.ambienteId) && !SEM_POSICOES.has(mesa.id),
@@ -320,8 +332,8 @@ export function celulasTerraco(): Celula[] {
 }
 
 /*
-  Hot Beach: grade 11 x 8 de mesas redondas de 6 e 8 lugares em volta da pista (5 x 3 células
-  centrais), com o canto sudeste para o lounge, a frente do DJ aberta e uma célula a menos no
+  Hot Beach: grade 11 x 8 de mesas redondas de 6 e 8 lugares em volta do buffet (5 x 3 células
+  centrais), com o canto sudeste e a frente norte livres e uma célula a menos no
   canto sudoeste: 88 - 15 - 4 - 3 - 1 = 65.
 */
 const HB_COLUNAS = 11;
@@ -334,10 +346,10 @@ export function celulasHotBeach(): Celula[] {
   const celulas: Celula[] = [];
   for (let l = 0; l < HB_LINHAS; l++) {
     for (let c = 0; c < HB_COLUNAS; c++) {
-      const pista = c >= 3 && c <= 7 && l >= 2 && l <= 4;
-      const lounge = c >= 9 && l >= 6;
-      const frenteDj = l === 0 && c >= 4 && c <= 6;
-      if (pista || lounge || frenteDj || (l === 7 && c === 0)) continue;
+      const buffet = c >= 3 && c <= 7 && l >= 2 && l <= 4;
+      const canto = c >= 9 && l >= 6;
+      const frente = l === 0 && c >= 4 && c <= 6;
+      if (buffet || canto || frente || (l === 7 && c === 0)) continue;
       const oito = (c + l) % 2 === 0;
       celulas.push({
         xm: HB_PASSO / 2 + c * HB_PASSO,
@@ -351,6 +363,85 @@ export function celulasHotBeach(): Celula[] {
     }
   }
   return celulas;
+}
+
+/*
+  Hot Beach Suites e Resort: o campo é a união de zonas de grade, cada uma com seu tipo de mesa e
+  seu passo. O passo é a pegada da mesa com cadeiras (o desenho de `posicoesCadeiras`) mais 0,9 m
+  de corredor; entre as zonas ficam corredores largos. As medidas do campo precisam bater com `CENARIOS`.
+*/
+type TipoMesa = Pick<Celula, "forma" | "largura" | "altura" | "lugares">;
+
+const REDONDA_4: TipoMesa = { forma: "redonda", largura: 80, altura: 80, lugares: 4 };
+const REDONDA_6: TipoMesa = { forma: "redonda", largura: 100, altura: 100, lugares: 6 };
+const RETANGULAR_6: TipoMesa = { forma: "retangular", largura: 116, altura: 54, lugares: 6 };
+const RETANGULAR_8: TipoMesa = { forma: "retangular", largura: 150, altura: 62, lugares: 8 };
+
+interface Zona {
+  x0: number;
+  z0: number;
+  colunas: number;
+  linhas: number;
+  passoX: number;
+  passoZ: number;
+  tipo: (coluna: number, linha: number) => TipoMesa;
+}
+
+/** Uma praça por quadrante do campo, para cada garçom ficar com uma região contínua. */
+function celulasDeZonas(zonas: Zona[], campoL: number, campoP: number): Celula[] {
+  const celulas: Celula[] = [];
+  for (const z of zonas) {
+    for (let l = 0; l < z.linhas; l++) {
+      for (let c = 0; c < z.colunas; c++) {
+        const xm = z.x0 + z.passoX / 2 + c * z.passoX;
+        const zm = z.z0 + z.passoZ / 2 + l * z.passoZ;
+        celulas.push({ xm, zm, ...z.tipo(c, l), pracaId: "ABCD"[(zm >= campoP / 2 ? 2 : 0) + (xm >= campoL / 2 ? 1 : 0)] });
+      }
+    }
+  }
+  return celulas;
+}
+
+/*
+  Suites: restaurante de buffet. Corredor vertical de ~5 m entre oeste e leste, faixa central para
+  a ilha do buffet, e um pequeno bolsão de retangulares de 8 a oeste da faixa:
+  32 + 28 + 6 + 30 + 28 = 124.
+*/
+export const SU_CAMPO_L = 42.5;
+export const SU_CAMPO_P = 31;
+
+export function celulasSuites(): Celula[] {
+  return celulasDeZonas(
+    [
+      { x0: 0, z0: 0, colunas: 8, linhas: 4, passoX: 2.4, passoZ: 2.4, tipo: () => REDONDA_4 },
+      { x0: 23.5, z0: 0, colunas: 7, linhas: 4, passoX: 2.65, passoZ: 2.65, tipo: () => REDONDA_6 },
+      { x0: 0, z0: 12.35, colunas: 2, linhas: 3, passoX: 3.1, passoZ: 2.1, tipo: () => RETANGULAR_8 },
+      { x0: 0, z0: 20, colunas: 6, linhas: 5, passoX: 3.1, passoZ: 2.1, tipo: () => RETANGULAR_8 },
+      { x0: 23.5, z0: 19.9, colunas: 7, linhas: 4, passoX: 2.65, passoZ: 2.65, tipo: (_, l) => (l % 2 === 0 ? REDONDA_4 : REDONDA_6) },
+    ],
+    SU_CAMPO_L,
+    SU_CAMPO_P,
+  );
+}
+
+/*
+  Resort: três faixas de deck separadas por corredores de ~3,5 m (o do leste é o da entrada):
+  mesas de 4 junto à piscina, de 6 no centro e retangulares de 6 junto ao buffet:
+  32 + 28 + 45 = 105.
+*/
+export const RE_CAMPO_L = 38.5;
+export const RE_CAMPO_P = 19.2;
+
+export function celulasResort(): Celula[] {
+  return celulasDeZonas(
+    [
+      { x0: 0, z0: 0, colunas: 4, linhas: 8, passoX: 2.4, passoZ: 2.4, tipo: () => REDONDA_4 },
+      { x0: 12.2, z0: 0.325, colunas: 4, linhas: 7, passoX: 2.65, passoZ: 2.65, tipo: () => REDONDA_6 },
+      { x0: 25.4, z0: 0.15, colunas: 5, linhas: 9, passoX: 2.6, passoZ: 2.1, tipo: () => RETANGULAR_6 },
+    ],
+    RE_CAMPO_L,
+    RE_CAMPO_P,
+  );
 }
 
 const MESAS_TERRACO = gerarSalao({
@@ -375,7 +466,29 @@ const MESAS_HOTBEACH = gerarSalao({
   celulas: celulasHotBeach(),
 });
 
-export const MESAS: Mesa[] = [...MESAS_TERRACO, ...MESAS_HOTBEACH, ...MESAS_BASE, ...gerarEventos()].map(comComandas);
+const MESAS_SUITES = gerarSalao({
+  semente: 20262006,
+  ambienteId: "hotbeach-suites",
+  idInicial: 500,
+  campoL: SU_CAMPO_L,
+  campoP: SU_CAMPO_P,
+  ocupacao: 0.62,
+  reservadas: 5,
+  celulas: celulasSuites(),
+});
+
+const MESAS_RESORT = gerarSalao({
+  semente: 20262010,
+  ambienteId: "hotbeach-resort",
+  idInicial: 700,
+  campoL: RE_CAMPO_L,
+  campoP: RE_CAMPO_P,
+  ocupacao: 0.68,
+  reservadas: 5,
+  celulas: celulasResort(),
+});
+
+export const MESAS: Mesa[] = [...MESAS_TERRACO, ...MESAS_HOTBEACH, ...MESAS_SUITES, ...MESAS_RESORT, ...MESAS_BASE, ...gerarEventos()].map(comComandas);
 
 export interface Fixture {
   x: number;
@@ -389,16 +502,26 @@ export interface Fixture {
 export const FIXTURES: Record<string, Fixture[]> = {
   terraco: [
     { x: 4, y: -3, largura: 22, altura: 7, nome: "Bar", solido: true },
-    { x: 34, y: -3, largura: 34, altura: 4, nome: "Pérgola" },
-    { x: 86, y: -3, largura: 12, altura: 7, nome: "Elevador", solido: true },
+    { x: 86, y: -3, largura: 12, altura: 7, nome: "Entrada", solido: true },
     { x: 0, y: 97, largura: 100, altura: 4, nome: "Varanda de vidro", solido: true },
   ],
   hotbeach: [
-    { x: 40, y: -3, largura: 20, altura: 6, nome: "DJ", solido: true },
-    { x: 29, y: 27, largura: 42, altura: 33, nome: "Pista" },
-    { x: -3, y: 8, largura: 6, altura: 70, nome: "Piscina" },
-    { x: 97, y: 6, largura: 5, altura: 70, nome: "Bar", solido: true },
-    { x: 82, y: 76, largura: 18, altura: 24, nome: "Lounge" },
+    { x: 33.3, y: 40.6, largura: 33.3, altura: 6.3, nome: "Buffet", solido: true },
+    { x: -20.6, y: 6.3, largura: 17, altura: 87.5, nome: "Piscina" },
+    { x: -18.8, y: -15.6, largura: 13.3, altura: 4.2, nome: "Bar da piscina", solido: true },
+    { x: 44.8, y: -33.3, largura: 10.3, altura: 5, nome: "Entrada", solido: true },
+  ],
+  "hotbeach-suites": [
+    { x: 25.9, y: 45.2, largura: 51.8, altura: 6.5, nome: "Buffet", solido: true },
+    { x: 108.4, y: 24.2, largura: 2.8, altura: 51.6, nome: "Bar", solido: true },
+    { x: 39.4, y: 102.6, largura: 21.2, altura: 12.9, nome: "Entrada" },
+  ],
+  "hotbeach-resort": [
+    { x: -18.2, y: 2.3, largura: 14, altura: 93.7, nome: "Piscina" },
+    { x: -16.9, y: -18, largura: 11.4, altura: 5.2, nome: "Bar da piscina", solido: true },
+    { x: 108.2, y: 23.2, largura: 4.2, altura: 50, nome: "Buffet", solido: true },
+    { x: 58.2, y: -28.6, largura: 8.8, altura: 6.3, nome: "Entrada", solido: true },
+    { x: 0, y: 101, largura: 100, altura: 4, nome: "Deck" },
   ],
   principal: [
     { x: 81, y: 14, largura: 17, altura: 58, nome: "Bar" },

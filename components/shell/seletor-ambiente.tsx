@@ -238,6 +238,15 @@ function Dropdown({ ambientes, mesas, ativo, onChange, folha, className }: Selet
         </svg>
       </button>
 
+      {atual?.ilustrativo && (
+        <span
+          title="Mesas conforme o cliente; planta fictícia até recebermos a real"
+          className="glass pointer-events-auto absolute left-1/2 top-[calc(100%+6px)] -translate-x-1/2 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase leading-none tracking-[0.08em] text-(--color-ink-2)"
+        >
+          Layout ilustrativo
+        </span>
+      )}
+
       {folha
         ? conteudo &&
           createPortal(

@@ -97,6 +97,8 @@ export interface Posicao {
 export interface Ambiente {
   id: string;
   nome: string;
+  /** Mesas conforme o cliente, mas cenário e marcos fictícios até recebermos a planta real. */
+  ilustrativo?: boolean;
 }
 
 export interface Praca {

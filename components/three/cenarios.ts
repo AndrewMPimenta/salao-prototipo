@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { EV_CAMPO_L, EV_CAMPO_P, HB_CAMPO_L, HB_CAMPO_P, TE_CAMPO_L, TE_CAMPO_P } from "@/lib/data";
+import { EV_CAMPO_L, EV_CAMPO_P, HB_CAMPO_L, HB_CAMPO_P, RE_CAMPO_L, RE_CAMPO_P, SU_CAMPO_L, SU_CAMPO_P, TE_CAMPO_L, TE_CAMPO_P } from "@/lib/data";
 
 /*
   Cada ambiente tem sua própria caixa e seu próprio cenário: o salão é uma
@@ -16,10 +16,14 @@ export interface Cenario {
 }
 
 export const CENARIOS: Record<string, Cenario> = {
-  // Faixa norte de 5,5 m para bar, pérgola e saguão do elevador; ao sul, 3,5 m de deck até o vidro.
+  // Faixa norte de 5,5 m para o bar e a entrada; ao sul, 3,5 m de deck até o vidro.
   terraco: { salaL: 33, salaP: 20.5, campoL: TE_CAMPO_L, campoP: TE_CAMPO_P, campoZ0: -4.75 },
-  // Palco e DJ ao norte, piscina a oeste e bar corrido a leste, fora do campo de mesas.
+  // Buffet no miolo do campo, piscina a oeste com o bar da piscina e a entrada ao norte.
   hotbeach: { salaL: 47, salaP: 34.5, campoL: HB_CAMPO_L, campoP: HB_CAMPO_P, campoZ0: -9.25 },
+  // Saguão de entrada ao sul, bar a leste e a ilha do buffet na faixa central.
+  "hotbeach-suites": { salaL: 54, salaP: 40, campoL: SU_CAMPO_L, campoP: SU_CAMPO_P, campoZ0: -16.5 },
+  // Piscina a oeste, buffet a leste, entrada ao norte e a faixa de areia ao sul.
+  "hotbeach-resort": { salaL: 54, salaP: 31.5, campoL: RE_CAMPO_L, campoP: RE_CAMPO_P, campoZ0: -10.25 },
   principal: { salaL: 28, salaP: 22, campoL: 22, campoP: 15, campoZ0: -4.6 },
   varanda: { salaL: 19, salaP: 13, campoL: 15, campoP: 7.4, campoZ0: -1.9 },
   mezanino: { salaL: 20, salaP: 12.5, campoL: 15.5, campoP: 8.2, campoZ0: -2.4 },
@@ -70,17 +74,29 @@ export function marcosDe(ambienteId: string): Marco[] {
     case "terraco":
       return [
         { nome: "Bar", x: -meiaL + 6, y: 1.2, z: -meiaP + 1.2 },
-        { nome: "Pérgola", x: 0, y: 2.5, z: -meiaP + 2.6 },
-        { nome: "Elevador", x: meiaL - 3, y: 2.5, z: -meiaP + 1.2 },
+        { nome: "Entrada", x: meiaL - 3, y: 2.5, z: -meiaP + 0.1 },
         { nome: "Varanda de vidro", x: 0, y: 1.05, z: meiaP },
       ];
     case "hotbeach":
       return [
-        { nome: "DJ", x: 0, y: 1.9, z: -meiaP + 2.6 },
-        { nome: "Pista", x: 0, y: 0.04, z: 1.25 },
-        { nome: "Bar", x: meiaL - 1.4, y: 1.25, z: 2.75 },
+        { nome: "Buffet", x: 0, y: 1.25, z: 1.25 },
         { nome: "Piscina", x: -meiaL + 3, y: 0.1, z: 2.75 },
-        { nome: "Lounge", x: 13.5, y: 0.6, z: 11.75 },
+        { nome: "Bar da piscina", x: -20.5, y: 3.3, z: -12.4 },
+        { nome: "Entrada", x: 0, y: 2.9, z: -meiaP + 0.1 },
+      ];
+    case "hotbeach-suites":
+      return [
+        { nome: "Buffet", x: 0.75, y: 1.25, z: -1.5 },
+        { nome: "Bar", x: meiaL - 1.6, y: 1.25, z: -1 },
+        { nome: "Entrada", x: 0, y: 2.3, z: meiaP - 0.4 },
+      ];
+    case "hotbeach-resort":
+      return [
+        { nome: "Piscina", x: -23.55, y: 0.1, z: -0.5 },
+        { nome: "Bar da piscina", x: -23.55, y: 3.3, z: -13.2 },
+        { nome: "Buffet", x: 23.2, y: 1.25, z: -1 },
+        { nome: "Deck", x: 0, y: 0.05, z: 9.3 },
+        { nome: "Entrada", x: 4.85, y: 2.9, z: -meiaP + 0.1 },
       ];
     case "eventos":
       return [
