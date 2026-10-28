@@ -6,33 +6,45 @@ export type Par = { fill: string; stroke: string };
 
 /** O tampo é neutro em todos os estados: quem diz o estado é o brilho no piso (`corBrilho`). */
 export const TAMPO: Record<"claro" | "escuro", Par> = {
-  claro: { fill: "#e3dccf", stroke: "#b3a999" },
-  escuro: { fill: "#a39c90", stroke: "#8a8378" },
+  claro: { fill: "#f1ebe0", stroke: "#cbc0ad" },
+  escuro: { fill: "#2b2723", stroke: "#4f463d" },
 };
 
 /** Intensidade do brilho: alerta é maior e mais forte que estado, para não depender só da cor. */
 export type NivelBrilho = "estado" | "alerta" | "critico";
 
-const BRILHO_CLARO = {
-  livre: "#1f9d6a",
-  reservada: "#7c5cd6",
-  conta: "#0043ce",
-  vermelho: "#d32f2f",
-  ambar: "#e09a12",
+/*
+  O piso é madeira invertida em relação ao tema (escura no claro, clara no escuro), então o mesmo
+  sinal precisa de dois tons: vivo sobre o piso escuro e profundo sobre o piso claro. O friso e o
+  tampo pintado ficam na mesa, que é invertida de novo, e usam o tom oposto ao do brilho.
+*/
+const SINAL_VIVO = {
+  livre: "#3fe0a0",
+  reservada: "#b7a2ff",
+  conta: "#5eb4ff",
+  vermelho: "#ff5a4d",
+  ambar: "#ffc23a",
+  selecao: "#ffffff",
+};
+const SINAL_PROFUNDO = {
+  livre: "#0b7a4d",
+  reservada: "#5a32c9",
+  conta: "#0a3fbf",
+  vermelho: "#c4161c",
+  ambar: "#b86400",
   selecao: "#1b1a17",
 };
-const BRILHO_ESCURO = {
-  livre: "#34c08a",
-  reservada: "#a08cf0",
-  conta: "#64b5f6",
-  vermelho: "#ff6b6b",
-  ambar: "#f0b43a",
-  selecao: "#f4f1ea",
-};
+
+export type Superficie = "piso" | "tampo";
 
 /** Sinal mais importante da mesa: o alerta vence o estado; ocupada sem alerta não brilha. */
-export function corBrilho(estado: EstadoMesa, alerta: TipoAlerta | undefined, escuro: boolean): { cor: string; nivel: NivelBrilho } | null {
-  const t = escuro ? BRILHO_ESCURO : BRILHO_CLARO;
+export function corBrilho(
+  estado: EstadoMesa,
+  alerta: TipoAlerta | undefined,
+  escuro: boolean,
+  sobre: Superficie = "piso",
+): { cor: string; nivel: NivelBrilho } | null {
+  const t = escuro === (sobre === "tampo") ? SINAL_VIVO : SINAL_PROFUNDO;
   if (alerta === "semPedidoCritico") return { cor: t.vermelho, nivel: "critico" };
   if (alerta === "semPedido") return { cor: t.vermelho, nivel: "alerta" };
   if (alerta === "entregaAtrasada") return { cor: t.ambar, nivel: "alerta" };
@@ -42,7 +54,7 @@ export function corBrilho(estado: EstadoMesa, alerta: TipoAlerta | undefined, es
 }
 
 /** Mesa em foco sem brilho próprio (ocupada) ganha um brilho neutro de tinta. */
-export const corSelecao = (escuro: boolean) => (escuro ? BRILHO_ESCURO : BRILHO_CLARO).selecao;
+export const corSelecao = (escuro: boolean) => (escuro ? SINAL_PROFUNDO : SINAL_VIVO).selecao;
 
 /** Cores do cenário; o fundo acompanha --color-app para a maquete flutuar na página. */
 export interface Cores {
@@ -54,15 +66,14 @@ export interface Cores {
   madeira: string;
   madeiraEscura: string;
   deck: string;
-  ripaDeck: string;
   mezPiso: string;
-  mezRipa: string;
   verde: string;
   vaso: string;
   cadeira: string;
   figura: string;
   anel: string;
   vidro: string;
+  agua: string;
   trilho: string;
   porta: string;
   placa: string;
@@ -77,62 +88,60 @@ export interface Cores {
 
 const CORES_CLARO: Cores = {
   fundo: "#efebe4",
-  piso: "#f2eee7",
-  plinto: "#ddd5c7",
-  parede: "#d8cfc1",
-  capa: "#ebe5da",
-  madeira: "#c7ae90",
-  madeiraEscura: "#b0967a",
-  deck: "#e4ddd1",
-  ripaDeck: "#d6cdbf",
-  mezPiso: "#ddd5c8",
-  mezRipa: "#cfc6b8",
-  verde: "#a6ab9b",
-  vaso: "#a8998a",
-  cadeira: "#9c9184",
-  figura: "#6b6257",
+  piso: "#7a5a3e",
+  plinto: "#46341f",
+  parede: "#e4ddd0",
+  capa: "#f4efe6",
+  madeira: "#a98763",
+  madeiraEscura: "#5c4230",
+  deck: "#6c5a47",
+  mezPiso: "#6e4f36",
+  verde: "#7f9068",
+  vaso: "#b6a794",
+  cadeira: "#cfc5b4",
+  figura: "#8d8173",
   anel: "#1b1a17",
   vidro: "#cfe3ea",
-  trilho: "#9a9286",
-  porta: "#c9bfae",
+  agua: "#3f9fc9",
+  trilho: "#d4cabb",
+  porta: "#cdbfa9",
   placa: "#f5f2ec",
   icone: "#2a2824",
-  sofa: "#bfb6a9",
-  almofada: "#d0c8bb",
-  balcao: "#8f857a",
-  balcaoTopo: "#e2dbcf",
-  pista: "#cdc5b8",
-  juntaPista: "#bdb4a6",
+  sofa: "#d8d0c2",
+  almofada: "#e8e1d4",
+  balcao: "#3a2d24",
+  balcaoTopo: "#eae2d4",
+  pista: "#cfc9be",
+  juntaPista: "#a8a296",
 };
 
 const CORES_ESCURO: Cores = {
   fundo: "#151412",
-  piso: "#1f1d1a",
-  plinto: "#121110",
-  parede: "#3a3631",
-  capa: "#4c4741",
-  madeira: "#4d4237",
-  madeiraEscura: "#40362c",
-  deck: "#24221e",
-  ripaDeck: "#26231f",
-  mezPiso: "#2e2b26",
-  mezRipa: "#282520",
-  verde: "#3a3d36",
-  vaso: "#3a3631",
-  cadeira: "#7d756a",
-  figura: "#c4bdb0",
+  piso: "#b99b78",
+  plinto: "#7d6347",
+  parede: "#34302b",
+  capa: "#4d4740",
+  madeira: "#8a6c4c",
+  madeiraEscura: "#66503a",
+  deck: "#ab9a82",
+  mezPiso: "#a88b69",
+  verde: "#566a45",
+  vaso: "#4a4239",
+  cadeira: "#4a423a",
+  figura: "#7b6e5f",
   anel: "#f4f1ea",
   vidro: "#8fb3c0",
-  trilho: "#7a7368",
-  porta: "#47433d",
+  agua: "#3a8fb8",
+  trilho: "#3d3731",
+  porta: "#4d473f",
   placa: "#5a5750",
   icone: "#15140f",
-  sofa: "#4f4a43",
-  almofada: "#635d55",
-  balcao: "#2b2824",
-  balcaoTopo: "#5e5850",
-  pista: "#2b2925",
-  juntaPista: "#34312c",
+  sofa: "#403a33",
+  almofada: "#554e45",
+  balcao: "#2a2420",
+  balcaoTopo: "#d6ccbb",
+  pista: "#3a3f45",
+  juntaPista: "#2a2e33",
 };
 
 export const coresDoTema = (escuro: boolean) => (escuro ? CORES_ESCURO : CORES_CLARO);
@@ -235,6 +244,120 @@ export function matMancha(opacidade: number, camada: number) {
     polygonOffsetUnits: -4 - camada * 2,
   });
 }
+
+// Tábuas de 0,18 m correndo em x; o ladrilho cobre 8 fiadas, e as juntas de topo de cada fiada são sorteadas.
+const TABUA_M = 0.18;
+const FIADAS = 8;
+const LADRILHO_L = 2.88;
+const LADRILHO_P = TABUA_M * FIADAS;
+const TOM_BASE = 0.94;
+
+let texturaTabuas: THREE.CanvasTexture | null = null;
+
+/**
+ * Padrão de tábuas desenhado uma única vez e compartilhado por todos os pisos. Só carrega valor
+ * (cinza ao redor de 0,94): a cor de cada ambiente e tema entra pela cor do material.
+ */
+function texturaMadeira() {
+  if (texturaTabuas) return texturaTabuas;
+
+  const larg = 1024;
+  const alt = 512;
+  const fiada = alt / FIADAS;
+  const c = document.createElement("canvas");
+  c.width = larg;
+  c.height = alt;
+  const g = c.getContext("2d")!;
+
+  // Semente fixa: o desenho não muda entre recargas nem entre abas.
+  let sem = 20240611;
+  const rnd = () => {
+    sem = (sem * 1664525 + 1013904223) >>> 0;
+    return sem / 4294967296;
+  };
+  const noWrap = (x: number, w: number, desenha: (xx: number) => void) => {
+    desenha(x);
+    if (x + w > larg) desenha(x - larg);
+  };
+
+  g.fillStyle = "#f0f0f0";
+  g.fillRect(0, 0, larg, alt);
+
+  for (let f = 0; f < FIADAS; f++) {
+    const y = f * fiada;
+    const inicio = rnd() * larg;
+    const cortes: number[] = [];
+    for (let x = 0; x < larg; ) {
+      const len = 380 + rnd() * 340;
+      x += larg - x < 260 ? larg - x : len;
+      cortes.push(Math.min(x, larg));
+    }
+
+    let ant = 0;
+    for (const fim of cortes) {
+      const x0 = (inicio + ant) % larg;
+      const w = fim - ant;
+      const v = Math.round(255 * (TOM_BASE + (rnd() - 0.5) * 0.12));
+      noWrap(x0, w, (xx) => {
+        g.fillStyle = `rgb(${v},${v},${v})`;
+        g.fillRect(xx, y, w, fiada);
+        // Veio: fios longos e quase invisíveis, só para a tábua não parecer chapada.
+        for (let k = 0; k < 4; k++) {
+          const gy = y + 6 + rnd() * (fiada - 12);
+          const gx = xx + rnd() * w * 0.4;
+          g.fillStyle = rnd() < 0.5 ? "rgba(0,0,0,0.045)" : "rgba(255,255,255,0.06)";
+          g.fillRect(gx, gy, w * (0.35 + rnd() * 0.5), 1);
+        }
+        g.fillStyle = "rgba(0,0,0,0.3)";
+        g.fillRect(xx, y, 1.6, fiada);
+      });
+      ant = fim;
+    }
+
+    g.fillStyle = "rgba(0,0,0,0.24)";
+    g.fillRect(0, y + fiada - 1.4, larg, 1.4);
+  }
+
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  t.generateMipmaps = true;
+  t.minFilter = THREE.LinearMipmapLinearFilter;
+  texturaTabuas = t;
+  return t;
+}
+
+const pisos = new Map<string, THREE.MeshStandardMaterial>();
+
+/** Piso de madeira fosco; a textura carrega só o valor, então a cor sobe para compensar o 0,94 médio dela. */
+export function matMadeira(cor: string) {
+  let m = pisos.get(cor);
+  if (!m) {
+    const k = 1 / new THREE.Color().setRGB(TOM_BASE, TOM_BASE, TOM_BASE, THREE.SRGBColorSpace).r;
+    m = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(cor).multiplyScalar(k),
+      map: texturaMadeira(),
+      roughness: 0.94,
+      metalness: 0,
+      // Rente à laje: o offset evita a briga de profundidade de longe.
+      polygonOffset: true,
+      polygonOffsetFactor: -1,
+      polygonOffsetUnits: -1,
+    });
+    pisos.set(cor, m);
+  }
+  return m;
+}
+
+/** Plano do piso com UV em metros: as tábuas mantêm 0,18 m em qualquer tamanho de sala. */
+export const planoMadeira = (l: number, p: number) =>
+  obter(`pm${l},${p}`, () => {
+    const g = new THREE.PlaneGeometry(l, p).rotateX(-Math.PI / 2);
+    const uv = g.attributes.uv;
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) * l) / LADRILHO_L, (uv.getY(i) * p) / LADRILHO_P);
+    return g;
+  });
 
 /** Quadrado unitário deitado no plano xz, para as manchas instanciadas. */
 export const quadPiso = () => obter("quadPiso", () => new THREE.PlaneGeometry(2, 2).rotateX(-Math.PI / 2));

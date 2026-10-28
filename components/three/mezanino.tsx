@@ -4,26 +4,16 @@ import { Bloco, Laje, Parede, Sombra, type PropsCena } from "./ambientes";
 import type { Cores } from "./materiais";
 
 /**
- * Piso elevado com vista para o salão: tábuas escuras, balaustrada de vidro na
+ * Piso elevado com vista para o salão: tábuas de madeira, balaustrada de vidro na
  * frente (o lado que dá para o vazio), canto de lounge e escada no fundo.
  */
 export function CenarioMezanino({ cores, c, sombras }: PropsCena) {
   const meiaL = c.salaL / 2;
   const meiaP = c.salaP / 2;
-  const tabuas = Math.floor(c.salaP / 0.3);
 
   return (
     <group>
-      <Laje c={c} piso={cores.mezPiso} />
-
-      {Array.from({ length: tabuas }, (_, i) => (
-        <Bloco
-          key={i}
-          tam={[c.salaL - 0.1, 0.004, 0.03]}
-          pos={[0, 0.006, -meiaP + 0.15 + i * 0.3]}
-          cor={cores.mezRipa}
-        />
-      ))}
+      <Laje c={c} cores={cores} tom="mezPiso" />
 
       {/* Paredes baixas nos três lados fechados. */}
       <Parede tam={[c.salaL, 0.8, 0.14]} pos={[0, 0.4, -meiaP]} cores={cores} />

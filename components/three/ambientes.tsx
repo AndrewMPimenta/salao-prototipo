@@ -2,7 +2,7 @@
 
 import type { Cenario } from "./cenarios";
 import * as THREE from "three";
-import { caixa, cilindro, esfera, juntas, mat, matMancha, quadPiso, type Cores } from "./materiais";
+import { caixa, cilindro, esfera, juntas, mat, matMadeira, matMancha, planoMadeira, quadPiso, type Cores } from "./materiais";
 
 type V3 = readonly [number, number, number];
 
@@ -29,9 +29,14 @@ export function Sombra({ x, z, l, p }: { x: number; z: number; l: number; p: num
   return <mesh geometry={quadPiso()} material={matSombra} position={[x, 0.012, z]} scale={[l / 2 + 0.7, 1, p / 2 + 0.7]} renderOrder={1} raycast={() => null} />;
 }
 
-/** Laje fina e única: a sala lê como maquete sem virar um bloco empilhado. */
-export function Laje({ c, piso }: { c: Cenario; piso: string }) {
-  return <Bloco tam={[c.salaL + 0.8, 0.1, c.salaP + 0.8]} pos={[0, -0.05, 0]} cor={piso} />;
+/** Laje fina com o piso de madeira por cima: a sala lê como maquete sem virar um bloco empilhado. */
+export function Laje({ c, cores, tom = "piso" }: { c: Cenario; cores: Cores; tom?: "piso" | "deck" | "mezPiso" }) {
+  return (
+    <>
+      <Bloco tam={[c.salaL + 0.8, 0.1, c.salaP + 0.8]} pos={[0, -0.054, 0]} cor={cores.plinto} />
+      <mesh geometry={planoMadeira(c.salaL + 0.8, c.salaP + 0.8)} material={matMadeira(cores[tom])} raycast={() => null} />
+    </>
+  );
 }
 
 /** Parede baixa com tampa mais clara: a tampa separa o traço da parede do piso na vista aérea. */
@@ -49,7 +54,7 @@ export function CenarioSalao({ cores, c, sombras }: PropsCena) {
 
   return (
     <group>
-      <Laje c={c} piso={cores.piso} />
+      <Laje c={c} cores={cores} />
 
       {/* Paredes baixas: delimitam a sala sem esconder as mesas do fundo. */}
       <Parede tam={[c.salaL, 0.8, 0.14]} pos={[0, 0.4, z0]} cores={cores} />
@@ -86,7 +91,7 @@ export function CenarioEventos({ cores, c, sombras }: PropsCena) {
 
   return (
     <group>
-      <Laje c={c} piso={cores.piso} />
+      <Laje c={c} cores={cores} />
 
       <Parede tam={[c.salaL, 0.8, 0.14]} pos={[0, 0.4, z0]} cores={cores} />
       <Parede tam={[c.salaL, 0.8, 0.14]} pos={[0, 0.4, -z0]} cores={cores} />
@@ -148,7 +153,6 @@ function Porta({ x, z, cores, masculino }: { x: number; z: number; cores: Cores;
 export function CenarioVaranda({ cores, c, sombras }: PropsCena) {
   const meiaL = c.salaL / 2;
   const meiaP = c.salaP / 2;
-  const ripas = Math.floor(c.salaP / 0.45);
 
   const lados = [
     { pos: [0, 0, meiaP] as V3, rot: 0, comp: c.salaL },
@@ -158,17 +162,8 @@ export function CenarioVaranda({ cores, c, sombras }: PropsCena) {
 
   return (
     <group>
-      <Laje c={c} piso={cores.deck} />
+      <Laje c={c} cores={cores} tom="deck" />
 
-      {/* Ripas marcam a direção do piso e o diferenciam de um chão liso. */}
-      {Array.from({ length: ripas }, (_, i) => (
-        <Bloco
-          key={i}
-          tam={[c.salaL - 0.1, 0.004, 0.035]}
-          pos={[0, 0.006, -meiaP + 0.225 + i * 0.45]}
-          cor={cores.ripaDeck}
-        />
-      ))}
 
       {lados.map((t, i) => {
         const n = Math.max(2, Math.round(t.comp / 1.2));
@@ -232,7 +227,6 @@ function Jardineira({ x, z, cores, sombras }: { x: number; z: number; cores: Cor
 export function CenarioTerraco({ cores, c, sombras }: PropsCena) {
   const meiaL = c.salaL / 2;
   const meiaP = c.salaP / 2;
-  const ripas = Math.floor(c.salaP / 0.45);
   const zBar = -meiaP + 1.6;
   const xBar = -meiaL + 6;
   const xElev = meiaL - 3;
@@ -240,11 +234,8 @@ export function CenarioTerraco({ cores, c, sombras }: PropsCena) {
 
   return (
     <group>
-      <Laje c={c} piso={cores.deck} />
+      <Laje c={c} cores={cores} tom="deck" />
 
-      {Array.from({ length: ripas }, (_, i) => (
-        <Bloco key={i} tam={[c.salaL - 0.1, 0.004, 0.035]} pos={[0, 0.006, -meiaP + 0.225 + i * 0.45]} cor={cores.ripaDeck} />
-      ))}
 
       <Parede tam={[c.salaL, 0.8, 0.14]} pos={[0, 0.4, -meiaP]} cores={cores} />
       <Parede tam={[0.14, 0.8, c.salaP]} pos={[-meiaL, 0.4, 0]} cores={cores} />
@@ -302,16 +293,16 @@ export function CenarioHotBeach({ cores, c, sombras }: PropsCena) {
 
   return (
     <group>
-      <Laje c={c} piso={cores.deck} />
+      <Laje c={c} cores={cores} tom="deck" />
 
       <Parede tam={[c.salaL, 0.8, 0.14]} pos={[0, 0.4, -meiaP]} cores={cores} />
       <Parede tam={[c.salaL, 0.8, 0.14]} pos={[0, 0.4, meiaP]} cores={cores} />
       <Parede tam={[0.14, 0.8, c.salaP]} pos={[-meiaL, 0.4, 0]} cores={cores} />
       <Parede tam={[0.14, 0.8, c.salaP]} pos={[meiaL, 0.4, 0]} cores={cores} />
 
-      {/* Piscina: borda mais clara e lâmina de água translúcida, rente ao piso. */}
+      {/* Piscina: borda clara e lâmina de água azul, rente ao piso. */}
       <Bloco tam={[5.6, 0.06, 21]} pos={[-20.5, 0.03, 2.75]} cor={cores.capa} />
-      <Bloco tam={[4.8, 0.02, 20.2]} pos={[-20.5, 0.062, 2.75]} cor={cores.vidro} op={0.7} rug={0.2} />
+      <Bloco tam={[4.8, 0.02, 20.2]} pos={[-20.5, 0.062, 2.75]} cor={cores.agua} op={0.92} rug={0.2} />
 
       {/* Palco do DJ com cabine e duas caixas de som. */}
       <Bloco tam={[12, 0.5, 3.6]} pos={[0, 0.25, zPalco]} cor={cores.madeira} />

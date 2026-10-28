@@ -57,7 +57,7 @@ export function LayoutMovel({ salao, imersivo, telaCheia }: PropsLayout) {
   const ancora = useCallback((el: HTMLElement | null) => medirSheet(el?.firstElementChild as HTMLElement | null), [medirSheet]);
 
   const selecionarDaLista = (id: number) => {
-    salao.irParaMesa(id);
+    salao.alternarMesa(id);
     setIndice(0);
   };
 

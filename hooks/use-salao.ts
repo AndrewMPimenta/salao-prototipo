@@ -181,6 +181,8 @@ export function useSalao(todas: Mesa[], ambientes: Ambiente[], limiares: Limiare
     filtro, filtrar, filtroRapido, definirRapido,
     selecionada, mesaSelecionada, selecionar: setSelecionada,
     alternarSelecao: (id: number) => setSelecionada((s) => (s === id ? null : id)),
+    /** Linha de lista: clicar na mesa já fixada solta; senão fixa e leva a câmera até ela. */
+    alternarMesa: (id: number) => (selecionada === id ? setSelecionada(null) : irParaMesa(id)),
     irParaMesa, foco,
     posicaoSelecionada, selecionarPosicao, abaDetalhe, setAbaDetalhe,
     hover,

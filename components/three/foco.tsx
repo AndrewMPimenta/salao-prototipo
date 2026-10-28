@@ -6,8 +6,8 @@ import * as THREE from "three";
 
 /** Altura do holofote: alto o bastante para o facho caber no enquadramento sem ser visto de lado. */
 const ALTURA = 7;
-/** Luz de sala que sobra com uma mesa em foco: a cena continua legível, não escura. No escuro o piso já parte de perto do preto. */
-const RESTO = { claro: 0.36, escuro: 0.55 };
+/** Luz de sala que sobra com uma mesa em foco: a cena continua legível, não escura. Com o piso claro do tema escuro, sobra menos luz para o foco não lavar a madeira. */
+const RESTO = { claro: 0.36, escuro: 0.4 };
 const INTENSIDADE_SPOT = 60;
 const FOLGA_FACHO = 0.9;
 

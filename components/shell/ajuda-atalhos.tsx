@@ -58,12 +58,17 @@ export function AjudaAtalhos({ aberto, onAbrir, atalhosLigados, onAtalhos, exibi
     const fora = (e: PointerEvent) => {
       if (!raiz.current?.contains(e.target as Node)) onAbrir(false);
     };
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && onAbrir(false);
+    const esc = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      // O Esc fecha só o popover; o atalho global não limpa a mesa em foco.
+      e.preventDefault();
+      onAbrir(false);
+    };
     document.addEventListener("pointerdown", fora);
-    document.addEventListener("keydown", esc);
+    document.addEventListener("keydown", esc, true);
     return () => {
       document.removeEventListener("pointerdown", fora);
-      document.removeEventListener("keydown", esc);
+      document.removeEventListener("keydown", esc, true);
     };
   }, [aberto, onAbrir]);
 

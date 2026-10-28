@@ -152,7 +152,10 @@ export function Floor3D({
   const elsMarcos = useRef<(HTMLDivElement | null)[]>([]);
   const marcos = useMemo(() => marcosDe(ambienteId), [ambienteId]);
   const dpr = useDpr();
-  const aoSelecionar = useCallback((id: number) => onSelect(id), [onSelect]);
+  // Ref para o callback seguir estável: o memo das mesas não pode invalidar a cada seleção.
+  const atual = useRef({ selecionada, onSelect });
+  atual.current = { selecionada, onSelect };
+  const aoSelecionar = useCallback((id: number) => atual.current.onSelect(id === atual.current.selecionada ? null : id), []);
   const aoVazio = useCallback(() => onSelect(null), [onSelect]);
 
   // Esc devolve a sala inteira; campos de texto e diálogos tratam o seu próprio Esc.
@@ -245,7 +248,7 @@ export function Floor3D({
   const sinais = useMemo(() => {
     const m = new Map<number, string>();
     for (const { mesa, estado, alertas } of situacoes) {
-      const b = corBrilho(estado, alertas[0]?.tipo, escuro);
+      const b = corBrilho(estado, alertas[0]?.tipo, escuro, "tampo");
       if (b) m.set(mesa.id, b.cor);
     }
     return m;

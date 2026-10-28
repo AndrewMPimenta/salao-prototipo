@@ -36,12 +36,17 @@ function MenuVista({ camera, lado }: { camera: Camera; lado: Lado }) {
     const fora = (e: PointerEvent) => {
       if (!raiz.current?.contains(e.target as Node)) setAberto(false);
     };
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && setAberto(false);
+    const esc = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      // O Esc fecha só o popover; o atalho global não limpa a mesa em foco.
+      e.preventDefault();
+      setAberto(false);
+    };
     document.addEventListener("pointerdown", fora);
-    document.addEventListener("keydown", esc);
+    document.addEventListener("keydown", esc, true);
     return () => {
       document.removeEventListener("pointerdown", fora);
-      document.removeEventListener("keydown", esc);
+      document.removeEventListener("keydown", esc, true);
     };
   }, [aberto]);
 

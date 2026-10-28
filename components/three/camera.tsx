@@ -102,7 +102,6 @@ export function Camera(p: Props) {
     c.mouseButtons.right = ACTION.ROTATE;
     c.mouseButtons.middle = ACTION.DOLLY;
     c.mouseButtons.wheel = ACTION.DOLLY;
-    c.verticalDragToForward = true;
     c.touches.one = ACTION.TOUCH_TRUCK;
     c.touches.two = ACTION.TOUCH_DOLLY_ROTATE;
     c.touches.three = ACTION.TOUCH_TRUCK;

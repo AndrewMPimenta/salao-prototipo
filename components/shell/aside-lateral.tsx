@@ -198,7 +198,7 @@ export function AsideLateral({ salao, aberto, largura, topo, onLargura }: AsideL
         >
           <div>
             {aba === "atencao" ? (
-              <AttentionPanel mesas={salao.mesas} limiares={salao.limiares} onSelect={salao.irParaMesa} hover={salao.hover} />
+              <AttentionPanel mesas={salao.mesas} limiares={salao.limiares} onSelect={salao.alternarMesa} hover={salao.hover} />
             ) : (
               <ListaMesas
                 mesas={salao.mesas}
@@ -206,7 +206,7 @@ export function AsideLateral({ salao, aberto, largura, topo, onLargura }: AsideL
                 hover={salao.hover}
                 selecionada={salao.selecionada}
                 busca={busca}
-                onIr={salao.irParaMesa}
+                onIr={salao.alternarMesa}
               />
             )}
           </div>

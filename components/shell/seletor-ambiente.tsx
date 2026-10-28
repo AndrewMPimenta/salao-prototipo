@@ -151,7 +151,8 @@ function Dropdown({ ambientes, mesas, ativo, onChange, folha, className }: Selet
       data-estado={estado}
       data-folha={folha ? "" : undefined}
       className={cn(
-        "lista-ambiente glass scrollbar-none overflow-y-auto overscroll-contain outline-none",
+        // pointer-events-auto: a lista desce dentro do header `pointer-events-none` e herdaria o "none", deixando o clique cair na cena.
+        "lista-ambiente glass pointer-events-auto scrollbar-none overflow-y-auto overscroll-contain outline-none",
         folha
           ? "fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+12px)] z-50 max-h-[70dvh] rounded-[26px] p-2"
           : "absolute left-1/2 top-[calc(100%+8px)] z-30 max-h-[min(70dvh,520px)] w-[380px] -translate-x-1/2 rounded-[22px] p-1.5",

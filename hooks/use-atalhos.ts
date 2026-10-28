@@ -17,7 +17,7 @@ export function useAtalhos(mapa: Mapa, habilitado: boolean) {
     if (!habilitado) return;
 
     function onKeyDown(e: KeyboardEvent) {
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.metaKey || e.ctrlKey || e.altKey || e.defaultPrevented) return;
       const alvo = e.target as HTMLElement | null;
       const tag = alvo?.tagName.toLowerCase();
       if (tag === "input" || tag === "textarea" || tag === "select") return;

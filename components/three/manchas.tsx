@@ -25,13 +25,13 @@ interface Instancia {
   cor: THREE.Color;
 }
 
-// Acima das ripas do deck e das tábuas do mezanino (topo a 8 mm), em degraus de 2 mm.
+// Acima do piso de madeira, em degraus de 2 mm.
 const Y: Record<Camada, number> = { sombra: 0.012, estado: 0.014, alerta: 0.016, critico: 0.018 };
 const ORDEM: Record<Camada, number> = { sombra: 1, estado: 2, alerta: 3, critico: 4 };
 // Folga além do tampo: a sombra cobre as cadeiras, o brilho passa delas e o alerta vai mais longe.
 const ALCANCE: Record<Camada, number> = { sombra: 0.8, estado: 1.05, alerta: 1.3, critico: 1.65 };
 const OPACIDADE: Record<Camada, [number, number]> = {
-  sombra: [0.16, 0.4],
+  sombra: [0.3, 0.46],
   estado: [0.5, 0.62],
   alerta: [0.68, 0.8],
   critico: [0.9, 1],

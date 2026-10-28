@@ -31,6 +31,7 @@ export function useSpatialKeyboard({ mesas, ativo, onEscape }: Opcoes) {
     if (!ativo) return;
 
     function onKeyDown(e: KeyboardEvent) {
+      if (e.defaultPrevented) return;
       const alvo = e.target as HTMLElement | null;
       const tag = alvo?.tagName.toLowerCase();
       if (tag === "input" || tag === "textarea" || tag === "select") return;

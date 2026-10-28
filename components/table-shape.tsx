@@ -215,7 +215,11 @@ export function Cadeiras({ mesa, escala = 1, pessoas = true, posicoes }: Cadeira
               type="button"
               tabIndex={-1}
               aria-label={`Posição ${c.numero}${ocupada ? "" : ", livre"}`}
-              onClick={() => posicoes.onSelecionar(c.numero)}
+              onClick={(e) => {
+                // Sem isto o clique sobe ao tampo e solta a mesa em vez de escolher a posição.
+                e.stopPropagation();
+                posicoes.onSelecionar(c.numero);
+              }}
               style={{ left: (c.x + (c.x / norma) * afasta) * escala, top: (c.y + (c.y / norma) * afasta) * escala }}
               className={cn(
                 "tnum absolute grid h-[18px] min-w-[22px] -translate-x-1/2 -translate-y-1/2 cursor-pointer place-items-center rounded-full px-1 text-[10px] font-semibold leading-none",
