@@ -350,6 +350,32 @@ export function matMadeira(cor: string) {
   return m;
 }
 
+const pisosChapados = new Map<string, THREE.MeshStandardMaterial>();
+
+/**
+ * Faixa de piso chapada (pista, tapete) deitada sobre a madeira: o offset mais forte que o da
+ * madeira a mantém à frente de longe, e ela fica abaixo das manchas, que ficam a partir de 12 mm.
+ */
+export function matPisoChapado(cor: string, rugosidade: number) {
+  const chave = `${cor}|${rugosidade}`;
+  let m = pisosChapados.get(chave);
+  if (!m) {
+    m = new THREE.MeshStandardMaterial({
+      color: cor,
+      roughness: rugosidade,
+      metalness: 0,
+      polygonOffset: true,
+      polygonOffsetFactor: -2,
+      polygonOffsetUnits: -2,
+    });
+    pisosChapados.set(chave, m);
+  }
+  return m;
+}
+
+/** Plano horizontal l x p com a face voltada para cima. */
+export const planoPiso = (l: number, p: number) => obter(`pp${l},${p}`, () => new THREE.PlaneGeometry(l, p).rotateX(-Math.PI / 2));
+
 /** Plano do piso com UV em metros: as tábuas mantêm 0,18 m em qualquer tamanho de sala. */
 export const planoMadeira = (l: number, p: number) =>
   obter(`pm${l},${p}`, () => {

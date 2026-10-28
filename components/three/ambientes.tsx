@@ -2,7 +2,7 @@
 
 import type { Cenario } from "./cenarios";
 import * as THREE from "three";
-import { caixa, cilindro, esfera, juntas, mat, matMadeira, matMancha, planoMadeira, quadPiso, type Cores } from "./materiais";
+import { caixa, cilindro, esfera, juntas, mat, matMadeira, matMancha, matPisoChapado, planoMadeira, planoPiso, quadPiso, type Cores } from "./materiais";
 
 type V3 = readonly [number, number, number];
 
@@ -106,9 +106,9 @@ export function CenarioEventos({ cores, c, sombras }: PropsCena) {
       </group>
       {sombras && <Sombra x={0} z={z0 + 3} l={20} p={5.4} />}
 
-      {/* Pista: lâmina de madeira rente ao piso. */}
-      <Bloco tam={[16, 0.03, 4.6]} pos={[0, 0.015, -16.5]} cor={cores.pista} rug={0.45} />
-      <mesh geometry={juntas(16, 4.6, 1.15, true)} material={mat(cores.juntaPista)} position={[0, 0.032, -16.5]} />
+      {/* Pista: plano chapado a 6 mm do piso, abaixo das manchas (a partir de 12 mm), para não brigar com elas. */}
+      <mesh geometry={planoPiso(16, 4.6)} material={matPisoChapado(cores.pista, 0.45)} position={[0, 0.006, -16.5]} raycast={() => null} />
+      <mesh geometry={juntas(16, 4.6, 1.15, true)} material={mat(cores.juntaPista)} position={[0, 0.008, -16.5]} />
 
       {/* Balcão do buffet ao longo da parede oeste. */}
       <group position={[x0 + 1.4, 0, 0]}>
@@ -314,8 +314,8 @@ export function CenarioHotBeach({ cores, c, sombras }: PropsCena) {
       {sombras && <Sombra x={0} z={zPalco} l={12} p={3.6} />}
 
       {/* Pista de dança no miolo do campo. */}
-      <Bloco tam={[14, 0.03, 8]} pos={[0, 0.015, zCampoMeio - 0.5]} cor={cores.pista} rug={0.45} />
-      <mesh geometry={juntas(14, 8, 1, true)} material={mat(cores.juntaPista)} position={[0, 0.032, zCampoMeio - 0.5]} />
+      <mesh geometry={planoPiso(14, 8)} material={matPisoChapado(cores.pista, 0.45)} position={[0, 0.006, zCampoMeio - 0.5]} raycast={() => null} />
+      <mesh geometry={juntas(14, 8, 1, true)} material={mat(cores.juntaPista)} position={[0, 0.008, zCampoMeio - 0.5]} />
 
       {/* Bar corrido na parede leste. */}
       <Bloco tam={[1.2, 1.1, 18]} pos={[meiaL - 1.4, 0.55, 2.75]} cor={cores.balcao} />
@@ -323,7 +323,7 @@ export function CenarioHotBeach({ cores, c, sombras }: PropsCena) {
       {sombras && <Sombra x={meiaL - 1.4} z={2.75} l={1.2} p={18} />}
 
       {/* Lounge: tapete e pufes em roda de uma mesa baixa. */}
-      <Bloco tam={[5.6, 0.02, 5.6]} pos={[13.5, 0.01, 11.75]} cor={cores.pista} rug={0.6} />
+      <mesh geometry={planoPiso(5.6, 5.6)} material={matPisoChapado(cores.pista, 0.6)} position={[13.5, 0.006, 11.75]} raycast={() => null} />
       <mesh geometry={cilindro(0.45, 0.45, 0.32, 24)} material={mat(cores.madeira)} position={[13.5, 0.16, 11.75]} />
       {pufes.map((p, i) => (
         <mesh
