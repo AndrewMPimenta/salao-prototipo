@@ -123,7 +123,8 @@ export function OccupancyBar({
               key={estado}
               style={{
                 flex: `${contagem[estado]} 1 0`,
-                background: `var(--color-brilho-${estado})`,
+                background: estado === "livre" ? "var(--color-livre-fill)" : `var(--color-brilho-${estado})`,
+                boxShadow: estado === "livre" ? "inset 0 0 0 1px var(--color-ink-2)" : undefined,
               }}
               className={cn(
                 "rounded-full transition-opacity duration-150",

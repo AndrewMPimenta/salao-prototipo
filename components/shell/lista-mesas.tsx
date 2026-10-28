@@ -35,9 +35,9 @@ function Linha({ mesa, estado, limiares, hover, selecionada, onIr }: LinhaProps)
         type="button"
         onClick={() => onIr(mesa.id)}
         data-linha={mesa.id}
-        onPointerEnter={(e) => e.pointerType === "mouse" && hover.definir(mesa.id, "lista")}
+        onPointerEnter={(e) => e.pointerType === "mouse" && hover.definir(mesa.id)}
         onPointerLeave={() => hover.ler() === mesa.id && hover.definir(null)}
-        onFocus={() => hover.definir(mesa.id, "lista")}
+        onFocus={() => hover.definir(mesa.id)}
         onBlur={() => hover.ler() === mesa.id && hover.definir(null)}
         aria-current={selecionada || undefined}
         aria-label={`Mesa ${mesa.id}. ${[ROTULO_ESTADO[estado], ...alertas.map(textoAlerta)].join(". ")}`}
@@ -45,7 +45,7 @@ function Linha({ mesa, estado, limiares, hover, selecionada, onIr }: LinhaProps)
           "flex h-11 w-full items-center gap-2.5 rounded-[12px] px-2 text-left text-[13px] text-(--color-ink)",
           "transition-[background-color] duration-100",
           "focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-(--color-focus)",
-          destacada ? "bg-(--color-ink)/10" : selecionada ? "bg-(--color-ink)/6" : "hover:bg-(--color-ink)/6",
+          destacada ? "bg-(--color-hover-linha) shadow-[inset_0_0_0_1.5px_var(--hover-aro)]" : selecionada ? "bg-(--color-ink)/6" : "hover:bg-(--color-ink)/6",
         )}
       >
         <AmostraEstado estado={estado} className="size-4" />

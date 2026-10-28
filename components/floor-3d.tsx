@@ -13,10 +13,11 @@ import { CenarioMezanino } from "./three/mezanino";
 import { Camera } from "./three/camera";
 import { ChaoToque } from "./three/chao";
 import { marcosDe, obterCenario, ms, mx, mz } from "./three/cenarios";
-import { corBrilho, coresDoTema, TAMPO } from "./three/materiais";
+import { corBrilho, corHover, corTopo, coresDoTema, TAMPO } from "./three/materiais";
 import type { ArmazemHover } from "@/hooks/use-hover-mesa";
 import type { Exibicao } from "@/lib/exibicao";
 import { Luzes } from "./three/foco";
+import { BrilhoHover } from "./three/brilho-hover";
 import { Manchas } from "./three/manchas";
 import { Mesas } from "./three/mesas";
 import { Assentos, cadeirasDa, type FocoAssentos, type ItemAssento } from "./three/assentos";
@@ -248,11 +249,18 @@ export function Floor3D({
   const sinais = useMemo(() => {
     const m = new Map<number, string>();
     for (const { mesa, estado, alertas } of situacoes) {
+      if (exibicao.destaque === "tampo") {
+        const topo = corTopo(estado, alertas[0]?.tipo, escuro);
+        if (topo) m.set(mesa.id, topo);
+        continue;
+      }
       const b = corBrilho(estado, alertas[0]?.tipo, escuro, "tampo");
       if (b) m.set(mesa.id, b.cor);
     }
     return m;
-  }, [situacoes, escuro]);
+  }, [situacoes, escuro, exibicao.destaque]);
+
+  const coresHover = useMemo(() => new Map(situacoes.map(({ mesa, estado, alertas }) => [mesa.id, corHover(estado, alertas[0]?.tipo, escuro)])), [situacoes, escuro]);
 
   const ocupadas = useMemo(() => new Set(situacoes.filter((x) => x.estado === "ocupada").map((x) => x.mesa.id)), [situacoes]);
 
@@ -300,11 +308,11 @@ export function Floor3D({
               ocupadas={ocupadas}
               escuro={escuro}
               destaque={exibicao.destaque}
-              hover={hover}
               selecionada={selecionada}
               esmaecidas={esmaecidas}
               instantaneo={reduz}
             />
+            <BrilhoHover cores={coresHover} mesas={mesas} cenario={cenario} escuro={escuro} hover={hover} selecionada={selecionada} esmaecidas={esmaecidas} instantaneo={reduz} />
             {exibicao.assentos !== "nenhum" && (
               <Assentos
                 itens={situacoes}
@@ -316,7 +324,6 @@ export function Floor3D({
                 instantaneo={reduz}
                 foco={focoAssentos}
                 selecionada={selecionada}
-                hover={hover}
               />
             )}
             {mesas.map((mesa) => (

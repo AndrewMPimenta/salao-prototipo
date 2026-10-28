@@ -6,12 +6,13 @@ import { cn } from "@/lib/utils";
  * o CSS lê `data-destaque` na raiz). Ocupada usa a tinta do tema, de luminância oposta à da livre.
  */
 export function AmostraEstado({ estado, className }: { estado: EstadoMesa; className?: string }) {
+  if (estado === "livre") return <span aria-hidden className={cn("amostra-livre flex-none", className)} />;
   if (estado === "ocupada") return <span aria-hidden className={cn("amostra-ocupada flex-none", className)} />;
   return (
     <span
       aria-hidden
       className={cn("amostra flex-none", className)}
-      style={{ "--c": `var(--color-brilho-${estado})` } as React.CSSProperties}
+      style={{ "--c": `var(--color-brilho-${estado})`, "--topo": `var(--color-topo-${estado})` } as React.CSSProperties}
     />
   );
 }

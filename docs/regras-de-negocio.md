@@ -19,13 +19,14 @@ para o texto do hover e do popup.
 
 Um estado por mesa, mutuamente exclusivo. O mobiliário é neutro para todos (tampo, cadeiras e figuras
 em cinzas quentes foscos); a única cor da cena é a do **sinal** da mesa, mostrado no destaque que o
-usuário escolhe em Exibição: **Borda** (padrão, friso colorido na borda do tampo), **Tampo** (o tampo
-inteiro na cor) ou **Brilho** (mancha suave no piso, sob a mesa e as cadeiras). As amostras da legenda
-e das listas seguem o mesmo destaque.
+usuário escolhe em Exibição: **Tampo** (padrão: o tampo inteiro na cor, saturada e opaca, com o bisel um tom
+mais escuro; legível de longe, nos dois temas), **Borda** (friso grosso na borda do tampo) ou **Brilho** (mancha suave no piso, sob a mesa e as cadeiras). As amostras da legenda
+e das listas seguem o mesmo destaque. Quem tinha o padrão antigo gravado recebe o novo uma única vez
+(ajustes de Exibição são versionados).
 
 | Estado | Regra | Cor |
 |---|---|---|
-| **Livre** | sem comanda e sem reserva nos próximos 30 min | verde — o sinal universal de "disponível", que o cliente e a recepção procuram |
+| **Livre** | sem comanda e sem reserva nos próximos 30 min | sem cor — mantém o tom original da mesa; a cor fica reservada ao que foge do normal (reservada, conta, alerta) e ocupada pesa por luminância |
 | **Reservada** | sem comanda, com reserva em até 30 min | violeta |
 | **Ocupada** | comanda aberta | tom escuro (claro no tema escuro), de luminância oposta à da livre, com as pessoas visíveis; distinguível mesmo em escala de cinza |
 | **Conta** | conta impressa, aguardando pagamento | azul |
@@ -58,7 +59,10 @@ Pedidos pendentes **dentro** do prazo não são alerta: aparecem só como contag
 
 ## Rótulos e foco
 
-O número é o que mais polui um salão grande, então a cena não mostra rótulo nenhum por padrão. Ao
+O número é o que mais polui um salão grande, então a cena não mostra rótulo nenhum por padrão. Passar o mouse numa mesa (na
+cena, na planta ou na lista) só a **realça**: brilho quente no piso, aro claro na borda e tampo um pouco mais
+claro, e a linha da lista acende junto, nos dois sentidos. Não há prévia nem levante da mesa; o cartão
+vem ao fixar (clicar). A mesa fixada não brilha; as que recuam em foco brilham pela metade. Ao
 passar o mouse (ou pela lista de mesas) surge uma pílula **acima** da mesa, nunca sobre o tampo, com
 número, estado e o alerta principal com os minutos. Em **Exibição** (botão na pilha da câmera) o
 usuário troca para **Números**, que mostra só o número das mesas que cabem na tela sem se sobrepor, e
@@ -109,7 +113,7 @@ Base: o PDV Desktop atual (Multivendas) e a US 24360 — *Lançamento de pedidos
 |---|---|
 | Mesa com várias comandas ("3 comandas", Nº 9252) | Aba **Comandas** no detalhe da mesa: nº, titular, total, abertura, última venda, itens, aberto por |
 | Mesa nomeada ("1 - CAIO VI…") | Nome opcional da mesa no cabeçalho do detalhe |
-| "Livre" em cartão vazio | Brilho verde na cena; sem cartão |
+| "Livre" em cartão vazio | Mesa no tom original, sem brilho; sem cartão |
 | "16 mesas abertas" no rodapé | Resumo de ocupação (já existe) |
 | F2 / F5 / digitar o nº da mesa | Busca "Ir para mesa" (/), atalhos já existentes |
 

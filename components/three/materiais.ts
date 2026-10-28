@@ -28,7 +28,6 @@ export type NivelBrilho = "estado" | "alerta" | "critico";
   tampo pintado ficam na mesa, que é invertida de novo, e usam o tom oposto ao do brilho.
 */
 const SINAL_VIVO = {
-  livre: "#3fe0a0",
   reservada: "#b7a2ff",
   conta: "#5eb4ff",
   vermelho: "#ff5a4d",
@@ -36,7 +35,6 @@ const SINAL_VIVO = {
   selecao: "#ffffff",
 };
 const SINAL_PROFUNDO = {
-  livre: "#0b7a4d",
   reservada: "#5a32c9",
   conta: "#0a3fbf",
   vermelho: "#c4161c",
@@ -44,9 +42,41 @@ const SINAL_PROFUNDO = {
   selecao: "#1b1a17",
 };
 
+/*
+  Destaque "tampo": o tampo inteiro na cor do sinal, saturada e opaca. Cada tema tem o seu tom porque o piso
+  inverte (nogueira escura no claro, carvalho claro no escuro) e o tampo precisa de >= 3:1 contra ele.
+  Ocupada segue a regra de luminância oposta à da livre; alerta e conta vencem o estado.
+*/
+const TOPO = {
+  claro: { reservada: "#8b5cf6", ocupada: "#34302b", conta: "#1d6bff", vermelho: "#e5382d", ambar: "#f0a020" },
+  escuro: { reservada: "#6d3fd1", ocupada: "#e9e3d6", conta: "#1d6bff", vermelho: "#e5382d", ambar: "#c46a00" },
+};
+
+/** Livre não pinta: mantém o tom original da mesa, e a cor fica para o que foge do normal. */
+export function corTopo(estado: EstadoMesa, alerta: TipoAlerta | undefined, escuro: boolean): string | null {
+  const t = TOPO[escuro ? "escuro" : "claro"];
+  if (alerta === "semPedidoCritico" || alerta === "semPedido") return t.vermelho;
+  if (alerta === "entregaAtrasada") return t.ambar;
+  if (alerta === "contaParada") return t.conta;
+  return estado === "livre" ? null : t[estado];
+}
+
+/*
+  Cor do brilho de hover: a do tampo da mesa. No tema claro (piso escuro) clareia ~25% para ler sobre a
+  madeira; no escuro (piso claro) escurece um pouco para separar do carvalho. Livre mantém o creme/branco;
+  ocupada usa uma versão clara da tinta, porque a tinta pura não leria como luz.
+*/
+export function corHover(estado: EstadoMesa, alerta: TipoAlerta | undefined, escuro: boolean): string {
+  if (estado === "ocupada" && !alerta) return escuro ? "#f3eee4" : "#cfc7ba";
+  const topo = corTopo(estado, alerta, escuro);
+  if (!topo) return escuro ? "#ffffff" : "#fff1b8";
+  const c = new THREE.Color(topo);
+  return `#${(escuro ? c.multiplyScalar(0.88) : c.lerp(new THREE.Color("#ffffff"), 0.25)).getHexString()}`;
+}
+
 export type Superficie = "piso" | "tampo";
 
-/** Sinal mais importante da mesa: o alerta vence o estado; ocupada sem alerta não brilha. */
+/** Sinal mais importante da mesa: o alerta vence o estado; livre e ocupada sem alerta não brilham. */
 export function corBrilho(
   estado: EstadoMesa,
   alerta: TipoAlerta | undefined,
@@ -58,7 +88,7 @@ export function corBrilho(
   if (alerta === "semPedido") return { cor: t.vermelho, nivel: "alerta" };
   if (alerta === "entregaAtrasada") return { cor: t.ambar, nivel: "alerta" };
   if (alerta === "contaParada") return { cor: t.conta, nivel: "alerta" };
-  if (estado === "ocupada") return null;
+  if (estado === "ocupada" || estado === "livre") return null;
   return { cor: t[estado], nivel: "estado" };
 }
 
@@ -183,7 +213,29 @@ export const esfera = (r: number, seg = 16) =>
 export const capsula = (r: number, comp: number) =>
   obter(`k${r},${comp}`, () => new THREE.CapsuleGeometry(r, comp, 4, 12));
 
+/** Disco deitado no plano xz, raio 1: película sobre o tampo redondo. */
+export const discoPiso = () => obter("discoPiso", () => new THREE.CircleGeometry(1, 40).rotateX(-Math.PI / 2));
+
 export const circulo = () => obter("circ", () => new THREE.CircleGeometry(1, 40));
+
+let texturaHover: THREE.CanvasTexture | null = null;
+
+/** Brilho do hover: cheio até a borda do tampo (metade do raio) e cai rápido, para o contorno ser nítido. */
+export function texturaBrilhoHover() {
+  if (texturaHover) return texturaHover;
+  const c = document.createElement("canvas");
+  c.width = c.height = 128;
+  const g = c.getContext("2d")!;
+  const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  grad.addColorStop(0, "rgba(255,255,255,0.95)");
+  grad.addColorStop(0.55, "rgba(255,255,255,0.9)");
+  grad.addColorStop(0.75, "rgba(255,255,255,0.42)");
+  grad.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 128, 128);
+  texturaHover = new THREE.CanvasTexture(c);
+  return texturaHover;
+}
 
 const basicos = new Map<string, THREE.MeshBasicMaterial>();
 
@@ -397,11 +449,11 @@ export const planoMadeira = (l: number, p: number) =>
 /** Quadrado unitário deitado no plano xz, para as manchas instanciadas. */
 export const quadPiso = () => obter("quadPiso", () => new THREE.PlaneGeometry(2, 2).rotateX(-Math.PI / 2));
 
-/** Friso do destaque "borda" na mesa redonda: raio 1, tubo de 5,5% do raio, deitado no plano xz. */
-export const friso = () => obter("friso", () => new THREE.TorusGeometry(0.97, 0.055, 8, 72).rotateX(Math.PI / 2));
+/** Friso do destaque "borda" na mesa redonda: raio 1, tubo de 11% do raio, deitado no plano xz. */
+export const friso = () => obter("friso", () => new THREE.TorusGeometry(0.89, 0.11, 8, 72).rotateX(Math.PI / 2));
 
-/** Friso da mesa ocupada: ~7,5% do raio de espessura, para ler de longe como aro escuro. */
-export const frisoGrosso = () => obter("frisoGrosso", () => new THREE.TorusGeometry(0.955, 0.075, 8, 72).rotateX(Math.PI / 2));
+/** Friso da mesa ocupada: ~15% do raio de espessura, para ler de longe como aro escuro. */
+export const frisoGrosso = () => obter("frisoGrosso", () => new THREE.TorusGeometry(0.85, 0.15, 8, 72).rotateX(Math.PI / 2));
 
 /** Pino de pessoa do assento simplificado: corpo e cabeça numa só geometria, ~0,16 m de largura por 0,34 m de altura, base em y = 0. */
 export const pino = () =>
@@ -412,7 +464,7 @@ export const pino = () =>
     ])!,
   );
 
-const ESPESSURA_MOLDURA = 0.045;
+const ESPESSURA_MOLDURA = 0.09;
 const RAIO_CANTO = 0.06;
 
 function retanguloArredondado(l: number, p: number, r: number) {

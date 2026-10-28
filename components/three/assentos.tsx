@@ -6,7 +6,6 @@ import * as THREE from "three";
 import type { Alerta, EstadoMesa, Mesa } from "@/lib/types";
 import { ms, mx, mz, type Cenario } from "./cenarios";
 import { caixa, capsula, cilindro, esfera, mat, OCUPADA, pino, type Cores } from "./materiais";
-import type { ArmazemHover } from "@/hooks/use-hover-mesa";
 import type { Assentos as NivelAssentos } from "@/lib/exibicao";
 import { posicaoDaCadeira } from "@/lib/assentos";
 import { useEsmaecimento } from "./util";
@@ -275,7 +274,6 @@ export function Assentos({
   instantaneo,
   foco = null,
   selecionada,
-  hover,
 }: {
   itens: ItemAssento[];
   cenario: Cenario;
@@ -287,7 +285,6 @@ export function Assentos({
   foco?: FocoAssentos | null;
   /** Mesa fixada: ganha cadeira completa mesmo no modo simplificado. */
   selecionada: number | null;
-  hover: ArmazemHover;
 }) {
   const lodCheio = useRef(0);
   const lodSimples = useRef(0);
@@ -365,7 +362,6 @@ export function Assentos({
     return [...cad, ...fig, ...(simples ? [base, peg] : [])];
   }, [itens, cenario, cores, escuro, modo]);
 
-  useLayoutEffect(() => hover.assinar(invalidate), [hover, invalidate]);
   useLayoutEffect(() => {
     invalidate();
   }, [selecionada, invalidate]);
@@ -406,14 +402,12 @@ export function Assentos({
       andando = true;
     }
 
-    // Completude por mesa: a fixada e a sob o ponteiro vão a 1; as demais voltam ao padrão do modo.
-    const hov = hover.ler();
+    // Completude por mesa: a fixada vai a 1; as demais voltam ao padrão do modo.
     const ativos = new Set(troca.current.keys());
-    if (hov !== null) ativos.add(hov);
     if (fixada.current !== null) ativos.add(fixada.current);
     for (const id of ativos) {
       const atual = troca.current.get(id) ?? padrao;
-      const alvo = padrao === 1 || id === hov || id === fixada.current ? 1 : 0;
+      const alvo = padrao === 1 || id === fixada.current ? 1 : 0;
       if (atual === alvo) continue;
       const passo = instantaneo ? 1 : delta / DURACAO_TROCA;
       troca.current.set(id, atual < alvo ? Math.min(alvo, atual + passo) : Math.max(alvo, atual - passo));

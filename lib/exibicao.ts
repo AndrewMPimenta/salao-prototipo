@@ -19,13 +19,15 @@ export interface Exibicao {
 }
 
 const CHAVE = "exibicao";
+/** Versão do que está gravado: ao subir, o destaque gravado antes perde para o novo padrão uma única vez. */
+const VERSAO = 2;
 
 /**
  * Simplificado é o padrão em qualquer máquina: custa duas malhas instanciadas e só a mesa em foco
  * paga a cadeira completa. As sombras de contato custam uma chamada de desenho.
  */
 export function exibicaoPadrao(): Exibicao {
-  return { perfil: "maitre", rotulos: "hover", destaque: "borda", assentos: "simplificado", sombras: true };
+  return { perfil: "maitre", rotulos: "hover", destaque: "tampo", assentos: "simplificado", sombras: true };
 }
 
 export function lerAjustes(): Partial<Exibicao> {
@@ -34,7 +36,8 @@ export function lerAjustes(): Partial<Exibicao> {
     const out: Partial<Exibicao> = {};
     if (bruto.perfil === "maitre" || bruto.perfil === "completo") out.perfil = bruto.perfil;
     if (bruto.rotulos === "sempre" || bruto.rotulos === "hover") out.rotulos = bruto.rotulos;
-    if (bruto.destaque === "borda" || bruto.destaque === "tampo" || bruto.destaque === "brilho") out.destaque = bruto.destaque;
+    // Antes da versão 2 o padrão era a borda, que não se lia de longe: o destaque gravado então não foi escolha do usuário.
+    if (bruto.versao === VERSAO && (bruto.destaque === "borda" || bruto.destaque === "tampo" || bruto.destaque === "brilho")) out.destaque = bruto.destaque;
     if (typeof bruto.sombras === "boolean") out.sombras = bruto.sombras;
 
     if (bruto.assentos === "nenhum" || bruto.assentos === "simplificado" || bruto.assentos === "completo") out.assentos = bruto.assentos;
@@ -52,7 +55,7 @@ export function lerAjustes(): Partial<Exibicao> {
 export function gravarAjustes(a: Partial<Exibicao>) {
   try {
     if (Object.keys(a).length === 0) localStorage.removeItem(CHAVE);
-    else localStorage.setItem(CHAVE, JSON.stringify(a));
+    else localStorage.setItem(CHAVE, JSON.stringify({ ...a, versao: VERSAO }));
   } catch {
     // localStorage pode lançar em janela privada ou com dados bloqueados.
   }

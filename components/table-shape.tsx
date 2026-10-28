@@ -19,25 +19,41 @@ const TAMPO_MIN_CADEIRAS_PX = 24;
 export function corSinal(estado: EstadoMesa, alertas: Alerta[]): string | null {
   const alerta = alertas[0]?.tipo;
   if (alerta) return `var(--color-alerta-${alerta === "entregaAtrasada" ? "entrega" : alerta === "contaParada" ? "conta" : "critico"})`;
-  return estado === "ocupada" ? null : `var(--color-brilho-${estado})`;
+  return estado === "ocupada" || estado === "livre" ? null : `var(--color-brilho-${estado})`;
+}
+
+/** Cor e texto do tampo pintado: o alerta vence o estado, como na cena 3D. Livre não pinta (null). */
+function topoSinal(estado: EstadoMesa, alertas: Alerta[]): { fundo: string; texto: string } | null {
+  const a = alertas[0]?.tipo;
+  if (!a && estado === "livre") return null;
+  const chave = a ? (a === "entregaAtrasada" ? "entrega" : a === "contaParada" ? "conta" : "critico") : estado;
+  return { fundo: `var(--color-topo-${chave})`, texto: `var(--color-topo-${chave}-ink)` };
+}
+
+/** Cor do hover = cor do tampo; livre (undefined) usa o creme do tema, ocupada uma versão clara da tinta. */
+function corHover(estado: EstadoMesa, alertas: Alerta[], topo: { fundo: string } | null): string | undefined {
+  if (topo && (estado !== "ocupada" || alertas.length > 0)) return topo.fundo;
+  return estado === "ocupada" ? "var(--color-ocupada-hover)" : undefined;
 }
 
 /** Friso, tampo pintado ou brilho: o mesmo vocabulário do destaque escolhido para a cena. */
-function estiloTampo(destaque: Destaque, cor: string | null, ocupada: boolean, raio: number): React.CSSProperties {
+function estiloTampo(destaque: Destaque, cor: string | null, ocupada: boolean, raio: number, topo: { fundo: string; texto: string } | null): React.CSSProperties {
   const base: React.CSSProperties = { background: "var(--color-raised)", color: "var(--color-ink)", boxShadow: "var(--shadow-table), inset 0 0 0 1px var(--color-line-2)" };
+
+  // Tampo inteiro na cor do sinal, opaco, com a borda um tom mais escura para o contorno ler.
+  if (destaque === "tampo" && topo)
+    return {
+      ...base,
+      background: topo.fundo,
+      color: topo.texto,
+      boxShadow: `var(--shadow-table), inset 0 0 0 2px color-mix(in srgb, ${topo.fundo} 62%, black)`,
+    };
 
   if (ocupada) {
     // Luminância oposta à da livre: aro grosso (~7,5% do raio) ou tampo sólido; alerta e conta trocam só a cor do aro.
     const tinta = "var(--color-ocupada-tinta)";
     const pesado = { ...base, background: `color-mix(in srgb, ${tinta} 25%, var(--color-raised))` };
-    if (destaque === "tampo")
-      return {
-        ...base,
-        background: "var(--color-ocupada-tampo)",
-        color: "var(--color-ocupada-tampo-texto)",
-        boxShadow: cor ? `var(--shadow-table), inset 0 0 0 2.5px ${cor}` : "var(--shadow-table)",
-      };
-    if (destaque === "borda") return { ...pesado, boxShadow: `var(--shadow-table), inset 0 0 0 ${Math.max(3, Math.round(raio * 0.075))}px ${cor ?? tinta}` };
+    if (destaque === "borda") return { ...pesado, boxShadow: `var(--shadow-table), inset 0 0 0 ${Math.max(6, Math.round(raio * 0.15))}px ${cor ?? tinta}` };
     const luz = cor ?? tinta;
     return {
       ...pesado,
@@ -47,9 +63,7 @@ function estiloTampo(destaque: Destaque, cor: string | null, ocupada: boolean, r
 
   if (!cor) return base;
 
-  if (destaque === "borda") return { ...base, boxShadow: `var(--shadow-table), inset 0 0 0 2.5px ${cor}` };
-  if (destaque === "tampo")
-    return { ...base, background: `color-mix(in srgb, ${cor} 34%, var(--color-raised))`, boxShadow: `var(--shadow-table), inset 0 0 0 1.5px ${cor}` };
+  if (destaque === "borda") return { ...base, boxShadow: `var(--shadow-table), inset 0 0 0 5px ${cor}` };
   return {
     ...base,
     boxShadow: `var(--shadow-table), inset 0 0 0 1px var(--color-line-2), 0 0 0 3px color-mix(in srgb, ${cor} 35%, transparent), 0 0 18px 6px color-mix(in srgb, ${cor} 45%, transparent)`,
@@ -108,6 +122,7 @@ export function TableShape({
   */
   const conteudo = (
     <>
+      <span aria-hidden className="mesa-brilho" />
       <span className="flex items-center gap-[3px] leading-none">
         <span className="text-xs font-semibold opacity-90">{mesa.id}</span>
         {densidade !== "minimo" && glifo && (
@@ -141,18 +156,20 @@ export function TableShape({
     </>
   );
 
-  const estilo: React.CSSProperties = { width: largura, height: altura, ...estiloTampo(destaque, cor, estado === "ocupada", Math.min(largura, altura) / 2) };
+  const brilha = sobHover && !selecionada;
+  const topo = topoSinal(estado, alertas);
+  const estilo = { width: largura, height: altura, "--hover-cor": corHover(estado, alertas, topo), ...estiloTampo(destaque, cor, estado === "ocupada", Math.min(largura, altura) / 2, topo) } as React.CSSProperties;
 
   const classes = cn(
     "mesa-tampo absolute left-0 top-0 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-[2px]",
     "transition-[scale,box-shadow] duration-100 ease-out",
     mesa.forma === "redonda" ? "rounded-full" : "rounded-lg",
-    (selecionada || sobHover) && "scale-[1.04]",
+    selecionada && "scale-[1.04]",
   );
 
   if (somenteLeitura) {
     return (
-      <div role="img" aria-label={descricao} className={classes} style={estilo}>
+      <div role="img" aria-label={descricao} data-hover={brilha || undefined} className={classes} style={estilo}>
         {conteudo}
       </div>
     );
@@ -163,6 +180,7 @@ export function TableShape({
       type="button"
       tabIndex={tabIndex}
       data-mesa-id={mesa.id}
+      data-hover={brilha || undefined}
       aria-pressed={editando ? undefined : selecionada}
       aria-label={editando ? `${descricao}. Arraste ou use as setas para mover.` : descricao}
       onClick={() => !editando && onSelect?.(mesa.id)}
@@ -183,7 +201,6 @@ export function TableShape({
 
 const SEM_HOVER: ArmazemHover = {
   ler: () => null,
-  lerOrigem: () => "mapa",
   assinar: () => () => {},
   definir: () => {},
 };

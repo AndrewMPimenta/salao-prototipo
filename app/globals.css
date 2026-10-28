@@ -15,7 +15,7 @@
   ESTADO DA MESA
 
   O mobiliário é neutro; a cor da cena vem só do brilho no piso sob cada mesa
-  (`--color-brilho-*`): verde = livre, violeta = reservada, azul = conta, e
+  (`--color-brilho-*`): livre = sem cor (tom original da mesa), violeta = reservada, azul = conta, e
   ocupada pesa por luminância (tinta escura no tema claro, clara no escuro), não por cor. Alerta vence o estado: vermelho = receita
   parada (sem pedido), âmbar = cozinha (entrega), azul = conta parada. O brilho
   de alerta é maior e mais forte, e o texto do hover e do cartão repete tudo,
@@ -46,8 +46,8 @@
   --color-accent-ink: #fbfaf7;
   --color-brand: #0540c5;
 
-  --color-livre-fill: #ffffff;
-  --color-livre-stroke: #8a8479;
+  --color-livre-fill: #f1ebe0;
+  --color-livre-stroke: #67625a;
   --color-ocupada-fill: #d9d3c8;
   --color-ocupada-stroke: #4a463f;
   --color-reservada-fill: #ffffff;
@@ -61,6 +61,24 @@
   --color-ocupada-tinta: #2b2723;
   --color-ocupada-tampo: #34302b;
   --color-ocupada-tampo-texto: #f6f2ea;
+  --color-topo-reservada: #8b5cf6;
+  --color-topo-ocupada: #34302b;
+  --color-topo-conta: #1d6bff;
+  --color-topo-critico: #e5382d;
+  --color-topo-entrega: #f0a020;
+  --color-topo-reservada-ink: #ffffff;
+  --color-topo-ocupada-ink: #f6f2ea;
+  --color-topo-conta-ink: #ffffff;
+  --color-topo-critico-ink: #ffffff;
+  --color-topo-entrega-ink: #1b1a17;
+  --color-hover-linha: #f3e3a0;
+  --hover-aro: #fff7d1;
+  --hover-luz: rgb(255 214 90 / 0.95);
+  --hover-halo: transparent;
+  --hover-livre: #fff1b8;
+  --hover-tom: white;
+  --hover-mistura: 25%;
+  --color-ocupada-hover: #cfc7ba;
 
   --color-livre-ink: #1b1a17;
   --color-reservada-ink: #1b1a17;
@@ -108,7 +126,7 @@
     --color-accent-ink: #1a1917;
     --color-brand: #fee502;
 
-    --color-livre-fill: #2c2a26;
+    --color-livre-fill: #2b2723;
     --color-livre-stroke: #8f897e;
     --color-ocupada-fill: #4a4640;
     --color-ocupada-stroke: #cdc6ba;
@@ -123,6 +141,24 @@
     --color-ocupada-tinta: #f3eee4;
     --color-ocupada-tampo: #e9e3d6;
     --color-ocupada-tampo-texto: #1b1a17;
+    --color-topo-reservada: #a78bfa;
+    --color-topo-ocupada: #e9e3d6;
+    --color-topo-conta: #4d8dff;
+    --color-topo-critico: #ff5a4d;
+    --color-topo-entrega: #f5b335;
+    --color-topo-reservada-ink: #1b1a17;
+    --color-topo-ocupada-ink: #1b1a17;
+    --color-topo-conta-ink: #ffffff;
+    --color-topo-critico-ink: #1a1917;
+    --color-topo-entrega-ink: #1b1a17;
+    --color-hover-linha: rgb(255 241 184 / 0.16);
+    --hover-aro: #ffffff;
+    --hover-luz: rgb(255 241 184 / 0.9);
+    --hover-halo: rgb(0 0 0 / 0.55);
+    --hover-livre: #ffffff;
+    --hover-tom: black;
+    --hover-mistura: 12%;
+    --color-ocupada-hover: #f3eee4;
 
     --color-livre-ink: #f4f1ea;
     --color-reservada-ink: #f4f1ea;
@@ -165,7 +201,7 @@
   --color-accent: #f4f1ea;
   --color-accent-ink: #1a1917;
   --color-brand: #fee502;
-  --color-livre-fill: #2c2a26;
+  --color-livre-fill: #2b2723;
   --color-livre-stroke: #8f897e;
   --color-ocupada-fill: #4a4640;
   --color-ocupada-stroke: #cdc6ba;
@@ -180,6 +216,24 @@
   --color-ocupada-tinta: #f3eee4;
   --color-ocupada-tampo: #e9e3d6;
   --color-ocupada-tampo-texto: #1b1a17;
+  --color-topo-reservada: #a78bfa;
+  --color-topo-ocupada: #e9e3d6;
+  --color-topo-conta: #4d8dff;
+  --color-topo-critico: #ff5a4d;
+  --color-topo-entrega: #f5b335;
+  --color-topo-reservada-ink: #1b1a17;
+  --color-topo-ocupada-ink: #1b1a17;
+  --color-topo-conta-ink: #ffffff;
+  --color-topo-critico-ink: #1a1917;
+  --color-topo-entrega-ink: #1b1a17;
+  --color-hover-linha: rgb(255 241 184 / 0.16);
+  --hover-aro: #ffffff;
+  --hover-luz: rgb(255 241 184 / 0.9);
+  --hover-halo: rgb(0 0 0 / 0.55);
+  --hover-livre: #ffffff;
+  --hover-tom: black;
+  --hover-mistura: 12%;
+  --color-ocupada-hover: #f3eee4;
   --color-livre-ink: #f4f1ea;
   --color-reservada-ink: #f4f1ea;
   --color-ocupada-ink: #f4f1ea;
@@ -253,12 +307,18 @@ html {
   box-shadow: inset 0 0 0 1.5px var(--c);
 }
 :root[data-destaque="tampo"] .amostra {
-  background: var(--c);
+  background: var(--topo, var(--c));
   box-shadow: none;
 }
 :root[data-destaque="brilho"] .amostra {
   background: radial-gradient(circle, color-mix(in srgb, var(--c) 85%, transparent) 0 38%, transparent 72%);
   box-shadow: none;
+}
+/* Livre não tem cor: amostra no tom da mesa, com contorno fino para existir sobre o vidro. */
+.amostra-livre {
+  border-radius: 9999px;
+  background: var(--color-livre-fill);
+  box-shadow: inset 0 0 0 1px var(--color-ink-2);
 }
 /* Ocupada: luminância oposta à da livre (tinta escura no claro, clara no escuro), em cada destaque. */
 .amostra-ocupada {
@@ -268,7 +328,7 @@ html {
   box-shadow: inset 0 0 0 3px var(--c);
 }
 :root[data-destaque="tampo"] .amostra-ocupada {
-  background: var(--color-ocupada-tampo);
+  background: var(--color-topo-ocupada);
   box-shadow: none;
 }
 :root[data-destaque="brilho"] .amostra-ocupada {
@@ -373,4 +433,33 @@ html {
 .mesa-plano[data-colide] > .mesa-tampo {
   outline: 2px solid var(--color-alerta-critico);
   outline-offset: 2px;
+}
+
+/*
+  Hover: brilho da mesa na planta (a cena 3D tem o seu). Aro, luz e película na cor do tampo da mesa (livre: creme quente) sobre o tampo;
+  no tema escuro um halo escuro atrás separa a luz do fundo. A mesa fixada não brilha, o foco já a destaca.
+*/
+.mesa-brilho {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0;
+  background: rgb(255 255 255 / 0.12);
+  --c: color-mix(in srgb, var(--hover-cor, var(--hover-livre)) calc(100% - var(--hover-mistura)), var(--hover-tom));
+  box-shadow:
+    inset 0 0 0 2px var(--c),
+    0 0 0 2px var(--c),
+    0 0 0 5px var(--hover-halo),
+    0 0 22px 9px color-mix(in srgb, var(--c) 90%, transparent);
+  transition: opacity 120ms ease-out;
+}
+.mesa-tampo[data-hover] > .mesa-brilho {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mesa-brilho {
+    transition: none;
+  }
 }
