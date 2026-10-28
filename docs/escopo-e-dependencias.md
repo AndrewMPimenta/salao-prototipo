@@ -14,7 +14,7 @@ cadastrados) e a reunião de alinhamento do protótipo.
 ## O que depende só do protótipo (fazer agora)
 
 - Mapa 2D e 3D com mesas, bar, palco, banheiros, cozinha e entradas, com dados fictícios.
-- Cenário dos quatro salões de cliente (Terraço, Celebration, Suites, Resort) é ilustrativo até recebermos as plantas reais: só as mesas seguem o cliente. Fontes públicas consultadas (turismo): o Resort tem os restaurantes Maresias e Canoa Quebrada e bares junto à piscina; o Celebration tem o restaurante Prata da Casa (buffet) e o Bar da Piscina. Não há fonte pública para Suites nem Terraço, nem para pista, DJ, lounge, churrasqueira, cozinha ao vivo, pérgola ou elevador, por isso ficaram só buffet, bar, piscina, deck e entrada. As telas mostram o aviso "Layout ilustrativo".
+- Cenário dos cinco salões de cliente (Terraço, Celebration, Suites, Resort, Raízes) é ilustrativo até recebermos as plantas reais: só as mesas seguem o cliente. Fontes públicas consultadas (turismo): o Resort tem os restaurantes Maresias e Canoa Quebrada e bares junto à piscina; o Celebration tem o restaurante Prata da Casa (buffet) e o Bar da Piscina. Não há fonte pública para Suites, Raízes nem Terraço, nem para pista, DJ, lounge, churrasqueira, cozinha ao vivo, pérgola ou elevador, por isso ficaram só buffet, bar, piscina, deck e entrada. As telas mostram o aviso "Layout ilustrativo".
 - Estados e alertas apenas como **representação visual** (cores, legenda).
 - Detalhes da mesa no painel lateral **ao passar o mouse**, sem zoom; clique fixa a mesa.
 - Arrastar mesas para ajustar o layout (editor local, salvo no navegador).
@@ -28,7 +28,7 @@ cadastrados) e a reunião de alinhamento do protótipo.
 | Cadastro de mesas e posições | Retaguarda (decidido que não fica no PDV) |
 | Regras de estado e de "alerta" (limiares, prioridade) | definição de negócio — "esse conceito não existe hoje" |
 | Dados reais de ocupação | o que o sistema já expõe hoje |
-| Lista real de salões e mesas dos clientes | Fábio e o cliente. Já recebidas: Restaurante do Terraço (49), Hot Beach Celebration (65), Hot Beach Suites (124) e Hot Beach Resort (105); Celebration ainda pode ser 69 |
+| Lista real de salões e mesas dos clientes | Fábio e o cliente. Já recebidas: Restaurante do Terraço (49), Hot Beach Celebration (65), Hot Beach Suites (124) e Hot Beach Resort (105) e Hot Beach Raízes (52); Celebration ainda pode ser 69 |
 | Visualização dentro do PDV Desktop (Electron/Nextron ou webview) | spike, API do servidor, limites do DevExpress |
 | Reserva com preferência de posição | recurso novo, sem definição |
 | Montagem de salão por IA ou foto | versão 2 |

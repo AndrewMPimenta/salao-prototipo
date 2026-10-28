@@ -6,6 +6,7 @@ export const AMBIENTES: Ambiente[] = [
   { id: "hotbeach", nome: "Hot Beach Celebration", ilustrativo: true },
   { id: "hotbeach-suites", nome: "Hot Beach Suites", ilustrativo: true },
   { id: "hotbeach-resort", nome: "Hot Beach Resort", ilustrativo: true },
+  { id: "hotbeach-raizes", nome: "Hot Beach Raízes", ilustrativo: true },
   { id: "principal", nome: "Salão Principal" },
   { id: "varanda", nome: "Varanda" },
   { id: "mezanino", nome: "Mezanino" },
@@ -28,6 +29,10 @@ export const PRACAS: Praca[] = [
   { id: "B", ambienteId: "hotbeach-resort", garcom: "Edson" },
   { id: "C", ambienteId: "hotbeach-resort", garcom: "Luana" },
   { id: "D", ambienteId: "hotbeach-resort", garcom: "Marcelo" },
+  { id: "A", ambienteId: "hotbeach-raizes", garcom: "Sônia" },
+  { id: "B", ambienteId: "hotbeach-raizes", garcom: "Fabrício" },
+  { id: "C", ambienteId: "hotbeach-raizes", garcom: "Tereza" },
+  { id: "D", ambienteId: "hotbeach-raizes", garcom: "Wesley" },
   { id: "A", ambienteId: "principal", garcom: "Rafa" },
   { id: "B", ambienteId: "principal", garcom: "Dani" },
   { id: "C", ambienteId: "principal", garcom: "Léo" },
@@ -55,6 +60,7 @@ export const POSICOES_HABILITADAS: Record<string, boolean> = {
   hotbeach: false,
   "hotbeach-suites": false,
   "hotbeach-resort": false,
+  "hotbeach-raizes": false,
 };
 
 export function posicoesHabilitadas(ambienteId: string): boolean {
@@ -205,7 +211,7 @@ const SEM_POSICOES = new Set([33]);
 function comComandas(mesa: Mesa): Mesa {
   const garcom = PRACAS.find((p) => p.id === mesa.pracaId && p.ambienteId === mesa.ambienteId)?.garcom ?? "Caixa";
   // Nas mesas de evento a quantidade de comandas sai do id, para não consumir o sorteio do gerador.
-  const evento = ["eventos", "hotbeach", "hotbeach-suites", "hotbeach-resort"].includes(mesa.ambienteId);
+  const evento = ["eventos", "hotbeach", "hotbeach-suites", "hotbeach-resort", "hotbeach-raizes"].includes(mesa.ambienteId);
   return gerarComandas(mesa, {
     garcom,
     comPosicoes: posicoesHabilitadas(mesa.ambienteId) && !SEM_POSICOES.has(mesa.id),
@@ -444,6 +450,26 @@ export function celulasResort(): Celula[] {
   );
 }
 
+/*
+  Raízes: salão compacto com dois blocos de mesas separados por um corredor central (buffet no
+  corredor, entrada ao norte, bar ao sul). Bloco oeste: 20 redondas de 4 e 12 retangulares de 8;
+  bloco leste: 20 redondas de 6: 20 + 12 + 20 = 52.
+*/
+export const RA_CAMPO_L = 27.6;
+export const RA_CAMPO_P = 18.6;
+
+export function celulasRaizes(): Celula[] {
+  return celulasDeZonas(
+    [
+      { x0: 0, z0: 0, colunas: 5, linhas: 4, passoX: 2.4, passoZ: 2.4, tipo: () => REDONDA_4 },
+      { x0: 1.35, z0: 9.8, colunas: 3, linhas: 4, passoX: 3.1, passoZ: 2.1, tipo: () => RETANGULAR_8 },
+      { x0: 17, z0: 0.8, colunas: 4, linhas: 5, passoX: 2.65, passoZ: 3.4, tipo: () => REDONDA_6 },
+    ],
+    RA_CAMPO_L,
+    RA_CAMPO_P,
+  );
+}
+
 const MESAS_TERRACO = gerarSalao({
   semente: 202608041,
   ambienteId: "terraco",
@@ -488,7 +514,18 @@ const MESAS_RESORT = gerarSalao({
   celulas: celulasResort(),
 });
 
-export const MESAS: Mesa[] = [...MESAS_TERRACO, ...MESAS_HOTBEACH, ...MESAS_SUITES, ...MESAS_RESORT, ...MESAS_BASE, ...gerarEventos()].map(comComandas);
+const MESAS_RAIZES = gerarSalao({
+  semente: 20262127,
+  ambienteId: "hotbeach-raizes",
+  idInicial: 900,
+  campoL: RA_CAMPO_L,
+  campoP: RA_CAMPO_P,
+  ocupacao: 0.6,
+  reservadas: 4,
+  celulas: celulasRaizes(),
+});
+
+export const MESAS: Mesa[] = [...MESAS_TERRACO, ...MESAS_HOTBEACH, ...MESAS_SUITES, ...MESAS_RESORT, ...MESAS_RAIZES, ...MESAS_BASE, ...gerarEventos()].map(comComandas);
 
 export interface Fixture {
   x: number;
@@ -522,6 +559,11 @@ export const FIXTURES: Record<string, Fixture[]> = {
     { x: 108.2, y: 23.2, largura: 4.2, altura: 50, nome: "Buffet", solido: true },
     { x: 58.2, y: -28.6, largura: 8.8, altura: 6.3, nome: "Entrada", solido: true },
     { x: 0, y: 101, largura: 100, altura: 4, nome: "Deck" },
+  ],
+  "hotbeach-raizes": [
+    { x: 50.4, y: 17.7, largura: 5.1, altura: 64.5, nome: "Buffet", solido: true },
+    { x: 24.6, y: 109.1, largura: 50.7, altura: 6.5, nome: "Bar", solido: true },
+    { x: 46.4, y: -19.9, largura: 13, altura: 6, nome: "Entrada", solido: true },
   ],
   principal: [
     { x: 81, y: 14, largura: 17, altura: 58, nome: "Bar" },

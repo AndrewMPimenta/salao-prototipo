@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { EV_CAMPO_L, EV_CAMPO_P, HB_CAMPO_L, HB_CAMPO_P, RE_CAMPO_L, RE_CAMPO_P, SU_CAMPO_L, SU_CAMPO_P, TE_CAMPO_L, TE_CAMPO_P } from "@/lib/data";
+import { EV_CAMPO_L, EV_CAMPO_P, HB_CAMPO_L, HB_CAMPO_P, RA_CAMPO_L, RA_CAMPO_P, RE_CAMPO_L, RE_CAMPO_P, SU_CAMPO_L, SU_CAMPO_P, TE_CAMPO_L, TE_CAMPO_P } from "@/lib/data";
 
 /*
   Cada ambiente tem sua própria caixa e seu próprio cenário: o salão é uma
@@ -24,6 +24,8 @@ export const CENARIOS: Record<string, Cenario> = {
   "hotbeach-suites": { salaL: 54, salaP: 40, campoL: SU_CAMPO_L, campoP: SU_CAMPO_P, campoZ0: -16.5 },
   // Piscina a oeste, buffet a leste, entrada ao norte e a faixa de areia ao sul.
   "hotbeach-resort": { salaL: 54, salaP: 31.5, campoL: RE_CAMPO_L, campoP: RE_CAMPO_P, campoZ0: -10.25 },
+  // Corredor central com o buffet entre dois blocos de mesas, entrada ao norte e bar ao sul.
+  "hotbeach-raizes": { salaL: 34, salaP: 26, campoL: RA_CAMPO_L, campoP: RA_CAMPO_P, campoZ0: -9.3 },
   principal: { salaL: 28, salaP: 22, campoL: 22, campoP: 15, campoZ0: -4.6 },
   varanda: { salaL: 19, salaP: 13, campoL: 15, campoP: 7.4, campoZ0: -1.9 },
   mezanino: { salaL: 20, salaP: 12.5, campoL: 15.5, campoP: 8.2, campoZ0: -2.4 },
@@ -97,6 +99,12 @@ export function marcosDe(ambienteId: string): Marco[] {
         { nome: "Buffet", x: 23.2, y: 1.25, z: -1 },
         { nome: "Deck", x: 0, y: 0.05, z: 9.3 },
         { nome: "Entrada", x: 4.85, y: 2.9, z: -meiaP + 0.1 },
+      ];
+    case "hotbeach-raizes":
+      return [
+        { nome: "Buffet", x: 0.8, y: 1.25, z: 0 },
+        { nome: "Bar", x: 0, y: 1.25, z: meiaP - 1.4 },
+        { nome: "Entrada", x: 0.8, y: 2.9, z: -meiaP + 0.1 },
       ];
     case "eventos":
       return [

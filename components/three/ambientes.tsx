@@ -431,3 +431,35 @@ export function CenarioHotBeachResort({ cores, c, sombras }: PropsCena) {
     </group>
   );
 }
+
+/** Restaurante compacto de hotel: corredor central com o buffet entre dois blocos de mesas, entrada ao norte e bar ao sul (as medidas seguem `celulasRaizes`). */
+export function CenarioHotBeachRaizes({ cores, c, sombras }: PropsCena) {
+  const meiaL = c.salaL / 2;
+  const meiaP = c.salaP / 2;
+  const xCorredor = 14.6 - c.campoL / 2;
+  const zMeio = c.campoZ0 + c.campoP / 2;
+
+  return (
+    <group>
+      <Laje c={c} cores={cores} />
+
+      <Parede tam={[c.salaL, 0.8, 0.14]} pos={[0, 0.4, -meiaP]} cores={cores} />
+      <Parede tam={[c.salaL, 0.8, 0.14]} pos={[0, 0.4, meiaP]} cores={cores} />
+      <Parede tam={[0.14, 0.8, c.salaP]} pos={[-meiaL, 0.4, 0]} cores={cores} />
+      <Parede tam={[0.14, 0.8, c.salaP]} pos={[meiaL, 0.4, 0]} cores={cores} />
+
+      <Entrada x={xCorredor} z={-meiaP} cores={cores} />
+
+      {/* Buffet: ilha comprida no sentido norte-sul, no meio do corredor. */}
+      <group position={[xCorredor, 0, zMeio]} rotation={[0, Math.PI / 2, 0]}>
+        <Buffet x={0} z={0} comp={12} cores={cores} sombras={sombras} />
+      </group>
+
+      {/* Bar corrido junto à parede sul, com prateleira de fundo. */}
+      <Bloco tam={[14, 1.1, 1.2]} pos={[0, 0.55, meiaP - 1.4]} cor={cores.balcao} />
+      <Bloco tam={[14.24, 0.07, 1.44]} pos={[0, 1.135, meiaP - 1.4]} cor={cores.balcaoTopo} />
+      <Bloco tam={[14, 1.8, 0.4]} pos={[0, 0.9, meiaP - 0.45]} cor={cores.sofa} />
+      {sombras && <Sombra x={0} z={meiaP - 1.4} l={14} p={1.2} />}
+    </group>
+  );
+}
