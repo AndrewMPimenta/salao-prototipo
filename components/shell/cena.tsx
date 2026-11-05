@@ -8,9 +8,9 @@ function Esqueleto() {
   return (
     <div
       role="status"
-      className="esqueleto-brilho absolute inset-0 grid place-items-center overflow-hidden bg-(--color-app)"
+      className="esqueleto-brilho absolute inset-0 grid place-items-center overflow-hidden bg-card"
     >
-      <p className="m-0 text-[13px] font-medium text-(--color-ink-3)">Montando o salão…</p>
+      <p className="m-0 text-[13px] font-medium text-muted-foreground">Montando o salão…</p>
     </div>
   );
 }

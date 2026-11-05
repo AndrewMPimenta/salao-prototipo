@@ -22,7 +22,7 @@ function Bussola({ camera }: { camera: Camera }) {
 }
 
 const item =
-  "flex h-11 w-full items-center whitespace-nowrap rounded-[14px] px-3 text-left text-[13px] font-medium text-(--color-ink) hover:bg-(--color-ink)/8 active:bg-(--color-ink)/12 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)";
+  "flex h-10 w-full items-center whitespace-nowrap rounded-lg px-3 text-left text-[13px] font-medium text-foreground outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/30";
 
 /** Vista padrão por ambiente: o menu abre do lado que a barra deixa livre e fecha com Esc ou clique fora. */
 function MenuVista({ camera, lado }: { camera: Camera; lado: Lado }) {
@@ -67,7 +67,7 @@ function MenuVista({ camera, lado }: { camera: Camera; lado: Lado }) {
           role="menu"
           aria-label="Vista padrão"
           style={estilo}
-          className="glass animate-surgir absolute z-30 flex w-60 flex-col rounded-[18px] p-1"
+          className="animate-surgir absolute z-30 flex w-60 flex-col rounded-xl border bg-popover p-1 text-popover-foreground shadow-lg"
         >
           <button
             type="button"

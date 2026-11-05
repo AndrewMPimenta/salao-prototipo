@@ -24,24 +24,24 @@ export function AbaResumo({ mesa, limiares, perfil = "completo" }: AbaResumoProp
     <div>
       {/* O estado em TEXTO aqui é o que dispensa legenda fixa no celular. */}
       <ul className="m-0 flex list-none flex-col gap-2 p-0">
-        <li className="flex items-center gap-2.5 text-[15px] font-semibold leading-6 text-(--color-ink)">
+        <li className="flex items-center gap-2.5 text-[15px] font-semibold leading-6 text-foreground">
           <span className="grid size-6 flex-none place-items-center">
             <AmostraEstado estado={estado} className="size-5" />
           </span>
           {ROTULO_ESTADO[estado]}
         </li>
         {alertas.map((a) => (
-          <li key={a.tipo} className="flex items-center gap-2.5 text-[15px] leading-6 text-(--color-ink)">
+          <li key={a.tipo} className="flex items-center gap-2.5 text-[15px] leading-6 text-foreground">
             <FichaAlerta tipo={a.tipo} />
             <span className="min-w-0 flex-1">
               <b className="font-semibold">{ROTULO_ALERTA[a.tipo]}</b>{" "}
-              <span className="tnum text-(--color-ink-2)">há {formatarDuracao(a.minutos)}</span>
+              <span className="tnum text-muted-foreground">há {formatarDuracao(a.minutos)}</span>
             </span>
           </li>
         ))}
       </ul>
 
-      <dl className="m-0 mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 border-t border-(--color-line) pt-3 text-[13px] leading-5">
+      <dl className="m-0 mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 border-t border-border pt-3 text-[13px] leading-5">
         {ocupada ? (
           <>
             <Item rotulo="Pessoas" valor={`${mesa.pessoas} de ${mesa.lugares} lugares`} />
@@ -87,7 +87,7 @@ export function AbaResumo({ mesa, limiares, perfil = "completo" }: AbaResumoProp
 function Item({ rotulo, valor }: { rotulo: string; valor: string }) {
   return (
     <>
-      <dt className="text-(--color-ink-2)">{rotulo}</dt>
+      <dt className="text-muted-foreground">{rotulo}</dt>
       <dd className="tnum m-0 text-right text-[15px] font-medium leading-5">{valor}</dd>
     </>
   );

@@ -26,10 +26,10 @@ export const ANCORAS: Record<string, Ancora> = {
 
 export type IdAncora = keyof typeof ANCORAS;
 
-/** No celular a barra só encosta nas laterais: topo e base são do cabeçalho e da gaveta. */
+/** No celular a barra fica embaixo ou nas laterais: o topo é do cabeçalho e do selo de layout. */
 export const ANCORAS_DISPOSITIVO: Record<Dispositivo, IdAncora[]> = {
   desktop: ["se", "sc", "sd", "me", "md", "ie", "ic", "id"],
-  movel: ["me", "md"],
+  movel: ["me", "md", "ic"],
 };
 
 export const ROTULO_FERRAMENTA: Record<IdFerramenta, string> = {
@@ -51,14 +51,16 @@ export interface ConfigBarra {
   ocultas: IdFerramenta[];
 }
 
+/** Exibição já mora na sidebar; a bússola e a vista padrão ficam de fora no celular, onde a pílula precisa caber. */
 export const configPadrao = (d: Dispositivo): ConfigBarra => ({
-  ancora: d === "desktop" ? "id" : "md",
-  orientacao: "vertical",
+  ancora: "ic",
+  orientacao: "horizontal",
   ordem: ORDEM_PADRAO,
-  ocultas: [],
+  ocultas: d === "desktop" ? ["exibicao"] : ["exibicao", "bussola", "vista"],
 });
 
-const chave = (d: Dispositivo) => `salao:barra:${d}`;
+// v2: o padrão virou a pílula horizontal embaixo; a posição gravada antes não vale mais.
+const chave = (d: Dispositivo) => `salao:barra:v2:${d}`;
 
 const ehId = (v: unknown): v is IdFerramenta => typeof v === "string" && v in ROTULO_FERRAMENTA;
 

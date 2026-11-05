@@ -31,7 +31,7 @@ export function TimelineView({ mesas, limiares }: TimelineViewProps) {
     <div className="p-4">
       <div className="mb-2 grid grid-cols-[64px_1fr] gap-3">
         <div />
-        <div className="flex justify-between font-[family-name:var(--font-mono)] text-[11px] text-(--color-ink-3)">
+        <div className="flex justify-between font-[family-name:var(--font-mono)] text-[11px] text-muted-foreground">
           {ticks.map((t) => (
             <span key={t}>+{t}′</span>
           ))}
@@ -70,9 +70,9 @@ function Linha({
     <>
       <div className="tnum flex items-center justify-end gap-1 text-sm font-semibold">
         {mesa.id}
-        <span className="text-[11px] font-normal text-(--color-ink-3)">{mesa.lugares}p</span>
+        <span className="text-[11px] font-normal text-muted-foreground">{mesa.lugares}p</span>
       </div>
-      <div className="relative h-7 overflow-hidden rounded-lg bg-(--color-ink)/6">
+      <div className="relative h-7 overflow-hidden rounded-lg bg-foreground/6">
         {livre ? (
           <Barra largura={100} estado="livre" texto="livre agora" />
         ) : passou ? (
@@ -82,12 +82,12 @@ function Linha({
             <Barra largura={largura} estado={estado!} texto={`libera ~${restam}′`} />
             <div
               aria-hidden
-              className="absolute inset-y-0 rounded-lg border-2 border-dashed border-(--color-line-2)"
+              className="absolute inset-y-0 rounded-lg border-2 border-dashed border-input"
               style={{ left: `${largura}%`, width: `${Math.min(28, 100 - largura)}%` }}
             />
           </>
         )}
-        <div aria-hidden className="absolute inset-y-0 left-0 w-0.5 bg-(--color-focus)" />
+        <div aria-hidden className="absolute inset-y-0 left-0 w-0.5 bg-ring" />
       </div>
     </>
   );

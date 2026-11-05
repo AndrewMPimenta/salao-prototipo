@@ -1,4 +1,37 @@
+import {
+  ArrowsInIcon,
+  ArrowsOutIcon,
+  BookmarkSimpleIcon,
+  CrosshairIcon,
+  DotsSixIcon,
+  DotsSixVerticalIcon,
+  EyeIcon,
+  MagnifyingGlassIcon,
+  MinusIcon,
+  PencilSimpleIcon,
+  PlusIcon,
+  QuestionIcon,
+  XIcon,
+} from "@phosphor-icons/react";
 import type { ReactNode } from "react";
+
+const I = "size-5";
+
+export const IconeMais = () => <PlusIcon className={I} />;
+export const IconeMenos = () => <MinusIcon className={I} />;
+export const IconeBusca = () => <MagnifyingGlassIcon className={I} />;
+export const IconeFechar = () => <XIcon className={I} />;
+export const IconeAjuda = () => <QuestionIcon className={I} />;
+export const IconeExpandir = () => <ArrowsOutIcon className={I} />;
+export const IconeRecolher = () => <ArrowsInIcon className={I} />;
+export const IconeAlvo = () => <CrosshairIcon className={I} />;
+export const IconeOlho = () => <EyeIcon className={I} />;
+export const IconeMarcador = () => <BookmarkSimpleIcon className={I} />;
+export const IconeLapis = () => <PencilSimpleIcon className={I} />;
+
+/** Seis pontos: duas colunas por três linhas, ou o contrário na barra deitada. */
+export const IconeAlca = ({ deitada }: { deitada?: boolean }) =>
+  deitada ? <DotsSixIcon className={I} weight="bold" /> : <DotsSixVerticalIcon className={I} weight="bold" />;
 
 function Base({ children }: { children: ReactNode }) {
   return (
@@ -13,36 +46,6 @@ function Base({ children }: { children: ReactNode }) {
       strokeLinejoin="round"
     >
       {children}
-    </svg>
-  );
-}
-
-export const IconeMais = () => <Base><path d="M12 5v14M5 12h14" /></Base>;
-export const IconeMenos = () => <Base><path d="M5 12h14" /></Base>;
-export const IconeBusca = () => <Base><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></Base>;
-export const IconeFechar = () => <Base><path d="M6 6l12 12M18 6 6 18" /></Base>;
-export const IconeAjuda = () => <Base><circle cx="12" cy="12" r="8.5" /><path d="M9.7 9.5a2.4 2.4 0 1 1 3.4 2.2c-.7.4-1.1.9-1.1 1.8M12 16.6v.1" /></Base>;
-export const IconeExpandir = () => <Base><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></Base>;
-export const IconeRecolher = () => <Base><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" /></Base>;
-export const IconeAlvo = () => <Base><circle cx="12" cy="12" r="3" /><path d="M12 3v3M12 18v3M3 12h3M18 12h3" /></Base>;
-export const IconeOlho = () => <Base><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" /><circle cx="12" cy="12" r="2.8" /></Base>;
-export const IconeMarcador = () => <Base><path d="M7 4h10v16l-5-3.5L7 20V4Z" /></Base>;
-export const IconeChevron = ({ baixo }: { baixo?: boolean }) => (
-  <Base><path d={baixo ? "m7 10 5 5 5-5" : "m7 14 5-5 5 5"} /></Base>
-);
-
-export const IconeLapis = () => <Base><path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17l-1 3Z" /><path d="m14.5 7.5 3 3" /></Base>;
-export const IconeChevronLado = ({ direita }: { direita?: boolean }) => (
-  <Base><path d={direita ? "m10 7 5 5-5 5" : "m14 7-5 5 5 5"} /></Base>
-);
-
-/** Seis pontos: duas colunas por três linhas, ou o contrário na barra deitada. */
-export function IconeAlca({ deitada }: { deitada?: boolean }) {
-  const colunas = deitada ? [6, 12, 18] : [9, 15];
-  const linhas = deitada ? [9, 15] : [6, 12, 18];
-  return (
-    <svg aria-hidden viewBox="0 0 24 24" className="size-5" fill="currentColor">
-      {colunas.flatMap((x) => linhas.map((y) => <circle key={`${x}-${y}`} cx={x} cy={y} r={1.5} />))}
     </svg>
   );
 }

@@ -82,7 +82,7 @@ export function FolhaCobranca({ posicao, centavos, onConfirmar, onFechar }: Folh
   return (
     <div
       className={cn(
-        "absolute inset-0 z-20 flex items-end overflow-hidden rounded-(--radius-panel) bg-(--color-ink)/35 transition-opacity duration-200",
+        "absolute inset-0 z-20 flex items-end overflow-hidden rounded-xl bg-foreground/35 transition-opacity duration-200",
         visivel ? "opacity-100" : "opacity-0",
       )}
       onMouseDown={(e) => {
@@ -95,33 +95,33 @@ export function FolhaCobranca({ posicao, centavos, onConfirmar, onFechar }: Folh
         aria-modal="true"
         aria-labelledby={idTitulo}
         onKeyDown={aoTeclar}
-        className="animate-surgir w-full rounded-t-[20px] bg-(--color-surface) p-4 shadow-[0_-1px_0_var(--color-line),0_-12px_32px_-8px_rgb(40_30_15/0.25)]"
+        className="animate-surgir w-full rounded-t-[20px] bg-card p-4 shadow-[0_-1px_0_var(--border),0_-12px_32px_-8px_rgb(40_30_15/0.25)]"
       >
         {paga ? (
           <div className="flex flex-col items-center gap-3 py-4 text-center">
             <VistoAnimado />
             <div>
-              <p id={idTitulo} className="m-0 text-[17px] font-semibold leading-6 text-(--color-ink)">
+              <p id={idTitulo} className="m-0 text-[17px] font-semibold leading-6 text-foreground">
                 Posição P{posicao} paga
               </p>
-              <p className="tnum m-0 text-[13px] leading-5 text-(--color-ink-2)">
+              <p className="tnum m-0 text-[13px] leading-5 text-muted-foreground">
                 {formatarCentavos(centavos)} · {rotuloForma(forma)}
               </p>
             </div>
-            <Button variante="padrao" className="min-w-28 justify-center" onClick={onFechar}>
+            <Button variant="outline" className="min-w-28 justify-center" onClick={onFechar}>
               Concluir
             </Button>
           </div>
         ) : (
           <>
-            <p id={idTitulo} className="m-0 text-[15px] font-semibold leading-6 text-(--color-ink)">
+            <p id={idTitulo} className="m-0 text-[15px] font-semibold leading-6 text-foreground">
               Cobrar posição P{posicao}
             </p>
-            <p className="font-display tnum m-0 mt-1 text-[44px] text-(--color-ink)">{formatarCentavos(centavos)}</p>
-            <p className="m-0 mt-1 text-[12px] leading-4 text-(--color-ink-3)">Cobrança simulada: nada é gravado.</p>
+            <p className="font-mono font-semibold tnum m-0 mt-1 text-[44px] text-foreground">{formatarCentavos(centavos)}</p>
+            <p className="m-0 mt-1 text-[12px] leading-4 text-muted-foreground">Cobrança simulada: nada é gravado.</p>
 
             <fieldset className="m-0 mt-4 min-w-0 border-0 p-0">
-              <legend className="mb-2 p-0 text-[12px] font-medium leading-4 text-(--color-ink-2)">Forma de pagamento</legend>
+              <legend className="mb-2 p-0 text-[12px] font-medium leading-4 text-muted-foreground">Forma de pagamento</legend>
               <div className="grid grid-cols-2 gap-2">
                 {FORMAS.map((f) => (
                   <label key={f.valor} className="relative block">
@@ -135,10 +135,10 @@ export function FolhaCobranca({ posicao, centavos, onConfirmar, onFechar }: Folh
                     />
                     <span
                       className={cn(
-                        "grid min-h-11 cursor-pointer place-items-center rounded-(--radius-control) text-[13px] font-medium text-(--color-ink)",
-                        "bg-(--color-raised) shadow-[inset_0_0_0_1px_var(--color-line)] transition-[background-color,color,transform] duration-100 active:scale-[0.97]",
-                        "peer-checked:bg-(--color-accent) peer-checked:text-(--color-accent-ink) peer-checked:shadow-none",
-                        "peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-(--color-focus)",
+                        "grid min-h-11 cursor-pointer place-items-center rounded-lg text-[13px] font-medium text-foreground",
+                        "bg-card shadow-[inset_0_0_0_1px_var(--border)] transition-[background-color,color,transform] duration-100 active:scale-[0.97]",
+                        "peer-checked:bg-primary peer-checked:text-primary-foreground peer-checked:shadow-none",
+                        "peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring",
                       )}
                     >
                       {f.rotulo}
@@ -149,10 +149,10 @@ export function FolhaCobranca({ posicao, centavos, onConfirmar, onFechar }: Folh
             </fieldset>
 
             <div className="mt-4 flex gap-2">
-              <Button variante="padrao" className="flex-1 justify-center" onClick={onFechar}>
+              <Button variant="outline" className="flex-1 justify-center" onClick={onFechar}>
                 Cancelar
               </Button>
-              <Button variante="solido" className="flex-[1.6] justify-center" onClick={confirmar}>
+              <Button variant="default" className="flex-[1.6] justify-center" onClick={confirmar}>
                 Confirmar cobrança
               </Button>
             </div>
