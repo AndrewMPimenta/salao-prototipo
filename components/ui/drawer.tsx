@@ -188,7 +188,7 @@ export function Drawer({ pontos, indice, onIndiceChange, cabecalho, children, ro
       role="region"
       aria-label={rotulo}
       style={{ height: H, transform: `translate3d(0, ${H - altura.current}px, 0)` }}
-      className={`glass fixed inset-x-0 bottom-0 z-30 flex flex-col rounded-t-[24px] ${className ?? ""}`}
+      className={`fixed inset-x-0 bottom-0 z-30 flex flex-col rounded-t-xl border-t bg-background text-foreground shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.25)] ${className ?? ""}`}
     >
       <div className="shrink-0 touch-none select-none" {...eventosArrasto(false)}>
         <button

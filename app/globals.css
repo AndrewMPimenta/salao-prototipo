@@ -1,16 +1,14 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
 /*
-  DIREÇÃO VISUAL — "MAQUETE"
+  DIREÇÃO VISUAL
 
-  O salão é apresentado como uma maquete de arquitetura: piso de papel
-  quente, mobiliário fosco, luz suave de fim de tarde. A interface flutua
-  por cima em vidro fosco, para que a cena seja sempre o protagonista.
-
-  Neutros quentes (pedra/papel) em vez do cinza-azulado de sistema: num
-  restaurante o cinza frio lê como escritório. Tipografia em três vozes:
-  Instrument Serif para nomes de lugar (o que o cliente reconhece), Geist
-  para a interface e Geist Mono para numerais que mudam a cada minuto.
+  Casca no Mosaico, o design system da Multiclubes (shadcn base-luma: Base UI, Phosphor, azul
+  da marca como primary, formas arredondadas); a cena 3D e a planta continuam com o piso quente e o mobiliário fosco, e são a
+  única parte do produto com cor própria. Geist para a interface, Geist Mono para os numerais
+  que mudam a cada minuto.
 
   ESTADO DA MESA
 
@@ -21,6 +19,158 @@
   de alerta é maior e mais forte, e o texto do hover e do cartão repete tudo,
   então a cor nunca está sozinha.
 */
+/* Tema do Mosaico (copiado do kit; ver docs/mosaico.md). O que for da casca vem daqui. */
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-highlight: var(--highlight);
+  --color-highlight-foreground: var(--highlight-foreground);
+  --color-chart-brand: var(--chart-brand);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Fonte de títulos e números em destaque (ver --heading-font no :root). */
+  --font-heading: var(--heading-font);
+
+  /* Escala de arredondamento por nível de aninhamento (ver :root). */
+  --radius-surface: var(--surface-radius);
+  --radius-field: calc(var(--surface-radius) - var(--radius-step));
+  --radius-item: calc(var(--surface-radius) - 2 * var(--radius-step));
+}
+
+:root {
+  --radius: 0.625rem;
+  /*
+   * Arredondamento aninhado: cada nível interno tem o raio do externo menos o
+   * espaço entre eles. surface = dialog, card, command; field = input, button,
+   * popover; item = itens de menu e de lista. Um contêiner pode sobrescrever
+   * --surface-radius para reescalar tudo o que está dentro dele. O valor base
+   * deriva de --radius, então trocar --radius reescala o kit inteiro.
+   */
+  --surface-radius: calc(var(--radius) * 3.2);
+  --radius-step: 0.5rem;
+  /* Por padrão os títulos usam a fonte do texto. O app troca definindo --heading-font. */
+  --heading-font: var(--font-sans);
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.44 0.213 263);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.55 0.19 263);
+  --highlight: oklch(0.914 0.191 101.4);
+  --highlight-foreground: oklch(0.205 0 0);
+  --chart-brand: #0540c5;
+  /* Séries de gráfico: degraus da cor da marca, do mais forte ao mais claro. Opacos (misturados
+     com o fundo), para séries sobrepostas não somarem cor. Gráficos são monocromáticos. */
+  --chart-1: var(--chart-brand);
+  --chart-2: color-mix(in oklab, var(--chart-brand) 75%, var(--background));
+  --chart-3: color-mix(in oklab, var(--chart-brand) 55%, var(--background));
+  --chart-4: color-mix(in oklab, var(--chart-brand) 35%, var(--background));
+  --chart-5: color-mix(in oklab, var(--chart-brand) 20%, var(--background));
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.44 0.213 263);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.55 0.19 263);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.62 0.2 263);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.62 0.2 263);
+  --highlight: oklch(0.914 0.191 101.4);
+  --highlight-foreground: oklch(0.205 0 0);
+  --chart-brand: #fee502;
+  --chart-1: var(--chart-brand);
+  --chart-2: color-mix(in oklab, var(--chart-brand) 75%, var(--background));
+  --chart-3: color-mix(in oklab, var(--chart-brand) 55%, var(--background));
+  --chart-4: color-mix(in oklab, var(--chart-brand) 35%, var(--background));
+  --chart-5: color-mix(in oklab, var(--chart-brand) 20%, var(--background));
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.62 0.2 263);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.62 0.2 263);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
 /*
   `static` é obrigatório: as cores de estado são montadas em tempo de execução
   (`var(--color-${estado}-fill)`), e sem ele o Tailwind v4 descarta as
@@ -28,23 +178,10 @@
 */
 @theme static {
   --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-instrument-serif), ui-serif, Georgia, serif;
   --font-mono: var(--font-geist-mono), ui-monospace, Menlo, monospace;
 
-  --color-app: #efebe4;
-  --color-surface: #fbfaf7;
-  --color-raised: #ffffff;
+  /* Piso da planta 2D: faz parte da cena, não da casca. */
   --color-floor: #e8e3da;
-  --color-sunken: #e6e1d8;
-  --color-ink: #1b1a17;
-  --color-ink-2: #67625a;
-  --color-ink-3: #8c867c;
-  --color-line: #dcd6cb;
-  --color-line-2: #c8c1b4;
-  --color-focus: #0b6bcb;
-  --color-accent: #1b1a17;
-  --color-accent-ink: #fbfaf7;
-  --color-brand: #0540c5;
 
   --color-livre-fill: #f1ebe0;
   --color-livre-stroke: #67625a;
@@ -94,14 +231,6 @@
   --color-alerta-conta: #0043ce;
   --color-alerta-conta-ink: #ffffff;
 
-  --color-glass: rgb(251 250 247 / 0.74);
-  --color-glass-strong: rgb(251 250 247 / 0.9);
-  --color-glass-edge: rgb(255 255 255 / 0.7);
-
-  --radius-chip: 999px;
-  --radius-control: 12px;
-  --radius-panel: 20px;
-
   --shadow-table: 0 1px 1px rgb(40 30 15 / 0.05), 0 2px 6px rgb(40 30 15 / 0.1);
   --shadow-card: 0 1px 2px rgb(40 30 15 / 0.05), 0 8px 24px -12px rgb(40 30 15 / 0.2);
   --shadow-float: 0 1px 1px rgb(40 30 15 / 0.04), 0 12px 32px -8px rgb(40 30 15 / 0.22);
@@ -111,21 +240,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --color-app: #151412;
-    --color-surface: #1a1917;
-    --color-raised: #25231f;
-    --color-floor: #13120f;
-    --color-sunken: #2b2925;
-    --color-ink: #f4f1ea;
-    --color-ink-2: #b3ada2;
-    --color-ink-3: #7c776d;
-    --color-line: #34312c;
-    --color-line-2: #48443d;
-    --color-focus: #4ea1ff;
-    --color-accent: #f4f1ea;
-    --color-accent-ink: #1a1917;
-    --color-brand: #fee502;
 
+    --color-floor: #13120f;
     --color-livre-fill: #2b2723;
     --color-livre-stroke: #8f897e;
     --color-ocupada-fill: #4a4640;
@@ -174,10 +290,6 @@
     --color-alerta-conta: #64b5f6;
     --color-alerta-conta-ink: #1a1917;
 
-    --color-glass: rgb(28 27 24 / 0.78);
-    --color-glass-strong: rgb(26 25 23 / 0.9);
-    --color-glass-edge: rgb(255 255 255 / 0.06);
-
     --shadow-table: 0 1px 1px rgb(0 0 0 / 0.5), 0 3px 10px rgb(0 0 0 / 0.55);
     --shadow-card: 0 1px 2px rgb(0 0 0 / 0.5), 0 10px 30px -12px rgb(0 0 0 / 0.7);
     --shadow-float: 0 1px 1px rgb(0 0 0 / 0.4), 0 16px 40px -10px rgb(0 0 0 / 0.75);
@@ -187,20 +299,7 @@
 }
 
 :root[data-theme="dark"] {
-  --color-app: #151412;
-  --color-surface: #1a1917;
-  --color-raised: #25231f;
   --color-floor: #13120f;
-  --color-sunken: #2b2925;
-  --color-ink: #f4f1ea;
-  --color-ink-2: #b3ada2;
-  --color-ink-3: #7c776d;
-  --color-line: #34312c;
-  --color-line-2: #48443d;
-  --color-focus: #4ea1ff;
-  --color-accent: #f4f1ea;
-  --color-accent-ink: #1a1917;
-  --color-brand: #fee502;
   --color-livre-fill: #2b2723;
   --color-livre-stroke: #8f897e;
   --color-ocupada-fill: #4a4640;
@@ -246,9 +345,6 @@
   --color-alerta-entrega-ink: #1a1917;
   --color-alerta-conta: #64b5f6;
   --color-alerta-conta-ink: #1a1917;
-  --color-glass: rgb(28 27 24 / 0.78);
-  --color-glass-strong: rgb(26 25 23 / 0.9);
-  --color-glass-edge: rgb(255 255 255 / 0.06);
   --shadow-table: 0 1px 1px rgb(0 0 0 / 0.5), 0 3px 10px rgb(0 0 0 / 0.55);
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.5), 0 10px 30px -12px rgb(0 0 0 / 0.7);
   --shadow-float: 0 1px 1px rgb(0 0 0 / 0.4), 0 16px 40px -10px rgb(0 0 0 / 0.75);
@@ -257,8 +353,8 @@
 
 html,
 body {
-  background: var(--color-app);
-  color: var(--color-ink);
+  background: var(--background);
+  color: var(--foreground);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
@@ -273,28 +369,6 @@ html {
 .tnum {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
-}
-
-/* Nomes de lugar. A serifa só aparece em tamanho grande, com tracking negativo. */
-.font-display {
-  font-family: var(--font-display);
-  font-weight: 400;
-  letter-spacing: -0.01em;
-  line-height: 1.05;
-}
-
-/*
-  Vidro fosco: a camada funcional que flutua sobre a cena. A borda superior
-  mais clara é a luz batendo no material; sem ela o painel parece recortado.
-*/
-.glass {
-  background: var(--color-glass);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
-  backdrop-filter: blur(16px) saturate(160%);
-  box-shadow:
-    inset 0 1px 0 var(--color-glass-edge),
-    0 0 0 1px color-mix(in srgb, var(--color-ink) 7%, transparent),
-    var(--shadow-float);
 }
 
 /*
@@ -318,13 +392,13 @@ html {
 .amostra-livre {
   border-radius: 9999px;
   background: var(--color-livre-fill);
-  box-shadow: inset 0 0 0 1px var(--color-ink-2);
+  box-shadow: inset 0 0 0 1px var(--muted-foreground);
 }
 /* Ocupada: luminância oposta à da livre (tinta escura no claro, clara no escuro), em cada destaque. */
 .amostra-ocupada {
   --c: var(--color-ocupada-tinta);
   border-radius: 9999px;
-  background: color-mix(in srgb, var(--c) 25%, var(--color-raised));
+  background: color-mix(in srgb, var(--c) 25%, var(--card));
   box-shadow: inset 0 0 0 3px var(--c);
 }
 :root[data-destaque="tampo"] .amostra-ocupada {
@@ -360,21 +434,6 @@ html {
   animation: surgir 420ms var(--ease-out-soft) both;
 }
 
-@media (prefers-reduced-transparency: reduce) {
-  .glass {
-    background: var(--color-glass-strong);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
-}
-
-@media (prefers-contrast: more) {
-  .glass {
-    background: var(--color-surface);
-    box-shadow: 0 0 0 1.5px var(--color-ink);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -407,19 +466,6 @@ html {
   mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-t), #000 calc(100% - var(--fade-b)), transparent 100%);
 }
 
-/* O cartão da mesa dentro do painel de vidro: sem segundo vidro, só um fundo sutil. */
-.cartao-embutido > [role="dialog"],
-.cartao-embutido > [data-previa] {
-  max-height: 100%;
-  background: color-mix(in srgb, var(--color-ink) 4%, transparent);
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-ink) 7%, transparent);
-}
-.cartao-embutido > [role="dialog"] {
-  height: 100%;
-}
-
 /* Editor de layout da planta: a mesa arrastada sobe, e a que invadiria outra fica com contorno vermelho. */
 .mesa-plano[data-arrastando] {
   z-index: 30;
@@ -427,7 +473,7 @@ html {
 .mesa-plano[data-arrastando] > .mesa-tampo {
   scale: 1.04;
   cursor: grabbing;
-  box-shadow: var(--shadow-float), inset 0 0 0 1px var(--color-line-2);
+  box-shadow: var(--shadow-float), inset 0 0 0 1px var(--input);
 }
 .mesa-plano[data-conflito] > .mesa-tampo,
 .mesa-plano[data-colide] > .mesa-tampo {

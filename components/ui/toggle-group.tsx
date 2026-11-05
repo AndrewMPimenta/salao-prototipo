@@ -1,94 +1,86 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
+import { Toggle as TogglePrimitive } from "@base-ui/react/toggle";
+import { ToggleGroup as ToggleGroupPrimitive } from "@base-ui/react/toggle-group";
+import { toggleVariants } from "@/components/ui/toggle";
+import type { VariantProps } from "class-variance-authority";
+import { cn } from "cn";
+import * as React from "react";
 
-export interface OpcaoToggle<T extends string> {
-  valor: T;
-  rotulo: string;
-  desabilitado?: boolean;
-}
+const ToggleGroupContext = React.createContext<
+  VariantProps<typeof toggleVariants> & {
+    spacing?: number;
+    orientation?: "horizontal" | "vertical";
+  }
+>({
+  size: "default",
+  variant: "default",
+  spacing: 2,
+  orientation: "horizontal",
+});
 
-interface ToggleGroupProps<T extends string> {
-  opcoes: OpcaoToggle<T>[];
-  valor: T;
-  onChange: (valor: T) => void;
-  rotulo: string;
-  tamanho?: "sm" | "md";
-  className?: string;
-}
-
-/**
- * Controle segmentado. O segmento selecionado é uma peça elevada que desliza
- * entre as opções: o deslocamento mostra de onde o valor veio, e a elevação
- * (sombra + superfície clara) o separa do trilho também sobre vidro, onde só
- * a cor de fundo não bastaria.
- */
-export function ToggleGroup<T extends string>({
-  opcoes,
-  valor,
-  onChange,
-  rotulo,
-  tamanho = "md",
+function ToggleGroup({
   className,
-}: ToggleGroupProps<T>) {
-  const raiz = useRef<HTMLDivElement>(null);
-  const [marca, setMarca] = useState<{ x: number; w: number } | null>(null);
-
-  // Mede o botão real: as larguras variam com o rótulo, então não há grade fixa.
-  useLayoutEffect(() => {
-    const medir = () => {
-      const ativo = raiz.current?.querySelector<HTMLElement>("[aria-pressed='true']");
-      setMarca(ativo ? { x: ativo.offsetLeft, w: ativo.offsetWidth } : null);
-    };
-    medir();
-    const obs = new ResizeObserver(medir);
-    if (raiz.current) obs.observe(raiz.current);
-    return () => obs.disconnect();
-  }, [valor, opcoes]);
-
+  variant,
+  size,
+  spacing = 2,
+  orientation = "horizontal",
+  children,
+  ...props
+}: ToggleGroupPrimitive.Props &
+  VariantProps<typeof toggleVariants> & {
+    spacing?: number;
+    orientation?: "horizontal" | "vertical";
+  }) {
   return (
-    <div
-      ref={raiz}
-      role="group"
-      aria-label={rotulo}
+    <ToggleGroupPrimitive
+      data-slot="toggle-group"
+      data-variant={variant}
+      data-size={size}
+      data-spacing={spacing}
+      data-orientation={orientation}
+      style={{ "--gap": spacing } as React.CSSProperties}
       className={cn(
-        "relative inline-flex rounded-(--radius-control) bg-(--color-ink)/8 p-1",
+        "group/toggle-group flex w-fit flex-row items-center gap-[--spacing(var(--gap))] data-[spacing=0]:data-[variant=outline]:rounded-field data-vertical:flex-col data-vertical:items-stretch",
         className,
       )}
+      {...props}
     >
-      {marca && (
-        <span
-          aria-hidden
-          className={cn(
-            "absolute inset-y-1 left-0 rounded-[8px] bg-(--color-raised)",
-            "shadow-[0_1px_2px_rgb(40_30_15/0.18),0_0_0_1px_var(--color-line)]",
-            "transition-[transform,width] duration-250 ease-(--ease-out-soft)",
-          )}
-          style={{ width: marca.w, transform: `translateX(${marca.x}px)` }}
-        />
-      )}
-
-      {opcoes.map((o) => (
-        <button
-          key={o.valor}
-          type="button"
-          disabled={o.desabilitado}
-          aria-pressed={valor === o.valor}
-          onClick={() => onChange(o.valor)}
-          className={cn(
-            "relative z-10 rounded-[8px] font-medium transition-[color,transform] duration-100 active:scale-[0.97]",
-            tamanho === "sm" ? "min-h-8 px-3 text-xs" : "min-h-9 px-4 text-sm",
-            "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)",
-            "disabled:cursor-not-allowed disabled:opacity-40",
-            valor === o.valor
-              ? "font-semibold text-(--color-ink)"
-              : "text-(--color-ink-2) hover:text-(--color-ink)",
-          )}
-        >
-          {o.rotulo}
-        </button>
-      ))}
-    </div>
+      <ToggleGroupContext.Provider value={{ variant, size, spacing, orientation }}>
+        {children}
+      </ToggleGroupContext.Provider>
+    </ToggleGroupPrimitive>
   );
 }
+
+function ToggleGroupItem({
+  className,
+  children,
+  variant = "default",
+  size = "default",
+  ...props
+}: TogglePrimitive.Props & VariantProps<typeof toggleVariants>) {
+  const context = React.useContext(ToggleGroupContext);
+
+  return (
+    <TogglePrimitive
+      data-slot="toggle-group-item"
+      data-variant={context.variant || variant}
+      data-size={context.size || size}
+      data-spacing={context.spacing}
+      className={cn(
+        "shrink-0 group-data-[spacing=0]/toggle-group:rounded-none group-data-[spacing=0]/toggle-group:px-3 group-data-[spacing=0]/toggle-group:shadow-none focus:z-10 focus-visible:z-10 group-data-[spacing=0]/toggle-group:has-data-[icon=inline-end]:pr-2.5 group-data-[spacing=0]/toggle-group:has-data-[icon=inline-start]:pl-2.5 group-data-horizontal/toggle-group:data-[spacing=0]:first:rounded-l-field group-data-vertical/toggle-group:data-[spacing=0]:first:rounded-t-field group-data-horizontal/toggle-group:data-[spacing=0]:last:rounded-r-field group-data-vertical/toggle-group:data-[spacing=0]:last:rounded-b-field data-[state=on]:bg-muted group-data-horizontal/toggle-group:data-[spacing=0]:data-[variant=outline]:border-l-0 group-data-vertical/toggle-group:data-[spacing=0]:data-[variant=outline]:border-t-0 group-data-horizontal/toggle-group:data-[spacing=0]:data-[variant=outline]:first:border-l group-data-vertical/toggle-group:data-[spacing=0]:data-[variant=outline]:first:border-t",
+        toggleVariants({
+          variant: context.variant || variant,
+          size: context.size || size,
+        }),
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </TogglePrimitive>
+  );
+}
+
+export { ToggleGroup, ToggleGroupItem };
