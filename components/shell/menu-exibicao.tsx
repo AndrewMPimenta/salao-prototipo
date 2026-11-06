@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Salao } from "@/hooks/use-salao";
-import type { Assentos, Destaque, Exibicao, ModoRotulos, Perfil } from "@/lib/exibicao";
+import type { Assentos, Desempenho, Destaque, Exibicao, ModoRotulos, Perfil } from "@/lib/exibicao";
 import { cn } from "@/lib/utils";
 import { Switch } from "../ui/switch";
 import { ListaRadio, Segmentado } from "./segmentado";
@@ -41,6 +41,18 @@ const OPCOES_ASSENTOS: { valor: Assentos; rotulo: string }[] = [
   { valor: "simplificado", rotulo: "Simplificado" },
   { valor: "completo", rotulo: "Completo" },
 ];
+
+const OPCOES_DESEMPENHO: { valor: Desempenho; rotulo: string }[] = [
+  { valor: "automatico", rotulo: "Automático" },
+  { valor: "alta", rotulo: "Alta" },
+  { valor: "economico", rotulo: "Econômico" },
+];
+
+const DICA_DESEMPENHO: Record<Desempenho, string> = {
+  automatico: "Qualidade total; a resolução baixa sozinha se a cena engasgar.",
+  alta: "Sempre na resolução máxima, sem adaptar. Pede mais da placa de vídeo.",
+  economico: "Resolução 1x, sem suavização, sombras e brilhos. Poupa bateria e placa fraca.",
+};
 
 export interface PropsExibicao {
   exibicao: Exibicao;
@@ -93,6 +105,14 @@ export function PainelExibicao({ exibicao, onExibicao, personalizada, onRestaura
         onChange={(v) => onExibicao({ rotulos: v })}
         opcoes={OPCOES_ROTULOS}
       />
+      <p className="m-0 mt-2 mb-1.5 text-[13px] text-foreground">Desempenho</p>
+      <Segmentado<Desempenho>
+        rotulo="Desempenho da cena"
+        valor={exibicao.desempenho}
+        onChange={(v) => onExibicao({ desempenho: v })}
+        opcoes={OPCOES_DESEMPENHO}
+      />
+      <p className="m-0 mt-1 mb-1 text-[11px] leading-4 text-muted-foreground">{DICA_DESEMPENHO[exibicao.desempenho]}</p>
       <p className="m-0 flex items-center justify-between gap-2 pt-2 pb-1 text-[11px] leading-4 text-muted-foreground">
         {personalizada ? "Ajuste manual." : "De longe, os assentos somem sozinhos."}
         {personalizada && (

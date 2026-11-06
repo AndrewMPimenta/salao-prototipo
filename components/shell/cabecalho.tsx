@@ -46,7 +46,6 @@ export function Cabecalho({ salao, buscaRef, telaCheia }: { salao: Salao; buscaR
       <div className="flex flex-none items-center gap-2 px-4">
         <Atualizado className="mr-2 hidden xl:flex" />
         <BuscaMesa
-          mesas={salao.todas}
           ambientes={salao.ambientes}
           limiares={salao.limiares}
           onIr={salao.irParaMesa}

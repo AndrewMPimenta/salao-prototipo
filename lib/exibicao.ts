@@ -10,24 +10,31 @@ export type Perfil = "maitre" | "completo";
 /** Simplificado: lugares como pinos (base baixa, pino onde há gente); Completo: cadeiras e figuras sentadas. */
 export type Assentos = "nenhum" | "simplificado" | "completo";
 
+/**
+ * Automático: densidade total e, só se a taxa de quadros cair, baixa a resolução aos poucos. Alta qualidade: sem adaptação,
+ * até 2x. Econômico: 1x, sem antialias, sombras e brilhos de piso, assentos no máximo simplificados.
+ */
+export type Desempenho = "automatico" | "alta" | "economico";
+
 export interface Exibicao {
   perfil: Perfil;
   rotulos: ModoRotulos;
   destaque: Destaque;
   assentos: Assentos;
   sombras: boolean;
+  desempenho: Desempenho;
 }
 
 const CHAVE = "exibicao";
 /** Versão do que está gravado: ao subir, o destaque gravado antes perde para o novo padrão uma única vez. */
-const VERSAO = 2;
+const VERSAO = 3;
 
 /**
  * Simplificado é o padrão em qualquer máquina: custa duas malhas instanciadas e só a mesa em foco
  * paga a cadeira completa. As sombras de contato custam uma chamada de desenho.
  */
 export function exibicaoPadrao(): Exibicao {
-  return { perfil: "maitre", rotulos: "hover", destaque: "tampo", assentos: "simplificado", sombras: true };
+  return { perfil: "maitre", rotulos: "hover", destaque: "tampo", assentos: "simplificado", sombras: true, desempenho: "automatico" };
 }
 
 export function lerAjustes(): Partial<Exibicao> {
@@ -37,8 +44,9 @@ export function lerAjustes(): Partial<Exibicao> {
     if (bruto.perfil === "maitre" || bruto.perfil === "completo") out.perfil = bruto.perfil;
     if (bruto.rotulos === "sempre" || bruto.rotulos === "hover") out.rotulos = bruto.rotulos;
     // Antes da versão 2 o padrão era a borda, que não se lia de longe: o destaque gravado então não foi escolha do usuário.
-    if (bruto.versao === VERSAO && (bruto.destaque === "borda" || bruto.destaque === "tampo" || bruto.destaque === "brilho")) out.destaque = bruto.destaque;
+    if (typeof bruto.versao === "number" && bruto.versao >= 2 && (bruto.destaque === "borda" || bruto.destaque === "tampo" || bruto.destaque === "brilho")) out.destaque = bruto.destaque;
     if (typeof bruto.sombras === "boolean") out.sombras = bruto.sombras;
+    if (bruto.desempenho === "automatico" || bruto.desempenho === "alta" || bruto.desempenho === "economico") out.desempenho = bruto.desempenho;
 
     if (bruto.assentos === "nenhum" || bruto.assentos === "simplificado" || bruto.assentos === "completo") out.assentos = bruto.assentos;
     // Ajuste gravado antes do ajuste único: cadeiras desligadas = nenhum; com pessoas = completo; só cadeiras = simplificado.

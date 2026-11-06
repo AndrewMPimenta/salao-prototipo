@@ -99,6 +99,8 @@ export interface Ambiente {
   nome: string;
   /** Mesas conforme o cliente, mas cenário e marcos fictícios até recebermos a planta real. */
   ilustrativo?: boolean;
+  /** Contagens do salão para o seletor, calculadas no servidor: o cliente só gera as mesas do salão aberto. */
+  resumo?: { total: number; ocupadas: number; lotacao: number };
 }
 
 export interface Praca {

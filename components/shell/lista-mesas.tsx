@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { memo, useCallback, useDeferredValue, useMemo, useRef } from "react";
 import type { EstadoMesa, Limiares, Mesa } from "@/lib/types";
 import { useHoverMesa, type ArmazemHover } from "@/hooks/use-hover-mesa";
 import { derivarAlertas, derivarEstado, ROTULO_ALERTA, ROTULO_CURTO, ROTULO_ESTADO, textoAlerta, triarMesas } from "@/lib/state";
@@ -37,6 +37,7 @@ export function mesasDaAba(aba: AbaMesas, mesas: Mesa[], limiares: Limiares) {
 }
 
 interface LinhaProps {
+  tardia: boolean;
   mesa: Mesa;
   estado: EstadoMesa;
   limiares: Limiares;
@@ -45,13 +46,16 @@ interface LinhaProps {
   onIr: (id: number) => void;
 }
 
-function Linha({ mesa, estado, limiares, hover, selecionada, onIr }: LinhaProps) {
+// Salões grandes pulam layout e pintura das linhas fora da tela; o respiro de 4px mantém o anel de foco dentro da área recortada.
+const LINHA_TARDIA = "-m-1 p-1 [contain-intrinsic-size:auto_44px] [content-visibility:auto]";
+
+const Linha = memo(function Linha({ mesa, estado, limiares, hover, selecionada, onIr, tardia }: LinhaProps) {
   const destacada = useHoverMesa(hover, mesa.id);
   const alertas = derivarAlertas(mesa, limiares);
   const principal = alertas[0];
 
   return (
-    <li>
+    <li className={tardia ? LINHA_TARDIA : undefined}>
       <button
         type="button"
         onClick={() => onIr(mesa.id)}
@@ -95,7 +99,7 @@ function Linha({ mesa, estado, limiares, hover, selecionada, onIr }: LinhaProps)
       </button>
     </li>
   );
-}
+});
 
 interface ListaMesasProps {
   mesas: Mesa[];
@@ -111,15 +115,19 @@ interface ListaMesasProps {
 
 /** As mesas da guia, filtradas pelo número. Passar o mouse destaca a mesa na cena. */
 export function ListaMesas({ mesas, limiares, hover, selecionada, aba, busca, onIr }: ListaMesasProps) {
-  const linhas = useMemo(() => {
-    const q = busca.trim();
-    return mesasDaAba(aba, mesas, limiares).filter((m) => !q || String(m.mesa.id).includes(q));
-  }, [aba, mesas, limiares, busca]);
+  // A digitação responde na hora; a lista filtrada acompanha sem travar o campo.
+  const q = useDeferredValue(busca.trim());
+  const linhas = useMemo(() => mesasDaAba(aba, mesas, limiares).filter((m) => !q || String(m.mesa.id).includes(q)), [aba, mesas, limiares, q]);
+
+  // As linhas são memoizadas: um callback estável evita redesenhar todas a cada render do shell.
+  const irRef = useRef(onIr);
+  irRef.current = onIr;
+  const ir = useCallback((id: number) => irRef.current(id), []);
 
   if (linhas.length === 0) {
     return (
       <p className="m-0 px-2 py-6 text-center text-sm text-muted-foreground">
-        {busca.trim() ? "Nenhuma mesa com esse número." : aba === "atencao" ? "Nenhuma mesa pedindo atenção neste salão." : "Nenhuma mesa nesta guia."}
+        {q ? "Nenhuma mesa com esse número." : aba === "atencao" ? "Nenhuma mesa pedindo atenção neste salão." : "Nenhuma mesa nesta guia."}
       </p>
     );
   }
@@ -127,7 +135,7 @@ export function ListaMesas({ mesas, limiares, hover, selecionada, aba, busca, on
   return (
     <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
       {linhas.map(({ mesa, estado }) => (
-        <Linha key={mesa.id} mesa={mesa} estado={estado} limiares={limiares} hover={hover} selecionada={selecionada === mesa.id} onIr={onIr} />
+        <Linha key={mesa.id} mesa={mesa} estado={estado} limiares={limiares} hover={hover} selecionada={selecionada === mesa.id} onIr={ir} tardia={linhas.length > 60} />
       ))}
     </ul>
   );

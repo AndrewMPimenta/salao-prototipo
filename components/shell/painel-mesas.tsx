@@ -5,7 +5,7 @@ import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
 import type { Salao } from "@/hooks/use-salao";
 import { gravarArmazenado, lerArmazenado } from "@/hooks/use-armazenado";
 import { cn } from "@/lib/utils";
-import { TableSheet } from "../table-sheet";
+import { TableSheet } from "../carregamento-tardio";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { ConteudoMesas } from "./conteudo-mesas";

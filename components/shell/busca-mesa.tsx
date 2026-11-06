@@ -1,7 +1,8 @@
 "use client";
 
-import { useId, useState, type Ref } from "react";
+import { useId, useMemo, useState, type Ref } from "react";
 import type { Ambiente, Limiares, Mesa } from "@/lib/types";
+import { mesasBaseDoAmbiente } from "@/lib/data";
 import { derivarEstado, ROTULO_CURTO } from "@/lib/state";
 import { AmostraEstado } from "../amostra-estado";
 import { cn } from "@/lib/utils";
@@ -9,7 +10,6 @@ import { MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { Kbd } from "../ui/kbd";
 
 interface BuscaMesaProps {
-  mesas: Mesa[];
   ambientes: Ambiente[];
   limiares: Limiares;
   onIr: (id: number) => void;
@@ -20,13 +20,17 @@ interface BuscaMesaProps {
 }
 
 /** Combobox de "Ir para mesa": digita o número, setas navegam, Enter voa até a mesa. */
-export function BuscaMesa({ mesas, ambientes, limiares, onIr, inputRef, autoFocus, onFechar, className }: BuscaMesaProps) {
+export function BuscaMesa({ ambientes, limiares, onIr, inputRef, autoFocus, onFechar, className }: BuscaMesaProps) {
   const id = useId();
   const [q, setQ] = useState("");
   const [foco, setFoco] = useState(false);
   const [ativo, setAtivo] = useState(0);
 
-  const achadas = q ? mesas.filter((m) => String(m.id).startsWith(q)).sort((a, b) => a.id - b.id).slice(0, 6) : [];
+  // As mesas dos outros salões só são geradas quando alguém busca.
+  const achadas = useMemo(
+    () => (q ? ambientes.flatMap((a) => mesasBaseDoAmbiente(a.id)).filter((m) => String(m.id).startsWith(q)).sort((a, b) => a.id - b.id).slice(0, 6) : []),
+    [q, ambientes],
+  );
   const aberto = foco && q.length > 0;
 
   function escolher(m: Mesa | undefined) {

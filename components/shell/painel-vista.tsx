@@ -2,8 +2,7 @@
 
 import type { Salao } from "@/hooks/use-salao";
 import { cn } from "@/lib/utils";
-import { FloorPlan } from "../floor-plan";
-import { TimelineView } from "../timeline-view";
+import { FloorPlan, TimelineView } from "../carregamento-tardio";
 
 /** Planta e linha do tempo: superfície rolável que preenche o cartão da cena. */
 export function PainelVista({ salao, ilustrativo }: { salao: Salao; ilustrativo: boolean }) {

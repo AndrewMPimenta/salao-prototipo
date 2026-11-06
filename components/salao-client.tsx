@@ -1,20 +1,19 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Ambiente, Limiares, Mesa } from "@/lib/types";
+import type { Ambiente, Limiares } from "@/lib/types";
 import { useAtalhos } from "@/hooks/use-atalhos";
 import { useMidia } from "@/hooks/use-midia";
 import { useSalao } from "@/hooks/use-salao";
 import { useTelaCheia } from "@/hooks/use-tela-cheia";
 import { cn } from "@/lib/utils";
-import { AjudaAtalhos } from "./shell/ajuda-atalhos";
+import { AjudaAtalhos, precarregarTardias } from "./carregamento-tardio";
 import { AppSidebar } from "./shell/app-sidebar";
 import { LayoutDesktop } from "./shell/layout-desktop";
 import { LayoutMovel } from "./shell/layout-movel";
 import { SidebarInset, SidebarProvider } from "./ui/sidebar";
 
 interface SalaoClientProps {
-  mesas: Mesa[];
   ambientes: Ambiente[];
   limiares: Limiares;
 }
@@ -23,14 +22,19 @@ interface SalaoClientProps {
  * Casca no padrão do shadcn: sidebar de altura inteira e, ao lado, o SidebarInset com cabeçalho e conteúdo. Desktop e
  * celular compartilham o estado (`useSalao`) e a sidebar (que no celular vira uma folha) e diferem só no conteúdo.
  */
-export function SalaoClient({ mesas, ambientes, limiares }: SalaoClientProps) {
+export function SalaoClient({ ambientes, limiares }: SalaoClientProps) {
   const raiz = useRef<HTMLDivElement>(null);
   const buscaRef = useRef<HTMLInputElement>(null);
   const desktop = useMidia("(min-width: 1024px)");
-  const salao = useSalao(mesas, ambientes, limiares);
+  const salao = useSalao(ambientes, limiares);
   const tela = useTelaCheia(raiz);
   const [atalhosLigados, setAtalhosLigados] = useState(true);
   const [ajudaAberta, setAjudaAberta] = useState(false);
+  const [ajudaUsada, setAjudaUsada] = useState(false);
+  const abrirAjuda = () => {
+    setAjudaUsada(true);
+    setAjudaAberta(true);
+  };
 
   const { definirRapido, ciclarAmbiente, selecionar, selecionada } = salao;
   const { alternar, sairImersivo, imersivo } = tela;
@@ -55,6 +59,13 @@ export function SalaoClient({ mesas, ambientes, limiares }: SalaoClientProps) {
     atalhosLigados,
   );
 
+  // Depois da primeira pintura, com o navegador ocioso, traz o que o primeiro clique vai precisar.
+  useEffect(() => {
+    const ocioso = window.requestIdleCallback ?? ((f: () => void) => window.setTimeout(f, 1500));
+    const id = ocioso(precarregarTardias);
+    return () => (window.cancelIdleCallback ?? window.clearTimeout)(id);
+  }, []);
+
   // Cmd/Ctrl+K e "/" levam ao campo de busca do cabeçalho; "?" abre os atalhos.
   useEffect(() => {
     const aoTeclar = (e: KeyboardEvent) => {
@@ -69,7 +80,10 @@ export function SalaoClient({ mesas, ambientes, limiares }: SalaoClientProps) {
       if (e.key === "/") {
         e.preventDefault();
         buscaRef.current?.focus();
-      } else if (e.key === "?") setAjudaAberta((v) => !v);
+      } else if (e.key === "?") {
+        setAjudaUsada(true);
+        setAjudaAberta((v) => !v);
+      }
     };
     window.addEventListener("keydown", aoTeclar);
     return () => window.removeEventListener("keydown", aoTeclar);
@@ -87,19 +101,21 @@ export function SalaoClient({ mesas, ambientes, limiares }: SalaoClientProps) {
   return (
     <div ref={raiz} className="h-svh w-full overflow-hidden bg-background">
       <SidebarProvider data-imersivo={imersivo || undefined} className="h-svh min-h-0 data-imersivo:[&_[data-slot=sidebar]]:hidden">
-        <AppSidebar salao={salao} telaCheia={propsLayout.telaCheia} onAjuda={() => setAjudaAberta(true)} />
+        <AppSidebar salao={salao} telaCheia={propsLayout.telaCheia} onAjuda={abrirAjuda} />
         <SidebarInset className={cn("min-h-0 min-w-0 overflow-hidden max-lg:m-0 max-lg:rounded-none max-lg:shadow-none", imersivo && "m-0 rounded-none")}>
           {desktop ? <LayoutDesktop {...propsLayout} buscaRef={buscaRef} /> : <LayoutMovel {...propsLayout} />}
         </SidebarInset>
       </SidebarProvider>
 
-      <AjudaAtalhos
-        aberto={ajudaAberta}
-        onAbrir={setAjudaAberta}
-        atalhosLigados={atalhosLigados}
-        onAtalhos={setAtalhosLigados}
-        camera={salao.camera}
-      />
+      {ajudaUsada && (
+        <AjudaAtalhos
+          aberto={ajudaAberta}
+          onAbrir={setAjudaAberta}
+          atalhosLigados={atalhosLigados}
+          onAtalhos={setAtalhosLigados}
+          camera={salao.camera}
+        />
+      )}
     </div>
   );
 }

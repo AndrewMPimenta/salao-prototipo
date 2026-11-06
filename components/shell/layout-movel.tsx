@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { useJanela, useMedida } from "@/hooks/use-medida";
-import { TableSheet } from "../table-sheet";
+import { TableSheet } from "../carregamento-tardio";
 import { Button } from "../ui/button";
 import { Drawer } from "../ui/drawer";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
@@ -64,7 +64,6 @@ export function LayoutMovel({ salao, imersivo, telaCheia }: PropsLayout) {
           <PopoverContent align="end" className="w-72 p-2">
             <BuscaMesa
               autoFocus
-              mesas={salao.todas}
               ambientes={salao.ambientes}
               limiares={salao.limiares}
               onIr={salao.irParaMesa}

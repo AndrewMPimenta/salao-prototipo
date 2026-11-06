@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Ambiente, EstadoMesa, Limiares, Mesa } from "@/lib/types";
+import { mesasDoAmbiente, mesasBaseDoAmbiente } from "@/lib/data";
 import { criarArmazemHover } from "@/hooks/use-hover-mesa";
 import { exibicaoPadrao, gravarAjustes, lerAjustes, type Exibicao } from "@/lib/exibicao";
 import { aplicarLayout, gravarLayout, lerLayout, type SubstituicoesLayout } from "@/lib/layout";
@@ -15,7 +16,7 @@ export type AbaDetalhe = "resumo" | "comandas" | "posicoes";
  * Todo o estado de seleção e câmera mora aqui, fora dos layouts: desktop e
  * celular são duas composições da mesma conversa com a cena.
  */
-export function useSalao(todas: Mesa[], ambientes: Ambiente[], limiares: Limiares) {
+export function useSalao(ambientes: Ambiente[], limiares: Limiares) {
   const [ambienteId, setAmbienteId] = useState(ambientes[0]?.id ?? "principal");
   const [vista, setVista] = useState<Vista>("3d");
   const [filtro, setFiltro] = useState<EstadoMesa | null>(null);
@@ -84,10 +85,10 @@ export function useSalao(todas: Mesa[], ambientes: Ambiente[], limiares: Limiare
   }, [ambienteId]);
   const layoutEditado = Object.keys(layouts[ambienteId] ?? {}).length > 0;
 
-  const mesasBase = useMemo(() => todas.filter((m) => m.ambienteId === ambienteId), [todas, ambienteId]);
+  const mesasBase = useMemo(() => mesasDoAmbiente(ambienteId), [ambienteId]);
   const mesas = useMemo(() => aplicarLayout(mesasBase, layouts[ambienteId]), [mesasBase, layouts, ambienteId]);
-  const { perfil, rotulos, destaque, assentos, sombras } = { ...exibicaoPadrao(), ...ajustes };
-  const exibicao = useMemo<Exibicao>(() => ({ perfil, rotulos, destaque, assentos, sombras }), [perfil, rotulos, destaque, assentos, sombras]);
+  const { perfil, rotulos, destaque, assentos, sombras, desempenho } = { ...exibicaoPadrao(), ...ajustes };
+  const exibicao = useMemo<Exibicao>(() => ({ perfil, rotulos, destaque, assentos, sombras, desempenho }), [perfil, rotulos, destaque, assentos, sombras, desempenho]);
   // As amostras da legenda e das listas seguem o destaque escolhido, sem precisar receber a exibição.
   useEffect(() => {
     document.documentElement.dataset.destaque = destaque;
@@ -155,19 +156,19 @@ export function useSalao(todas: Mesa[], ambientes: Ambiente[], limiares: Limiare
   /** Seleciona e leva a câmera até a mesa, mudando de ambiente se preciso. */
   const irParaMesa = useCallback(
     (id: number, manterFiltro = false) => {
-      const m = todas.find((x) => x.id === id);
-      if (!m) return;
-      setAmbienteId(m.ambienteId);
+      const dono = ambientes.find((a) => mesasBaseDoAmbiente(a.id).some((x) => x.id === id));
+      if (!dono) return;
+      setAmbienteId(dono.id);
       // A lista do painel é o próprio filtro: escolher uma linha dela não pode desfazê-lo.
       if (!manterFiltro) filtrar(null);
       setSelecionada(id);
       setFoco((f) => ({ id, n: (f?.n ?? 0) + 1 }));
     },
-    [todas, filtrar],
+    [ambientes, filtrar],
   );
 
   return {
-    todas, mesas, mesasVisiveis, destacar, ambientes, limiares, resumo,
+    mesas, mesasVisiveis, destacar, ambientes, limiares, resumo,
     ambienteId, mudarAmbiente, ciclarAmbiente,
     vista, setVista: (v: Vista) => {
       setVista(v);

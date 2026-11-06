@@ -95,7 +95,6 @@ export function AppSidebar({ salao, telaCheia, onAjuda, ...props }: AppSidebarPr
 
         <SeletorAmbiente
           ambientes={salao.ambientes}
-          mesas={salao.todas}
           ativo={salao.ambienteId}
           onChange={(id) => {
             salao.mudarAmbiente(id);

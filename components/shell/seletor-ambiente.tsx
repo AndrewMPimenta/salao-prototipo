@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { CaretUpDownIcon, CheckIcon } from "@phosphor-icons/react";
-import type { Ambiente, Mesa } from "@/lib/types";
+import type { Ambiente } from "@/lib/types";
 import { Badge } from "../ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { Kbd, KbdGroup } from "../ui/kbd";
@@ -11,33 +11,19 @@ import "./shell.css";
 
 interface SeletorAmbienteProps {
   ambientes: Ambiente[];
-  mesas: Mesa[];
   ativo: string;
   onChange: (id: string) => void;
 }
 
 const indice = (i: number) => String(i + 1).padStart(2, "0");
 
-function medir(mesas: Mesa[], ambienteId: string) {
-  let total = 0;
-  let ocupadas = 0;
-  let pessoas = 0;
-  let lugares = 0;
-  for (const m of mesas) {
-    if (m.ambienteId !== ambienteId) continue;
-    total++;
-    if (m.pessoas > 0) ocupadas++;
-    pessoas += m.pessoas;
-    lugares += m.lugares;
-  }
-  return { total, ocupadas, lotacao: lugares ? Math.min(100, Math.round((pessoas / lugares) * 100)) : 0 };
-}
+const SEM_DADOS = { total: 0, ocupadas: 0, lotacao: 0 };
 
 /** Troca de salão no cabeçalho da sidebar, no formato do team switcher do shadcn. PgUp e PgDn trocam sem abrir. */
-export function SeletorAmbiente({ ambientes, mesas, ativo, onChange }: SeletorAmbienteProps) {
+export function SeletorAmbiente({ ambientes, ativo, onChange }: SeletorAmbienteProps) {
   const { isMobile } = useSidebar();
   const [aberto, setAberto] = useState(false);
-  const dados = useMemo(() => ambientes.map((a) => medir(mesas, a.id)), [ambientes, mesas]);
+  const dados = ambientes.map((a) => a.resumo ?? SEM_DADOS);
   const indiceAtivo = Math.max(0, ambientes.findIndex((a) => a.id === ativo));
   const atual = ambientes[indiceAtivo];
 
