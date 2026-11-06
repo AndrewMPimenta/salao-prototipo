@@ -11,14 +11,11 @@ import {
   KeyboardIcon,
   ListBulletsIcon,
   MapTrifoldIcon,
-  MonitorIcon,
-  MoonIcon,
-  SunIcon,
   WarningIcon,
 } from "@phosphor-icons/react";
-import type { ComponentProps, ComponentType } from "react";
+import { useEffect, useState, type ComponentProps, type ComponentType } from "react";
+import { gravarArmazenado, lerArmazenado } from "@/hooks/use-armazenado";
 import type { Salao } from "@/hooks/use-salao";
-import { useTema, type Tema } from "@/hooks/use-tema";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import {
@@ -41,15 +38,13 @@ import { exibicaoDe, PainelExibicao } from "./menu-exibicao";
 import { SeletorAmbiente } from "./seletor-ambiente";
 import type { FiltroRapido, Vista } from "./tipos";
 
+const CHAVE_EXIBICAO = "salao:sidebar:exibicao";
+
 const VISTAS: { valor: Vista; rotulo: string; Icone: ComponentType }[] = [
   { valor: "3d", rotulo: "3D", Icone: CubeIcon },
   { valor: "planta", rotulo: "Planta", Icone: MapTrifoldIcon },
   { valor: "linha", rotulo: "Linha do tempo", Icone: ClockIcon },
 ];
-
-const PROXIMO: Record<Tema, Tema> = { claro: "escuro", escuro: "sistema", sistema: "claro" };
-const NOME_TEMA: Record<Tema, string> = { claro: "claro", escuro: "escuro", sistema: "do sistema" };
-const ICONE_TEMA: Record<Tema, ComponentType> = { claro: SunIcon, escuro: MoonIcon, sistema: MonitorIcon };
 
 interface AppSidebarProps extends ComponentProps<typeof Sidebar> {
   salao: Salao;
@@ -60,10 +55,13 @@ interface AppSidebarProps extends ComponentProps<typeof Sidebar> {
 /** A coluna da esquerda, de altura inteira e independente do cabeçalho da página: marca, salão, vista, filtros, exibição e preferências. */
 export function AppSidebar({ salao, telaCheia, onAjuda, ...props }: AppSidebarProps) {
   const { resumo } = salao;
-  const { tema, setTema } = useTema();
   const { state, isMobile, setOpenMobile } = useSidebar();
+  // Fechada por padrão: Vista e Filtro rápido ficam à vista; a escolha do usuário é lembrada.
+  const [exibicaoAberta, setExibicaoAberta] = useState(false);
+  useEffect(() => {
+    setExibicaoAberta(lerArmazenado(CHAVE_EXIBICAO, (v) => v === true) ?? false);
+  }, []);
   const recolhida = state === "collapsed" && !isMobile;
-  const IconeTema = ICONE_TEMA[tema];
 
   const rotuloTelaCheia = telaCheia.imersivoNoLugar
     ? telaCheia.ativo ? "Sair do modo imersivo" : "Modo imersivo"
@@ -173,7 +171,13 @@ export function AppSidebar({ salao, telaCheia, onAjuda, ...props }: AppSidebarPr
             </SidebarMenu>
           </SidebarGroup>
         ) : (
-          <Collapsible defaultOpen render={<SidebarGroup />} className="group/exibicao">
+          <Collapsible
+            open={exibicaoAberta}
+            onOpenChange={(v) => {
+              setExibicaoAberta(v);
+              gravarArmazenado(CHAVE_EXIBICAO, v);
+            }}
+            render={<SidebarGroup />} className="group/exibicao">
             <SidebarGroupLabel render={<CollapsibleTrigger />} className="w-full justify-between">
               Exibição
               <CaretRightIcon className="transition-transform group-data-panel-open/exibicao:rotate-90" />
@@ -187,18 +191,8 @@ export function AppSidebar({ salao, telaCheia, onAjuda, ...props }: AppSidebarPr
         )}
       </SidebarContent>
 
-      <SidebarFooter>
+      <SidebarFooter className="border-t border-sidebar-border">
         <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              tooltip={`Tema ${NOME_TEMA[tema]}`}
-              aria-label={`Tema ${NOME_TEMA[tema]}. Alternar para ${NOME_TEMA[PROXIMO[tema]]}.`}
-              onClick={() => setTema(PROXIMO[tema])}
-            >
-              <IconeTema />
-              <span>Tema: {NOME_TEMA[tema]}</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton tooltip="Atalhos (?)" onClick={onAjuda}>
               <KeyboardIcon />

@@ -9,7 +9,6 @@ import { TableSheet } from "../table-sheet";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { ConteudoMesas } from "./conteudo-mesas";
-import type { AbaMesas } from "./lista-mesas";
 
 const CHAVE = "salao:aside:recolhido";
 
@@ -19,7 +18,6 @@ const CHAVE = "salao:aside:recolhido";
  */
 export function PainelMesas({ salao }: { salao: Salao }) {
   const { mesaSelecionada, resumo, mesas } = salao;
-  const [aba, setAba] = useState<AbaMesas>("todas");
   const [recolhido, setRecolhido] = useState(() => lerArmazenado(CHAVE, (v) => v === true) ?? false);
 
   // Fixar uma mesa abre o painel para mostrar o detalhe, sem gravar a preferência; recolher continua possível a qualquer momento.
@@ -33,18 +31,15 @@ export function PainelMesas({ salao }: { salao: Salao }) {
     gravarArmazenado(CHAVE, v);
   };
 
-  const abrir = (guia: AbaMesas) => {
-    setAba(guia);
-    definirRecolhido(false);
-  };
-
   const n = resumo.atencao;
 
   return (
     <aside
       aria-label="Mesas do salão"
-      style={{ width: recolhido ? 56 : 380 }}
-      className="relative flex h-full flex-none flex-col overflow-hidden rounded-xl border bg-card transition-[width] duration-200 ease-out motion-reduce:transition-none"
+      className={cn(
+        "relative flex h-full flex-none flex-col overflow-hidden rounded-xl border bg-card transition-[width] duration-200 ease-out motion-reduce:transition-none",
+        recolhido ? "w-14" : "w-65 xl:w-73",
+      )}
     >
       <div
         inert={!recolhido}
@@ -63,16 +58,21 @@ export function PainelMesas({ salao }: { salao: Salao }) {
           </TooltipTrigger>
           <TooltipContent side="left">Expandir painel</TooltipContent>
         </Tooltip>
-        <ContagemTrilho rotulo="Atenção" valor={n} alerta={n > 0} onClick={() => abrir("atencao")} />
-        <ContagemTrilho rotulo="Mesas" valor={mesas.length} onClick={() => abrir("todas")} />
+        <ContagemTrilho rotulo="Atenção" valor={n} alerta={n > 0} onClick={() => {
+          salao.definirRapido("atencao");
+          definirRecolhido(false);
+        }} />
+        <ContagemTrilho rotulo="Mesas" valor={mesas.length} onClick={() => {
+          salao.definirRapido("todas");
+          definirRecolhido(false);
+        }} />
         {mesaSelecionada && <ContagemTrilho rotulo="Mesa" valor={mesaSelecionada.id} onClick={() => definirRecolhido(false)} />}
       </div>
 
       <div
         inert={recolhido}
-        style={{ width: 378 }}
         className={cn(
-          "absolute inset-y-0 right-0 flex flex-col gap-2 p-3 transition-opacity duration-150",
+          "absolute inset-y-0 right-0 flex w-[258px] flex-col gap-2 p-3 xl:w-[290px] transition-opacity duration-150",
           recolhido && "pointer-events-none opacity-0",
         )}
       >
@@ -120,7 +120,7 @@ export function PainelMesas({ salao }: { salao: Salao }) {
             />
           </div>
         ) : (
-          <ConteudoMesas salao={salao} aba={aba} onAba={setAba} onIr={salao.alternarMesa} />
+          <ConteudoMesas salao={salao} onIr={salao.alternarMesa} />
         )}
       </div>
     </aside>

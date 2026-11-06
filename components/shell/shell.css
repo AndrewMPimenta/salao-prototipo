@@ -33,13 +33,15 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-.lista-salao [data-slot="dropdown-menu-item"] {
+.lista-salao [data-slot="dropdown-menu-item"],
+.lista-salao [data-slot="dropdown-menu-radio-item"] {
   animation: linha-entra 180ms var(--ease-out-soft) both;
   animation-delay: calc(var(--i, 0) * 28ms);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .lista-salao [data-slot="dropdown-menu-item"] {
+  .lista-salao [data-slot="dropdown-menu-item"],
+  .lista-salao [data-slot="dropdown-menu-radio-item"] {
     animation: none;
   }
 }

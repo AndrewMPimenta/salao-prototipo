@@ -5,7 +5,7 @@ import type { Salao } from "@/hooks/use-salao";
 import type { Assentos, Destaque, Exibicao, ModoRotulos, Perfil } from "@/lib/exibicao";
 import { cn } from "@/lib/utils";
 import { Switch } from "../ui/switch";
-import { Segmentado } from "./segmentado";
+import { ListaRadio, Segmentado } from "./segmentado";
 import { BotaoIcone } from "./botao-icone";
 import { IconeOlho } from "./icones";
 import { useAncoragem, type Lado } from "@/hooks/use-ancoragem";
@@ -78,16 +78,16 @@ export function PainelExibicao({ exibicao, onExibicao, personalizada, onRestaura
         opcoes={OPCOES_DESTAQUE}
       />
       <p className="m-0 mt-2 mb-1.5 text-[13px] text-foreground">Assentos</p>
-      <Segmentado<Assentos>
+      <ListaRadio<Assentos>
         rotulo="Nível de detalhe dos assentos"
         valor={exibicao.assentos}
         onChange={(v) => onExibicao({ assentos: v })}
         opcoes={OPCOES_ASSENTOS}
       />
-      <p className="m-0 mb-1 text-[11px] leading-4 text-muted-foreground">Simplificado: lugares como pinos; Completo: cadeiras e pessoas</p>
+      <p className="m-0 mt-1 mb-1 text-[11px] leading-4 text-muted-foreground">Simplificado: lugares como pinos; Completo: cadeiras e pessoas.</p>
       <Chave ligada={exibicao.sombras} onChange={(v) => onExibicao({ sombras: v })} rotulo="Sombras" />
       <p className="m-0 mt-1 mb-1.5 text-[13px] text-foreground">Rótulos</p>
-      <Segmentado<ModoRotulos>
+      <ListaRadio<ModoRotulos>
         rotulo="Rótulos nas mesas"
         valor={exibicao.rotulos}
         onChange={(v) => onExibicao({ rotulos: v })}

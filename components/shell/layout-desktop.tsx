@@ -17,7 +17,7 @@ export function LayoutDesktop({ salao, imersivo, telaCheia, buscaRef }: PropsLay
   return (
     <>
       <div hidden={imersivo} className="contents">
-        <Cabecalho salao={salao} buscaRef={buscaRef} />
+        <Cabecalho salao={salao} buscaRef={buscaRef} telaCheia={telaCheia} />
       </div>
 
       <div className={cn("flex min-h-0 flex-1 flex-col gap-4", imersivo ? "p-0" : "p-4 pt-0")}>

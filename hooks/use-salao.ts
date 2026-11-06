@@ -154,11 +154,12 @@ export function useSalao(todas: Mesa[], ambientes: Ambiente[], limiares: Limiare
 
   /** Seleciona e leva a câmera até a mesa, mudando de ambiente se preciso. */
   const irParaMesa = useCallback(
-    (id: number) => {
+    (id: number, manterFiltro = false) => {
       const m = todas.find((x) => x.id === id);
       if (!m) return;
       setAmbienteId(m.ambienteId);
-      filtrar(null);
+      // A lista do painel é o próprio filtro: escolher uma linha dela não pode desfazê-lo.
+      if (!manterFiltro) filtrar(null);
       setSelecionada(id);
       setFoco((f) => ({ id, n: (f?.n ?? 0) + 1 }));
     },
@@ -177,7 +178,7 @@ export function useSalao(todas: Mesa[], ambientes: Ambiente[], limiares: Limiare
     selecionada, mesaSelecionada, selecionar: setSelecionada,
     alternarSelecao: (id: number) => setSelecionada((s) => (s === id ? null : id)),
     /** Linha de lista: clicar na mesa já fixada solta; senão fixa e leva a câmera até ela. */
-    alternarMesa: (id: number) => (selecionada === id ? setSelecionada(null) : irParaMesa(id)),
+    alternarMesa: (id: number) => (selecionada === id ? setSelecionada(null) : irParaMesa(id, true)),
     irParaMesa, foco,
     posicaoSelecionada, selecionarPosicao, abaDetalhe, setAbaDetalhe,
     hover,

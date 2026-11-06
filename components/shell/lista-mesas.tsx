@@ -63,27 +63,27 @@ function Linha({ mesa, estado, limiares, hover, selecionada, onIr }: LinhaProps)
         aria-current={selecionada || undefined}
         aria-label={`Mesa ${mesa.id}. ${[ROTULO_ESTADO[estado], ...alertas.map(textoAlerta)].join(". ")}`}
         className={cn(
-          "flex min-h-11 w-full items-center gap-3 rounded-lg px-2 text-left text-sm outline-none",
+          "flex min-h-11 w-full items-center gap-2 rounded-lg px-2 text-left text-sm outline-none",
           "transition-colors duration-100 focus-visible:ring-3 focus-visible:ring-ring/30",
           destacada ? "bg-(--color-hover-linha) shadow-[inset_0_0_0_1.5px_var(--hover-aro)]" : selecionada ? "bg-muted" : "hover:bg-muted/70",
         )}
       >
-        <span className="tnum w-9 flex-none font-mono font-semibold">{mesa.id}</span>
+        <span className="tnum w-8 flex-none font-mono font-semibold">{mesa.id}</span>
 
         <span className="flex min-w-0 flex-1 items-center gap-2">
           {principal ? <FichaAlerta tipo={principal.tipo} className="size-4" /> : <AmostraEstado estado={estado} className="size-3.5" />}
-          <span className="truncate">
+          <span className="min-w-0 text-[13px] leading-4" title={principal ? ROTULO_ALERTA[principal.tipo] : ROTULO_CURTO[estado]}>
             {principal ? ROTULO_ALERTA[principal.tipo] : ROTULO_CURTO[estado]}
             {alertas.length > 1 && <span className="tnum text-muted-foreground"> +{alertas.length - 1}</span>}
           </span>
         </span>
 
-        <span className="tnum w-11 flex-none text-right text-muted-foreground">
+        <span className="tnum w-10 flex-none text-right text-[13px] text-muted-foreground">
           {mesa.pessoas > 0 ? `${mesa.pessoas}/${mesa.lugares}` : mesa.lugares}
           <span className="sr-only">{mesa.pessoas > 0 ? " pessoas" : " lugares"}</span>
         </span>
 
-        <span className="tnum w-12 flex-none text-right font-mono text-xs text-muted-foreground">
+        <span className="tnum w-11 flex-none text-right font-mono text-xs text-muted-foreground">
           {principal ? (
             <>
               <span className="text-sm font-semibold text-foreground">{principal.minutos}</span> min

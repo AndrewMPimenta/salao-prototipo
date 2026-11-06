@@ -9,13 +9,13 @@ import { Drawer } from "../ui/drawer";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { SidebarTrigger } from "../ui/sidebar";
 import { AreaCanvas } from "./area-canvas";
+import { BotaoTema } from "./botao-tema";
 import { BuscaMesa } from "./busca-mesa";
 import { PilulaImersivo } from "./controles-janela";
 import { ConteudoMesas } from "./conteudo-mesas";
 import { nomeDoSalao } from "./grupos";
 import { Kpis } from "./kpis";
 import { LogoMulticlubes } from "./logo-multiclubes";
-import type { AbaMesas } from "./lista-mesas";
 import { Atualizado } from "./resumo";
 import type { PropsLayout } from "./tipos";
 
@@ -28,7 +28,6 @@ export function LayoutMovel({ salao, imersivo, telaCheia }: PropsLayout) {
   const [medirSheet, sheet] = useMedida();
   const [medirCabecalho, cabecalho] = useMedida();
   const [indice, setIndice] = useState(0);
-  const [aba, setAba] = useState<AbaMesas>("todas");
   const { resumo, mesaSelecionada } = salao;
   const ui = !imersivo;
   const s = janela.seguro;
@@ -57,6 +56,7 @@ export function LayoutMovel({ salao, imersivo, telaCheia }: PropsLayout) {
         <SidebarTrigger className="size-11" aria-label="Abrir menu lateral" />
         <LogoMulticlubes className="h-4 w-auto flex-none text-primary" />
         <p className="m-0 min-w-0 flex-1 truncate px-2 text-right text-sm font-medium text-muted-foreground">{nome}</p>
+        <BotaoTema className="rounded-md" />
         <Popover>
           <PopoverTrigger render={<Button variant="ghost" size="icon" aria-label="Ir para mesa" className="size-11" />}>
             <MagnifyingGlassIcon />
@@ -107,7 +107,7 @@ export function LayoutMovel({ salao, imersivo, telaCheia }: PropsLayout) {
           }
         >
           <div className="flex h-full flex-col px-4 pb-2">
-            <ConteudoMesas salao={salao} aba={aba} onAba={setAba} onIr={irParaMesa} />
+            <ConteudoMesas salao={salao} onIr={irParaMesa} />
           </div>
         </Drawer>
       </div>
