@@ -82,10 +82,10 @@ export function AppSidebar({ salao, telaCheia, onAjuda, ...props }: AppSidebarPr
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" render={<div />} className="cursor-default hover:bg-transparent active:bg-transparent">
-              <span className="flex aspect-square size-8 flex-none items-center justify-center text-primary">
+              <span className="hidden aspect-square size-8 flex-none items-center justify-center text-primary group-data-[collapsible=icon]:flex">
                 <MarcaMulticlubes className="h-5! w-6!" />
               </span>
-              <span className="grid min-w-0 flex-1 text-left leading-tight">
+              <span className="grid min-w-0 flex-1 text-left leading-tight group-data-[collapsible=icon]:hidden">
                 <LogoMulticlubes className="block h-4! w-24! text-primary" />
                 <span className="truncate text-xs text-muted-foreground">Protótipo V1</span>
               </span>
