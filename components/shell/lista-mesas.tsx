@@ -1,21 +1,43 @@
 "use client";
 
-import { useMemo } from "react";
+import { memo, useCallback, useDeferredValue, useMemo, useRef } from "react";
 import type { EstadoMesa, Limiares, Mesa } from "@/lib/types";
 import { useHoverMesa, type ArmazemHover } from "@/hooks/use-hover-mesa";
-import { derivarAlertas, derivarEstado, ORDEM_ESTADOS, ROTULO_ESTADO, textoAlerta } from "@/lib/state";
-import { cn } from "@/lib/utils";
+import { derivarAlertas, derivarEstado, ROTULO_ALERTA, ROTULO_CURTO, ROTULO_ESTADO, textoAlerta, triarMesas } from "@/lib/state";
+import { cn, formatarDuracao } from "@/lib/utils";
 import { AmostraEstado } from "../amostra-estado";
 import { FichaAlerta } from "../selo-alerta";
 
-const TITULO_GRUPO: Record<EstadoMesa, string> = {
-  livre: "Livres",
-  reservada: "Reservadas",
-  ocupada: "Ocupadas",
-  conta: "Conta",
+export type AbaMesas = "todas" | "livres" | "reservadas" | "ocupadas" | "atencao";
+
+export const ABAS_MESAS: { valor: AbaMesas; rotulo: string }[] = [
+  { valor: "todas", rotulo: "Todas" },
+  { valor: "livres", rotulo: "Livres" },
+  { valor: "reservadas", rotulo: "Reservadas" },
+  { valor: "ocupadas", rotulo: "Ocupadas" },
+  { valor: "atencao", rotulo: "Atenção" },
+];
+
+const ESTADOS_DA_ABA: Record<Exclude<AbaMesas, "todas" | "atencao">, EstadoMesa[]> = {
+  livres: ["livre"],
+  reservadas: ["reservada"],
+  // Conta impressa ainda é mesa ocupada para quem procura lugar.
+  ocupadas: ["ocupada", "conta"],
 };
 
+/** Mesas de cada guia, com o estado já derivado; Atenção segue a prioridade do alerta, o resto o número. */
+export function mesasDaAba(aba: AbaMesas, mesas: Mesa[], limiares: Limiares) {
+  if (aba === "atencao") return triarMesas(mesas, limiares).map((t) => ({ mesa: t.mesa, estado: derivarEstado(t.mesa, limiares) }));
+
+  const estados = aba === "todas" ? null : ESTADOS_DA_ABA[aba];
+  return [...mesas]
+    .sort((a, b) => a.id - b.id)
+    .map((mesa) => ({ mesa, estado: derivarEstado(mesa, limiares) }))
+    .filter((m) => !estados || estados.includes(m.estado));
+}
+
 interface LinhaProps {
+  tardia: boolean;
   mesa: Mesa;
   estado: EstadoMesa;
   limiares: Limiares;
@@ -24,13 +46,16 @@ interface LinhaProps {
   onIr: (id: number) => void;
 }
 
-function Linha({ mesa, estado, limiares, hover, selecionada, onIr }: LinhaProps) {
+// Salões grandes pulam layout e pintura das linhas fora da tela; o respiro de 4px mantém o anel de foco dentro da área recortada.
+const LINHA_TARDIA = "-m-1 p-1 [contain-intrinsic-size:auto_44px] [content-visibility:auto]";
+
+const Linha = memo(function Linha({ mesa, estado, limiares, hover, selecionada, onIr, tardia }: LinhaProps) {
   const destacada = useHoverMesa(hover, mesa.id);
   const alertas = derivarAlertas(mesa, limiares);
   const principal = alertas[0];
 
   return (
-    <li>
+    <li className={tardia ? LINHA_TARDIA : undefined}>
       <button
         type="button"
         onClick={() => onIr(mesa.id)}
@@ -42,78 +67,76 @@ function Linha({ mesa, estado, limiares, hover, selecionada, onIr }: LinhaProps)
         aria-current={selecionada || undefined}
         aria-label={`Mesa ${mesa.id}. ${[ROTULO_ESTADO[estado], ...alertas.map(textoAlerta)].join(". ")}`}
         className={cn(
-          "flex h-11 w-full items-center gap-2.5 rounded-[12px] px-2 text-left text-[13px] text-(--color-ink)",
-          "transition-[background-color] duration-100",
-          "focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-(--color-focus)",
-          destacada ? "bg-(--color-hover-linha) shadow-[inset_0_0_0_1.5px_var(--hover-aro)]" : selecionada ? "bg-(--color-ink)/6" : "hover:bg-(--color-ink)/6",
+          "flex min-h-11 w-full items-center gap-2 rounded-lg px-2 text-left text-sm outline-none",
+          "transition-colors duration-100 focus-visible:ring-3 focus-visible:ring-ring/30",
+          destacada ? "bg-(--color-hover-linha) shadow-[inset_0_0_0_1.5px_var(--hover-aro)]" : selecionada ? "bg-muted" : "hover:bg-muted/70",
         )}
       >
-        <AmostraEstado estado={estado} className="size-4" />
-        <span className="tnum w-9 flex-none font-[family-name:var(--font-mono)] font-semibold">{mesa.id}</span>
-        <span className="tnum min-w-0 flex-1 truncate text-(--color-ink-2)">
-          {mesa.pessoas > 0 ? `${mesa.pessoas}/${mesa.lugares} pessoas` : `${mesa.lugares} lugares`}
+        <span className="tnum w-8 flex-none font-mono font-semibold">{mesa.id}</span>
+
+        <span className="flex min-w-0 flex-1 items-center gap-2">
+          {principal ? <FichaAlerta tipo={principal.tipo} className="size-4" /> : <AmostraEstado estado={estado} className="size-3.5" />}
+          <span className="min-w-0 text-[13px] leading-4" title={principal ? ROTULO_ALERTA[principal.tipo] : ROTULO_CURTO[estado]}>
+            {principal ? ROTULO_ALERTA[principal.tipo] : ROTULO_CURTO[estado]}
+            {alertas.length > 1 && <span className="tnum text-muted-foreground"> +{alertas.length - 1}</span>}
+          </span>
         </span>
-        {principal && <FichaAlerta tipo={principal.tipo} />}
+
+        <span className="tnum w-10 flex-none text-right text-[13px] text-muted-foreground">
+          {mesa.pessoas > 0 ? `${mesa.pessoas}/${mesa.lugares}` : mesa.lugares}
+          <span className="sr-only">{mesa.pessoas > 0 ? " pessoas" : " lugares"}</span>
+        </span>
+
+        <span className="tnum w-11 flex-none text-right font-mono text-xs text-muted-foreground">
+          {principal ? (
+            <>
+              <span className="text-sm font-semibold text-foreground">{principal.minutos}</span> min
+            </>
+          ) : mesa.abertaHa ? (
+            formatarDuracao(mesa.abertaHa)
+          ) : null}
+        </span>
       </button>
     </li>
   );
-}
+});
 
 interface ListaMesasProps {
   mesas: Mesa[];
   limiares: Limiares;
   hover: ArmazemHover;
   selecionada: number | null;
-  /** Filtro pelo número, controlado pelo painel que fixa o campo no cabeçalho. */
+  aba: AbaMesas;
+  /** Filtro pelo número, controlado pelo painel que fixa o campo acima da lista. */
   busca: string;
   /** Seleciona a mesa e leva a câmera até ela, sem zoom. */
   onIr: (id: number) => void;
 }
 
-/** Todas as mesas do ambiente, por estado, filtradas pelo número. Passar o mouse destaca a mesa na cena. */
-export function ListaMesas({ mesas, limiares, hover, selecionada, busca, onIr }: ListaMesasProps) {
-  const grupos = useMemo(() => {
-    const q = busca.trim();
-    const por: Record<EstadoMesa, { mesa: Mesa; estado: EstadoMesa }[]> = { livre: [], reservada: [], ocupada: [], conta: [] };
+/** As mesas da guia, filtradas pelo número. Passar o mouse destaca a mesa na cena. */
+export function ListaMesas({ mesas, limiares, hover, selecionada, aba, busca, onIr }: ListaMesasProps) {
+  // A digitação responde na hora; a lista filtrada acompanha sem travar o campo.
+  const q = useDeferredValue(busca.trim());
+  const linhas = useMemo(() => mesasDaAba(aba, mesas, limiares).filter((m) => !q || String(m.mesa.id).includes(q)), [aba, mesas, limiares, q]);
 
-    for (const mesa of [...mesas].sort((a, b) => a.id - b.id)) {
-      if (q && !String(mesa.id).includes(q)) continue;
-      const estado = derivarEstado(mesa, limiares);
-      por[estado].push({ mesa, estado });
-    }
+  // As linhas são memoizadas: um callback estável evita redesenhar todas a cada render do shell.
+  const irRef = useRef(onIr);
+  irRef.current = onIr;
+  const ir = useCallback((id: number) => irRef.current(id), []);
 
-    return por;
-  }, [mesas, limiares, busca]);
-
-  const total = ORDEM_ESTADOS.reduce((n, e) => n + grupos[e].length, 0);
+  if (linhas.length === 0) {
+    return (
+      <p className="m-0 px-2 py-6 text-center text-sm text-muted-foreground">
+        {q ? "Nenhuma mesa com esse número." : aba === "atencao" ? "Nenhuma mesa pedindo atenção neste salão." : "Nenhuma mesa nesta guia."}
+      </p>
+    );
+  }
 
   return (
-    <div className="flex flex-col gap-1">
-      {ORDEM_ESTADOS.map((estado) =>
-        grupos[estado].length === 0 ? null : (
-          <section key={estado} aria-label={TITULO_GRUPO[estado]}>
-            <h3 className="m-0 flex items-baseline gap-2 px-2 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-(--color-ink-3)">
-              {TITULO_GRUPO[estado]}
-              <span className="tnum font-[family-name:var(--font-mono)] text-(--color-ink-2)">{grupos[estado].length}</span>
-            </h3>
-            <ul className="m-0 flex list-none flex-col p-0">
-              {grupos[estado].map(({ mesa }) => (
-                <Linha
-                  key={mesa.id}
-                  mesa={mesa}
-                  estado={estado}
-                  limiares={limiares}
-                  hover={hover}
-                  selecionada={selecionada === mesa.id}
-                  onIr={onIr}
-                />
-              ))}
-            </ul>
-          </section>
-        ),
-      )}
-
-      {total === 0 && <p className="m-0 py-4 text-[13px] text-(--color-ink-2)">Nenhuma mesa com esse número.</p>}
-    </div>
+    <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
+      {linhas.map(({ mesa, estado }) => (
+        <Linha key={mesa.id} mesa={mesa} estado={estado} limiares={limiares} hover={hover} selecionada={selecionada === mesa.id} onIr={ir} tardia={linhas.length > 60} />
+      ))}
+    </ul>
   );
 }

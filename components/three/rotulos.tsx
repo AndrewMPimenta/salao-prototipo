@@ -30,7 +30,7 @@ function Numero({ i }: { i: ItemRotulo }) {
   return (
     <span
       style={{ transform: "translate(-50%, -50%)" }}
-      className="tnum absolute top-0 left-0 grid h-[22px] min-w-[22px] place-items-center rounded-full bg-(--color-surface)/92 px-1.5 text-[12px] font-semibold text-(--color-ink) shadow-[0_1px_4px_rgba(0,0,0,0.18)]"
+      className="tnum absolute top-0 left-0 grid h-[22px] min-w-[22px] place-items-center rounded-full bg-card/92 px-1.5 text-[12px] font-semibold text-foreground shadow-[0_1px_4px_rgba(0,0,0,0.18)]"
     >
       {i.mesa.id}
     </span>
@@ -75,7 +75,7 @@ export function CamadaRotulos({
             elsMarcos.current[k] = el;
           }}
           style={{ ...OCULTO, transition: FADE }}
-          className="absolute top-0 left-0 whitespace-nowrap rounded-full bg-(--color-surface)/72 px-2 py-0.5 text-[10.5px] font-semibold tracking-[0.06em] text-(--color-ink-2) uppercase shadow-[0_1px_3px_rgba(0,0,0,0.12)]"
+          className="absolute top-0 left-0 whitespace-nowrap rounded-full bg-card/72 px-2 py-0.5 text-[10.5px] font-semibold tracking-[0.06em] text-muted-foreground uppercase shadow-[0_1px_3px_rgba(0,0,0,0.12)]"
         >
           {m.nome}
         </div>
@@ -362,10 +362,10 @@ function Tag({ t }: { t: TagPosicao }) {
       className={cn(
         "tnum absolute top-0 left-0 flex h-[18px] items-center gap-0.5 whitespace-nowrap rounded-full px-1.5 text-[11px] font-semibold leading-none",
         t.selecionada
-          ? "bg-(--color-ink) text-(--color-surface) shadow-[0_2px_6px_rgba(0,0,0,0.3)]"
+          ? "bg-foreground text-card shadow-[0_2px_6px_rgba(0,0,0,0.3)]"
           : t.ocupada
-            ? "bg-(--color-surface) text-(--color-ink) shadow-[0_1px_4px_rgba(0,0,0,0.22)]"
-            : "border border-dashed border-(--color-line-2) bg-(--color-surface)/80 text-(--color-ink-3)",
+            ? "bg-card text-foreground shadow-[0_1px_4px_rgba(0,0,0,0.22)]"
+            : "border border-dashed border-input bg-card/80 text-muted-foreground",
         t.paga && !t.selecionada && "opacity-70",
       )}
     >

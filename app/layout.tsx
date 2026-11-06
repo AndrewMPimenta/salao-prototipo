@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
 const sans = Geist({
@@ -14,14 +15,6 @@ const mono = Geist_Mono({
   display: "swap",
 });
 
-const display = Instrument_Serif({
-  subsets: ["latin"],
-  variable: "--font-instrument-serif",
-  weight: "400",
-  style: ["normal", "italic"],
-  display: "swap",
-});
-
 export const metadata: Metadata = {
   title: "Ocupação do salão",
   description: "Mapa de mesas em tempo real para o salão do restaurante.",
@@ -33,8 +26,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#efebe4" },
-    { media: "(prefers-color-scheme: dark)", color: "#0f0e0c" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#252525" },
   ],
 };
 
@@ -51,6 +44,7 @@ const SCRIPT_TEMA = `
       t === "escuro" ||
       (t === "sistema" && window.matchMedia("(prefers-color-scheme: dark)").matches);
     document.documentElement.dataset.theme = escuro ? "dark" : "light";
+    document.documentElement.classList.toggle("dark", escuro);
   } catch (e) {
     document.documentElement.dataset.theme = "light";
   }
@@ -59,11 +53,11 @@ const SCRIPT_TEMA = `
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning className={`${sans.variable} ${mono.variable} ${display.variable}`}>
+    <html lang="pt-BR" suppressHydrationWarning className={`${sans.variable} ${mono.variable}`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
       </head>
-      <body className="font-[family-name:var(--font-sans)]">{children}</body>
+      <body className="font-[family-name:var(--font-sans)]"><TooltipProvider delay={400}>{children}</TooltipProvider></body>
     </html>
   );
 }

@@ -16,7 +16,9 @@ function resolver(tema: Tema): "claro" | "escuro" {
 }
 
 function aplicar(tema: Tema) {
-  document.documentElement.dataset.theme = resolver(tema) === "escuro" ? "dark" : "light";
+  const escuro = resolver(tema) === "escuro";
+  document.documentElement.dataset.theme = escuro ? "dark" : "light";
+  document.documentElement.classList.toggle("dark", escuro);
 }
 
 function lerArmazenado(): Tema {

@@ -470,7 +470,7 @@ export function celulasRaizes(): Celula[] {
   );
 }
 
-const MESAS_TERRACO = gerarSalao({
+const gerarTerraco = () => gerarSalao({
   semente: 202608041,
   ambienteId: "terraco",
   idInicial: 300,
@@ -481,7 +481,7 @@ const MESAS_TERRACO = gerarSalao({
   celulas: celulasTerraco(),
 });
 
-const MESAS_HOTBEACH = gerarSalao({
+const gerarHotbeach = () => gerarSalao({
   semente: 20260944,
   ambienteId: "hotbeach",
   idInicial: 400,
@@ -492,7 +492,7 @@ const MESAS_HOTBEACH = gerarSalao({
   celulas: celulasHotBeach(),
 });
 
-const MESAS_SUITES = gerarSalao({
+const gerarSuites = () => gerarSalao({
   semente: 20262006,
   ambienteId: "hotbeach-suites",
   idInicial: 500,
@@ -503,7 +503,7 @@ const MESAS_SUITES = gerarSalao({
   celulas: celulasSuites(),
 });
 
-const MESAS_RESORT = gerarSalao({
+const gerarResort = () => gerarSalao({
   semente: 20262010,
   ambienteId: "hotbeach-resort",
   idInicial: 700,
@@ -514,7 +514,7 @@ const MESAS_RESORT = gerarSalao({
   celulas: celulasResort(),
 });
 
-const MESAS_RAIZES = gerarSalao({
+const gerarRaizes = () => gerarSalao({
   semente: 20262127,
   ambienteId: "hotbeach-raizes",
   idInicial: 900,
@@ -525,7 +525,61 @@ const MESAS_RAIZES = gerarSalao({
   celulas: celulasRaizes(),
 });
 
-export const MESAS: Mesa[] = [...MESAS_TERRACO, ...MESAS_HOTBEACH, ...MESAS_SUITES, ...MESAS_RESORT, ...MESAS_RAIZES, ...MESAS_BASE, ...gerarEventos()].map(comComandas);
+const GERADORES: Record<string, () => Mesa[]> = {
+  terraco: gerarTerraco,
+  hotbeach: gerarHotbeach,
+  "hotbeach-suites": gerarSuites,
+  "hotbeach-resort": gerarResort,
+  "hotbeach-raizes": gerarRaizes,
+  principal: () => MESAS_BASE.filter((m) => m.ambienteId === "principal"),
+  varanda: () => MESAS_BASE.filter((m) => m.ambienteId === "varanda"),
+  mezanino: () => MESAS_BASE.filter((m) => m.ambienteId === "mezanino"),
+  eventos: gerarEventos,
+};
+
+const baseCache = new Map<string, Mesa[]>();
+const completasCache = new Map<string, Mesa[]>();
+
+/** Mesas de um salão sem comandas: o que busca, contagens e estado precisam. Gerado uma vez, só quando pedido. */
+export function mesasBaseDoAmbiente(ambienteId: string): Mesa[] {
+  let m = baseCache.get(ambienteId);
+  if (!m) {
+    m = GERADORES[ambienteId]?.() ?? [];
+    baseCache.set(ambienteId, m);
+  }
+  return m;
+}
+
+/** Mesas de um salão com comandas e posições; a referência é estável entre chamadas. */
+export function mesasDoAmbiente(ambienteId: string): Mesa[] {
+  let m = completasCache.get(ambienteId);
+  if (!m) {
+    m = mesasBaseDoAmbiente(ambienteId).map(comComandas);
+    completasCache.set(ambienteId, m);
+  }
+  return m;
+}
+
+/** Resumo de cada salão para o seletor, sem precisar das mesas no cliente. */
+export interface ResumoAmbiente {
+  total: number;
+  ocupadas: number;
+  lotacao: number;
+}
+
+export function resumoDoAmbiente(ambienteId: string): ResumoAmbiente {
+  let total = 0;
+  let ocupadas = 0;
+  let pessoas = 0;
+  let lugares = 0;
+  for (const m of mesasBaseDoAmbiente(ambienteId)) {
+    total++;
+    if (m.pessoas > 0) ocupadas++;
+    pessoas += m.pessoas;
+    lugares += m.lugares;
+  }
+  return { total, ocupadas, lotacao: lugares ? Math.min(100, Math.round((pessoas / lugares) * 100)) : 0 };
+}
 
 export interface Fixture {
   x: number;

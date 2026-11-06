@@ -95,7 +95,7 @@ export function corBrilho(
 /** Mesa em foco sem brilho próprio (ocupada) ganha um brilho neutro de tinta. */
 export const corSelecao = (escuro: boolean) => (escuro ? SINAL_PROFUNDO : SINAL_VIVO).selecao;
 
-/** Cores do cenário; o fundo acompanha --color-app para a maquete flutuar na página. */
+/** Cores do cenário; o fundo acompanha o --card da casca, onde o canvas mora. */
 export interface Cores {
   fundo: string;
   piso: string;
@@ -126,7 +126,7 @@ export interface Cores {
 }
 
 const CORES_CLARO: Cores = {
-  fundo: "#efebe4",
+  fundo: "#ffffff",
   piso: "#7a5a3e",
   plinto: "#46341f",
   parede: "#e4ddd0",
@@ -155,7 +155,7 @@ const CORES_CLARO: Cores = {
 };
 
 const CORES_ESCURO: Cores = {
-  fundo: "#151412",
+  fundo: "#171717",
   piso: "#b99b78",
   plinto: "#7d6347",
   parede: "#34302b",

@@ -17,7 +17,7 @@ import {
 import type { Mesa } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
-import { ToggleGroup } from "../ui/toggle-group";
+import { Segmentado } from "../shell/segmentado";
 import { DiagramaMesa } from "./diagrama-mesa";
 import { rotuloForma } from "./folha-cobranca";
 import { IconeCheck } from "./icones";
@@ -58,7 +58,7 @@ export function AbaPosicoes({
 
   if (!mesa.posicoes) {
     return (
-      <p className="m-0 py-6 text-center text-[13px] leading-5 text-(--color-ink-2)">
+      <p className="m-0 py-6 text-center text-[13px] leading-5 text-muted-foreground">
         Esta mesa foi aberta antes da ativação das posições. A conta segue pela aba Comandas.
       </p>
     );
@@ -97,7 +97,7 @@ export function AbaPosicoes({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <ToggleGroup<ModoDivisao>
+        <Segmentado<ModoDivisao>
           rotulo="Modo de divisão da conta"
           valor={opcoes.modo}
           onChange={(modo) => onOpcoes({ ...opcoes, modo })}
@@ -114,7 +114,7 @@ export function AbaPosicoes({
         />
       </div>
       {travado && (
-        <p className="m-0 -mt-2 text-[12px] leading-4 text-(--color-ink-3)">
+        <p className="m-0 -mt-2 text-[12px] leading-4 text-muted-foreground">
           A divisão fica travada depois da primeira cobrança.
         </p>
       )}
@@ -133,13 +133,13 @@ export function AbaPosicoes({
           }}
         />
         <div className="mt-1 flex items-center justify-between gap-3">
-          <p className="tnum m-0 text-[12px] leading-4 text-(--color-ink-2)">
+          <p className="tnum m-0 text-[12px] leading-4 text-muted-foreground">
             {editando
               ? "Toque na cadeira para incluir ou retirar. Posição com consumo não sai."
               : `${ocupadas} de ${mesa.lugares} posições ocupadas`}
           </p>
           <Button
-            variante="silencioso"
+            variant="ghost"
             aria-pressed={editando}
             disabled={cobranca.liberada}
             className="flex-none px-3 text-[13px]"
@@ -197,18 +197,18 @@ function CartaoPosicao({
   return (
     <section
       aria-label={`Conta da posição ${conta.posicao}`}
-      className="rounded-(--radius-control) bg-(--color-raised) p-3 shadow-[inset_0_0_0_1px_var(--color-line)]"
+      className="rounded-lg bg-card p-3 shadow-[inset_0_0_0_1px_var(--border)]"
     >
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h5 className="m-0 text-[15px] font-semibold leading-6 text-(--color-ink)">
+          <h5 className="m-0 text-[15px] font-semibold leading-6 text-foreground">
             Posição P{conta.posicao}
-            {nome && <span className="font-normal text-(--color-ink-2)"> · {nome}</span>}
+            {nome && <span className="font-normal text-muted-foreground"> · {nome}</span>}
           </h5>
-          <p className="font-display tnum m-0 mt-1 text-[28px] text-(--color-ink)">{formatarCentavos(conta.total)}</p>
+          <p className="font-mono font-semibold tnum m-0 mt-1 text-[28px] text-foreground">{formatarCentavos(conta.total)}</p>
         </div>
         {conta.paga && (
-          <span className="mt-1 inline-flex flex-none items-center gap-1 rounded-(--radius-chip) bg-(--color-brilho-livre)/16 px-2 py-0.5 text-[11px] font-semibold leading-4 text-(--color-ink)">
+          <span className="mt-1 inline-flex flex-none items-center gap-1 rounded-full bg-(--color-brilho-livre)/16 px-2 py-0.5 text-[11px] font-semibold leading-4 text-foreground">
             <IconeCheck className="size-3 text-(--color-brilho-livre)" />
             Paga{pagamento ? ` · ${rotuloForma(pagamento.forma)}` : ""}
           </span>
@@ -216,28 +216,28 @@ function CartaoPosicao({
       </header>
 
       {modo === "consumo" ? (
-        <ul className="m-0 mt-3 flex list-none flex-col gap-1.5 border-t border-(--color-line) p-0 pt-3 text-[13px] leading-5">
+        <ul className="m-0 mt-3 flex list-none flex-col gap-1.5 border-t border-border p-0 pt-3 text-[13px] leading-5">
           {conta.itens.map((l) => (
             <Linha key={l.itemId} linha={l} />
           ))}
           {conta.compartilhados.map((l) => (
             <Linha key={l.itemId} linha={l} />
           ))}
-          {vazia && <li className="text-(--color-ink-2)">Sem consumo nesta posição.</li>}
+          {vazia && <li className="text-muted-foreground">Sem consumo nesta posição.</li>}
           {conta.servico > 0 && (
-            <li className="flex items-baseline justify-between gap-3 text-(--color-ink-2)">
+            <li className="flex items-baseline justify-between gap-3 text-muted-foreground">
               <span>Serviço {TAXA_SERVICO}%</span>
               <span className="tnum">{formatarCentavos(conta.servico)}</span>
             </li>
           )}
         </ul>
       ) : (
-        <dl className="m-0 mt-3 grid grid-cols-[1fr_auto] gap-x-3 gap-y-1.5 border-t border-(--color-line) pt-3 text-[13px] leading-5">
-          <dt className="text-(--color-ink-2)">Parte da conta (1 de {totalPosicoes})</dt>
+        <dl className="m-0 mt-3 grid grid-cols-[1fr_auto] gap-x-3 gap-y-1.5 border-t border-border pt-3 text-[13px] leading-5">
+          <dt className="text-muted-foreground">Parte da conta (1 de {totalPosicoes})</dt>
           <dd className="tnum m-0 text-right">{formatarCentavos(conta.subtotal)}</dd>
           {conta.servico > 0 && (
             <>
-              <dt className="text-(--color-ink-2)">Serviço {TAXA_SERVICO}%</dt>
+              <dt className="text-muted-foreground">Serviço {TAXA_SERVICO}%</dt>
               <dd className="tnum m-0 text-right">{formatarCentavos(conta.servico)}</dd>
             </>
           )}
@@ -245,7 +245,7 @@ function CartaoPosicao({
       )}
 
       {!conta.paga && !vazia && (
-        <Button variante="solido" disabled={liberada} className="tnum mt-3 w-full justify-center" onClick={onCobrar}>
+        <Button variant="default" disabled={liberada} className="tnum mt-3 w-full justify-center" onClick={onCobrar}>
           Cobrar P{conta.posicao} · {formatarCentavos(conta.total)}
         </Button>
       )}
@@ -256,9 +256,9 @@ function CartaoPosicao({
 function Linha({ linha }: { linha: LinhaConta }) {
   return (
     <li className="flex items-baseline justify-between gap-3">
-      <span className="min-w-0 text-(--color-ink)">
-        {linha.fracao && <span className="tnum text-(--color-ink-2)">{linha.fracao} </span>}
-        {linha.qtd > 1 && <span className="tnum text-(--color-ink-2)">{linha.qtd}× </span>}
+      <span className="min-w-0 text-foreground">
+        {linha.fracao && <span className="tnum text-muted-foreground">{linha.fracao} </span>}
+        {linha.qtd > 1 && <span className="tnum text-muted-foreground">{linha.qtd}× </span>}
         {linha.nome}
       </span>
       <span className="tnum flex-none">{formatarCentavos(linha.centavos)}</span>
@@ -284,26 +284,26 @@ function Rodape({
   onReabrir: () => void;
 }) {
   return (
-    <footer className="border-t border-(--color-line) pt-3">
+    <footer className="border-t border-border pt-3">
       {quitada ? (
         <div className="flex items-center gap-3">
           <span className="grid size-9 flex-none place-items-center rounded-full bg-(--color-brilho-livre)/16 text-(--color-brilho-livre)">
             <IconeCheck className="size-5" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="m-0 text-[15px] font-semibold leading-6 text-(--color-ink)">
+            <p className="m-0 text-[15px] font-semibold leading-6 text-foreground">
               {liberada ? "Mesa liberada" : "Mesa quitada"}
             </p>
-            <p className="tnum m-0 text-[12px] leading-4 text-(--color-ink-2)">
+            <p className="tnum m-0 text-[12px] leading-4 text-muted-foreground">
               {liberada ? "Simulado: a mesa volta ao salão só ao recarregar." : `${total} de ${total} posições pagas`}
             </p>
           </div>
           {liberada ? (
-            <Button variante="padrao" className="flex-none" onClick={onReabrir}>
+            <Button variant="outline" className="flex-none" onClick={onReabrir}>
               Desfazer
             </Button>
           ) : (
-            <Button variante="solido" className="flex-none" onClick={onLiberar}>
+            <Button variant="default" className="flex-none" onClick={onLiberar}>
               Liberar mesa
             </Button>
           )}
@@ -311,14 +311,14 @@ function Rodape({
       ) : (
         <div className="flex items-end justify-between gap-3">
           <div>
-            <p className="m-0 text-[12px] font-medium leading-4 text-(--color-ink-2)">Saldo da mesa</p>
-            <p className="font-display tnum m-0 mt-1 text-[28px] text-(--color-ink)">{formatarCentavos(saldo)}</p>
+            <p className="m-0 text-[12px] font-medium leading-4 text-muted-foreground">Saldo da mesa</p>
+            <p className="font-mono font-semibold tnum m-0 mt-1 text-[28px] text-foreground">{formatarCentavos(saldo)}</p>
           </div>
           <div className="min-w-0 pb-1 text-right">
-            <p className="tnum m-0 text-[13px] leading-5 text-(--color-ink)">
+            <p className="tnum m-0 text-[13px] leading-5 text-foreground">
               {pagas} de {total} posições pagas
             </p>
-            <div aria-hidden className="mt-1 ml-auto h-1 w-24 overflow-hidden rounded-full bg-(--color-ink)/10">
+            <div aria-hidden className="mt-1 ml-auto h-1 w-24 overflow-hidden rounded-full bg-foreground/10">
               <div
                 className="h-full rounded-full bg-(--color-brilho-livre) transition-[width] duration-300 ease-(--ease-out-soft)"
                 style={{ width: `${total > 0 ? (pagas / total) * 100 : 0}%` }}
@@ -350,21 +350,21 @@ function Interruptor({
       disabled={desabilitado}
       onClick={() => onChange(!ligado)}
       className={cn(
-        "inline-flex min-h-11 items-center gap-2.5 rounded-(--radius-control) pr-1 text-[13px] font-medium text-(--color-ink)",
+        "inline-flex min-h-11 items-center gap-2.5 rounded-lg pr-1 text-[13px] font-medium text-foreground",
         "transition-transform duration-100 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40",
-        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)",
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
       )}
     >
       <span
         aria-hidden
         className={cn(
           "relative h-6 w-10 flex-none rounded-full transition-colors duration-200",
-          ligado ? "bg-(--color-accent)" : "bg-(--color-ink)/18",
+          ligado ? "bg-primary" : "bg-foreground/18",
         )}
       >
         <span
           className={cn(
-            "absolute left-0.5 top-0.5 size-5 rounded-full bg-(--color-raised) shadow-[0_1px_2px_rgb(40_30_15/0.3)]",
+            "absolute left-0.5 top-0.5 size-5 rounded-full bg-card shadow-[0_1px_2px_rgb(40_30_15/0.3)]",
             "transition-transform duration-200 ease-(--ease-out-soft)",
             ligado && "translate-x-4",
           )}

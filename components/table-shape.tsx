@@ -38,7 +38,7 @@ function corHover(estado: EstadoMesa, alertas: Alerta[], topo: { fundo: string }
 
 /** Friso, tampo pintado ou brilho: o mesmo vocabulário do destaque escolhido para a cena. */
 function estiloTampo(destaque: Destaque, cor: string | null, ocupada: boolean, raio: number, topo: { fundo: string; texto: string } | null): React.CSSProperties {
-  const base: React.CSSProperties = { background: "var(--color-raised)", color: "var(--color-ink)", boxShadow: "var(--shadow-table), inset 0 0 0 1px var(--color-line-2)" };
+  const base: React.CSSProperties = { background: "var(--card)", color: "var(--foreground)", boxShadow: "var(--shadow-table), inset 0 0 0 1px var(--input)" };
 
   // Tampo inteiro na cor do sinal, opaco, com a borda um tom mais escura para o contorno ler.
   if (destaque === "tampo" && topo)
@@ -52,12 +52,12 @@ function estiloTampo(destaque: Destaque, cor: string | null, ocupada: boolean, r
   if (ocupada) {
     // Luminância oposta à da livre: aro grosso (~7,5% do raio) ou tampo sólido; alerta e conta trocam só a cor do aro.
     const tinta = "var(--color-ocupada-tinta)";
-    const pesado = { ...base, background: `color-mix(in srgb, ${tinta} 25%, var(--color-raised))` };
+    const pesado = { ...base, background: `color-mix(in srgb, ${tinta} 25%, var(--card))` };
     if (destaque === "borda") return { ...pesado, boxShadow: `var(--shadow-table), inset 0 0 0 ${Math.max(6, Math.round(raio * 0.15))}px ${cor ?? tinta}` };
     const luz = cor ?? tinta;
     return {
       ...pesado,
-      boxShadow: `var(--shadow-table), inset 0 0 0 1px var(--color-line-2), 0 0 0 3px color-mix(in srgb, ${luz} 55%, transparent), 0 0 16px 5px color-mix(in srgb, ${luz} 50%, transparent)`,
+      boxShadow: `var(--shadow-table), inset 0 0 0 1px var(--input), 0 0 0 3px color-mix(in srgb, ${luz} 55%, transparent), 0 0 16px 5px color-mix(in srgb, ${luz} 50%, transparent)`,
     };
   }
 
@@ -66,7 +66,7 @@ function estiloTampo(destaque: Destaque, cor: string | null, ocupada: boolean, r
   if (destaque === "borda") return { ...base, boxShadow: `var(--shadow-table), inset 0 0 0 5px ${cor}` };
   return {
     ...base,
-    boxShadow: `var(--shadow-table), inset 0 0 0 1px var(--color-line-2), 0 0 0 3px color-mix(in srgb, ${cor} 35%, transparent), 0 0 18px 6px color-mix(in srgb, ${cor} 45%, transparent)`,
+    boxShadow: `var(--shadow-table), inset 0 0 0 1px var(--input), 0 0 0 3px color-mix(in srgb, ${cor} 35%, transparent), 0 0 18px 6px color-mix(in srgb, ${cor} 45%, transparent)`,
   };
 }
 
@@ -189,8 +189,8 @@ export function TableShape({
       className={cn(
         classes,
         editando ? "cursor-grab touch-none select-none" : "cursor-pointer active:scale-[0.97]",
-        selecionada && "ring-2 ring-(--color-focus) ring-offset-2 ring-offset-(--color-floor)",
-        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)",
+        selecionada && "ring-2 ring-ring ring-offset-2 ring-offset-(--color-floor)",
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
       )}
       style={estilo}
     >
@@ -242,8 +242,8 @@ export function Cadeiras({ mesa, escala = 1, nivel, pesada = false, posicoes }: 
                 top: c.y * escala,
                 width: lado,
                 height: lado,
-                background: ocupada ? "var(--color-ink)" : "transparent",
-                boxShadow: ocupada ? undefined : `inset 0 0 0 1.5px color-mix(in srgb, var(--color-ink) ${vazio}%, transparent)`,
+                background: ocupada ? "var(--foreground)" : "transparent",
+                boxShadow: ocupada ? undefined : `inset 0 0 0 1.5px color-mix(in srgb, var(--foreground) ${vazio}%, transparent)`,
               }}
             />
           );
@@ -258,10 +258,10 @@ export function Cadeiras({ mesa, escala = 1, nivel, pesada = false, posicoes }: 
               top: c.y * escala,
               width: c.largura * escala,
               height: c.altura * escala,
-              background: ocupada ? "color-mix(in srgb, var(--color-ink) 55%, transparent)" : `color-mix(in srgb, var(--color-ink) ${pesada ? 20 : 13}%, transparent)`,
+              background: ocupada ? "color-mix(in srgb, var(--foreground) 55%, transparent)" : `color-mix(in srgb, var(--foreground) ${pesada ? 20 : 13}%, transparent)`,
             }}
           >
-            {ocupada && <span className="size-[55%] rounded-full bg-(--color-ink)" />}
+            {ocupada && <span className="size-[55%] rounded-full bg-foreground" />}
           </span>
         );
       })}
@@ -287,10 +287,10 @@ export function Cadeiras({ mesa, escala = 1, nivel, pesada = false, posicoes }: 
               className={cn(
                 "tnum absolute grid h-[18px] min-w-[22px] -translate-x-1/2 -translate-y-1/2 cursor-pointer place-items-center rounded-full px-1 text-[10px] font-semibold leading-none",
                 selecionada
-                  ? "bg-(--color-ink) text-(--color-surface)"
+                  ? "bg-foreground text-card"
                   : ocupada
-                    ? "bg-(--color-surface) text-(--color-ink) shadow-[0_1px_3px_rgba(0,0,0,0.25)]"
-                    : "border border-dashed border-(--color-line-2) bg-(--color-surface)/80 text-(--color-ink-3)",
+                    ? "bg-card text-foreground shadow-[0_1px_3px_rgba(0,0,0,0.25)]"
+                    : "border border-dashed border-input bg-card/80 text-muted-foreground",
               )}
             >
               P{c.numero}

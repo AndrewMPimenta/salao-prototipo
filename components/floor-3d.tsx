@@ -15,7 +15,8 @@ import { ChaoToque } from "./three/chao";
 import { marcosDe, obterCenario, ms, mx, mz } from "./three/cenarios";
 import { corBrilho, corHover, corTopo, coresDoTema, TAMPO } from "./three/materiais";
 import type { ArmazemHover } from "@/hooks/use-hover-mesa";
-import type { Exibicao } from "@/lib/exibicao";
+import type { Desempenho, Exibicao } from "@/lib/exibicao";
+import { DprAdaptativo } from "./three/dpr-adaptativo";
 import { Luzes } from "./three/foco";
 import { BrilhoHover } from "./three/brilho-hover";
 import { Manchas } from "./three/manchas";
@@ -64,13 +65,17 @@ export interface Floor3DProps {
   className?: string;
 }
 
-/** Antialias com até 2x de densidade no desktop; no toque a GPU é o gargalo. Sob demanda, parado não custa nada. */
-function useDpr(): [number, number] {
+/**
+ * Antialias com até 2x de densidade no desktop; no toque a GPU é o gargalo. Sob demanda, parado não custa nada.
+ * "Alta" sobe o teto do toque para 2x; "Econômico" fica em 1x.
+ */
+function useDpr(modo: Desempenho): [number, number] {
   const [dpr, setDpr] = useState<[number, number]>([1, 1.5]);
   useEffect(() => {
     const grosso = window.matchMedia("(pointer: coarse)").matches;
-    setDpr([1, grosso ? 1.5 : Math.min(window.devicePixelRatio || 1, 2)]);
-  }, []);
+    const nativo = Math.min(window.devicePixelRatio || 1, 2);
+    setDpr(modo === "economico" ? [1, 1] : [1, grosso && modo !== "alta" ? 1.5 : nativo]);
+  }, [modo]);
   return dpr;
 }
 
@@ -139,13 +144,27 @@ export function Floor3D({
   sinalLimparVista,
   onCameraChange,
   folga,
-  exibicao,
+  exibicao: exibicaoPedida,
   hover,
   posicaoSelecionada = null,
   onSelecionarPosicao,
   className,
 }: Floor3DProps) {
   const reduz = useReduzMovimento();
+  const economico = exibicaoPedida.desempenho === "economico";
+  // Econômico renderiza o essencial: sem sombras de contato nem poças de brilho (o destaque cai para o tampo) e com assentos simplificados.
+  const exibicao = useMemo<Exibicao>(
+    () =>
+      economico
+        ? {
+            ...exibicaoPedida,
+            sombras: false,
+            destaque: exibicaoPedida.destaque === "brilho" ? "tampo" : exibicaoPedida.destaque,
+            assentos: exibicaoPedida.assentos === "completo" ? "simplificado" : exibicaoPedida.assentos,
+          }
+        : exibicaoPedida,
+    [economico, exibicaoPedida],
+  );
   const { ambienteId, mesas, raiz } = useTrocaAmbiente(ambienteAlvo, mesasAlvo, reduz);
   const cenario = obterCenario(ambienteId);
   const escuro = useTemaEscuro();
@@ -155,7 +174,7 @@ export function Floor3D({
   const elsTags = useRef(new Map<number, HTMLDivElement>());
   const elsMarcos = useRef<(HTMLDivElement | null)[]>([]);
   const marcos = useMemo(() => marcosDe(ambienteId), [ambienteId]);
-  const dpr = useDpr();
+  const dpr = useDpr(exibicao.desempenho);
   // Ref para o callback seguir estável: o memo das mesas não pode invalidar a cada seleção.
   const atual = useRef({ selecionada, onSelect });
   atual.current = { selecionada, onSelect };
@@ -277,14 +296,17 @@ export function Floor3D({
     <div ref={raiz} className={cn("absolute inset-0", className)}>
       <div aria-hidden className="h-full w-full">
         <Canvas
+          // O antialias só vale na criação do contexto: trocar o modo refaz o canvas.
+          key={economico ? "economico" : "padrao"}
           flat
           frameloop="demand"
           dpr={dpr}
-          gl={{ antialias: true, powerPreference: "high-performance" }}
+          gl={{ antialias: !economico, powerPreference: "high-performance" }}
           camera={{ fov: 34, near: 0.1, far: 600, position: [12, 14, 16] }}
           onPointerMissed={aoVazio}
         >
           <color attach="background" args={[cores.fundo]} />
+          {exibicao.desempenho === "automatico" && <DprAdaptativo />}
 
           <Suspense fallback={null}>
             <Luzes escuro={escuro} raio={raio} alvo={alvoLuz} instantaneo={reduz} />

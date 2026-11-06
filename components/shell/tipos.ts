@@ -9,18 +9,9 @@ export const ROTULO_PRESET: Record<VistaCamera, string> = {
   nivel: "Nível",
 };
 
-/** Folga em px ocupada por interface flutuante; a câmera enquadra o salão no que sobra. */
-export interface Folga {
-  topo: number;
-  base: number;
-  esquerda: number;
-  direita: number;
-}
-
 export interface PropsLayout {
   salao: import("@/hooks/use-salao").Salao;
   /** Chrome escondido; só a pílula "Mostrar controles" fica. */
   imersivo: boolean;
   telaCheia: { ativo: boolean; imersivoNoLugar: boolean; alternar: () => void };
-  atalhos: { ligados: boolean; definir: (v: boolean) => void };
 }

@@ -361,15 +361,15 @@ export function FloorPlan({
               competiriam com as mesas pela atenção. Só a edição mostra pontos a cada metro.
             */
             className={cn(
-              "relative m-auto shrink-0 rounded-(--radius-panel) bg-(--color-floor)",
-              "shadow-[inset_0_1px_3px_rgb(40_30_15/0.08),inset_0_0_0_1px_var(--color-line)]",
+              "relative m-auto shrink-0 rounded-xl bg-(--color-floor)",
+              "shadow-[inset_0_1px_3px_rgb(40_30_15/0.08),inset_0_0_0_1px_var(--border)]",
               editando && "select-none",
             )}
             style={{
               width: geo.mundoL * pxPorM,
               height: geo.mundoP * pxPorM,
               ...(editando && {
-                backgroundImage: "radial-gradient(circle, color-mix(in srgb, var(--color-ink) 24%, transparent) 1px, transparent 1.6px)",
+                backgroundImage: "radial-gradient(circle, color-mix(in srgb, var(--foreground) 24%, transparent) 1px, transparent 1.6px)",
                 backgroundSize: `${pxPorM}px ${pxPorM}px`,
                 backgroundPosition: `${-geo.x0 * pxPorM - pxPorM / 2}px ${-geo.y0 * pxPorM - pxPorM / 2}px`,
               }),
@@ -390,8 +390,8 @@ export function FloorPlan({
                   aria-hidden
                   className={cn(
                     "absolute flex items-center justify-center text-[10px] font-medium",
-                    "uppercase tracking-[0.06em] text-(--color-ink-3)",
-                    f.solido ? "rounded-[4px] bg-(--color-ink)/8" : "rounded-lg bg-(--color-ink)/4",
+                    "uppercase tracking-[0.06em] text-muted-foreground",
+                    f.solido ? "rounded-[4px] bg-foreground/8" : "rounded-lg bg-foreground/4",
                   )}
                   style={{ left: `${f.x}%`, top: `${f.y}%`, width: `${f.largura}%`, height: `${f.altura}%` }}
                 >
@@ -403,7 +403,7 @@ export function FloorPlan({
               <div
                 ref={fantasma}
                 aria-hidden
-                className="pointer-events-none absolute z-10 hidden -translate-x-1/2 -translate-y-1/2 border-[1.5px] border-dashed border-(--color-ink-2)"
+                className="pointer-events-none absolute z-10 hidden -translate-x-1/2 -translate-y-1/2 border-[1.5px] border-dashed border-muted-foreground"
               />
 
               {mesas.map((mesa) => {
@@ -442,7 +442,7 @@ export function FloorPlan({
       </div>
 
       {!somenteLeitura && (
-        <div className="glass absolute right-0 top-0 z-30 rounded-full">
+        <div className="absolute right-0 top-0 z-30 rounded-full border bg-background shadow-sm">
           <BotaoIcone rotulo={editando ? "Concluir edição do layout" : "Editar layout"} pressionado={editando} onClick={() => setEditando(!editando)}>
             <IconeLapis />
           </BotaoIcone>
@@ -452,22 +452,22 @@ export function FloorPlan({
       {(editando || editado) && (
         <div
           style={faixa}
-          className="glass absolute left-0 top-0 z-30 flex flex-col gap-0.5 rounded-[14px] px-3 py-2 text-[12px] leading-4 text-(--color-ink-2)"
+          className="absolute left-0 top-0 z-30 flex flex-col gap-0.5 rounded-lg border bg-background px-3 py-2 text-[12px] leading-4 text-muted-foreground shadow-sm"
         >
           {editando && (
             <p className="m-0">
-              <span className="font-semibold text-(--color-ink)">Editar layout</span> · arraste as mesas · setas movem 0,25 m (Shift: 1 m) ·
-              Alt desliga o encaixe · Esc conclui · <span className="text-(--color-ink-3)">Salvar no cadastro depende do Retaguarda.</span>
+              <span className="font-semibold text-foreground">Editar layout</span> · arraste as mesas · setas movem 0,25 m (Shift: 1 m) ·
+              Alt desliga o encaixe · Esc conclui · <span className="text-muted-foreground">Salvar no cadastro depende do Retaguarda.</span>
             </p>
           )}
           {editado && (
             <p className="m-0 flex flex-wrap items-center gap-x-1.5">
-              <span className="font-medium text-(--color-ink)">Layout editado neste navegador</span>
+              <span className="font-medium text-foreground">Layout editado neste navegador</span>
               <span aria-hidden>·</span>
               <button
                 type="button"
                 onClick={restaurar}
-                className="font-medium text-(--color-ink) underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)"
+                className="font-medium text-foreground underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
                 Restaurar layout original
               </button>

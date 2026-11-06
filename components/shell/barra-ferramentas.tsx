@@ -32,7 +32,7 @@ interface BarraFerramentasProps {
   exibicao: PropsExibicao;
   dispositivo: Dispositivo;
   aberto: boolean;
-  /** Área onde a barra pode pousar, em px da janela; fora dela ficam a barra do topo, o painel lateral e a gaveta. */
+  /** Área onde a barra pode pousar, em px do cartão da cena; no celular a gaveta fica de fora. */
   area: Retangulo;
   /** Painel que a barra nunca cobre quando pousa perto dele. */
   evitar?: Retangulo | null;
@@ -298,7 +298,7 @@ export function BarraFerramentas({ camera, exibicao, dispositivo, aberto, area, 
       inert={!aberto}
       data-arrastando={arrastando}
       className={cn(
-        "glass absolute top-0 left-0 z-20 flex rounded-[22px] p-1 will-change-transform data-[arrastando=true]:scale-[1.03]",
+        "absolute top-0 left-0 z-20 flex rounded-full border bg-background p-1 shadow-sm will-change-transform data-[arrastando=true]:scale-[1.03] data-[arrastando=true]:shadow-md",
         horizontal ? "flex-row items-center" : "flex-col items-center",
         materializar(aberto && pronto),
       )}
@@ -314,9 +314,9 @@ export function BarraFerramentas({ camera, exibicao, dispositivo, aberto, area, 
         onPointerCancel={soltar}
         onKeyDown={teclar}
         className={cn(
-          "grid flex-none touch-none cursor-grab place-items-center rounded-full text-(--color-ink-3) active:cursor-grabbing",
-          "hover:bg-(--color-ink)/8 hover:text-(--color-ink-2) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)",
-          horizontal ? "h-11 w-7" : "h-7 w-11",
+          "grid flex-none touch-none cursor-grab place-items-center rounded-full text-muted-foreground outline-none active:cursor-grabbing focus-visible:ring-3 focus-visible:ring-ring/30",
+          "hover:bg-muted hover:text-foreground",
+          horizontal ? "h-11 w-6 lg:h-9" : "h-6 w-11 lg:w-9",
         )}
       >
         <IconeAlca deitada={!horizontal} />

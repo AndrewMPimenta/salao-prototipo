@@ -123,7 +123,7 @@ export function DiagramaMesa({ mesa, selecionada, editando, bloqueada, rotulo, o
 
       <span
         aria-hidden
-        className="font-display pointer-events-none absolute inset-0 grid place-items-center text-[32px] text-(--color-ink)/45"
+        className="font-mono font-semibold pointer-events-none absolute inset-0 grid place-items-center text-[32px] text-foreground/45"
       >
         {mesa.id}
       </span>
@@ -156,7 +156,7 @@ export function DiagramaMesa({ mesa, selecionada, editando, bloqueada, rotulo, o
             }}
             className={cn(
               "group absolute grid size-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full",
-              "focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-(--color-focus)",
+              "focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-ring",
               "disabled:cursor-default",
             )}
             style={{ left: `${((layout.largura / 2 + cx) / layout.largura) * 100}%`, top: `${((layout.altura / 2 + cy) / layout.altura) * 100}%` }}
@@ -165,10 +165,10 @@ export function DiagramaMesa({ mesa, selecionada, editando, bloqueada, rotulo, o
               className={cn(
                 "tnum grid size-9 place-items-center rounded-full text-[12px] font-semibold leading-none",
                 "transition-[background-color,color,transform,box-shadow] duration-150 group-active:scale-[0.94]",
-                paga && "bg-(--color-sunken) text-(--color-ink-3) shadow-[inset_0_0_0_1px_var(--color-line-2)]",
-                !paga && ativa && "bg-(--color-accent) text-(--color-accent-ink) shadow-[0_1px_3px_rgb(40_30_15/0.3)]",
-                !paga && !ativa && ocupada && "bg-(--color-raised) text-(--color-ink) shadow-[inset_0_0_0_1.5px_var(--color-ink-2)]",
-                !ocupada && "border border-dashed border-(--color-line-2) text-(--color-ink-3)",
+                paga && "bg-muted text-muted-foreground shadow-[inset_0_0_0_1px_var(--input)]",
+                !paga && ativa && "bg-primary text-primary-foreground shadow-[0_1px_3px_rgb(40_30_15/0.3)]",
+                !paga && !ativa && ocupada && "bg-card text-foreground shadow-[inset_0_0_0_1.5px_var(--muted-foreground)]",
+                !ocupada && "border border-dashed border-input text-muted-foreground",
                 travada && "opacity-50",
               )}
             >

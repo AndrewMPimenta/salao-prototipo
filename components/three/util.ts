@@ -70,6 +70,8 @@ export function useEsmaecimento(
   }, [ids, bases, esmaecidas, corPiso, realce, invalidate]);
 
   useFrame((_, delta) => {
+    // Sem malha montada (parte sem instâncias) nada é escrito, e o LOD ficaria "diferente" para sempre, pedindo quadro em loop.
+    if (!ref.current) return;
     let mudou = (lod?.current ?? 0) !== lodEscrito.current;
     for (const [id, f] of fatores.current) {
       const alvo = esmaecidas.get(id) ? 1 : 0;

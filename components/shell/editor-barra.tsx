@@ -9,7 +9,7 @@ import {
   type IdFerramenta,
   type Orientacao,
 } from "@/hooks/use-barra-ferramentas";
-import { ToggleGroup } from "../ui/toggle-group";
+import { Segmentado } from "./segmentado";
 import { BotaoIcone } from "./botao-icone";
 import { IconeAlca, IconeLapis } from "./icones";
 import { materializar } from "./materializar";
@@ -149,22 +149,20 @@ export function EditorBarra({ config, lado, personalizada, onConfig, onRestaurar
         aria-label="Personalizar barra de ferramentas"
         style={estilo}
         inert={!aberto}
-        className={cn("glass absolute z-30 w-72 rounded-[18px] px-3 pt-3 pb-2", materializar(aberto))}
+        className={cn("absolute z-30 w-72 rounded-xl border bg-popover px-3 pt-3 pb-2 text-popover-foreground shadow-lg", materializar(aberto))}
       >
-        <p className="m-0 mb-1.5 text-[13px] text-(--color-ink)">Orientação</p>
-        <ToggleGroup<Orientacao>
+        <p className="m-0 mb-1.5 text-[13px] text-foreground">Orientação</p>
+        <Segmentado<Orientacao>
           rotulo="Orientação da barra"
-          tamanho="sm"
           valor={config.orientacao}
           onChange={(v) => onConfig({ orientacao: v })}
           opcoes={[
             { valor: "vertical", rotulo: "Vertical" },
             { valor: "horizontal", rotulo: "Horizontal" },
           ]}
-          className="w-full [&>button]:flex-1"
         />
 
-        <p className="m-0 mt-3 mb-0.5 text-[13px] text-(--color-ink)">Botões</p>
+        <p className="m-0 mt-3 mb-0.5 text-[13px] text-foreground">Botões</p>
         <ul ref={lista} className="m-0 list-none p-0">
           {ordem.map((id, i) => {
             const ativo = arrasto?.id === id;
@@ -177,8 +175,8 @@ export function EditorBarra({ config, lado, personalizada, onConfig, onRestaurar
                 onKeyDown={(e) => teclar(e, i)}
                 style={{ transform: `translateY(${deslocamento(id, i)}px)` }}
                 className={cn(
-                  "relative flex h-11 items-center gap-1 rounded-[12px] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-(--color-focus)",
-                  ativo && "z-10 bg-(--color-raised) shadow-(--shadow-float)",
+                  "relative flex h-11 items-center gap-1 rounded-[12px] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring",
+                  ativo && "z-10 bg-card shadow-(--shadow-float)",
                   // Enquanto o dedo segura a peça ela segue 1:1; só as outras e o assentar animam.
                   (!ativo || arrasto?.solto) && "transition-transform duration-200 ease-(--ease-out-soft)",
                 )}
@@ -189,7 +187,7 @@ export function EditorBarra({ config, lado, personalizada, onConfig, onRestaurar
                   onPointerMove={arrastar}
                   onPointerUp={soltar}
                   onPointerCancel={soltar}
-                  className="grid h-11 w-8 flex-none cursor-grab touch-none place-items-center text-(--color-ink-3) active:cursor-grabbing"
+                  className="grid h-11 w-8 flex-none cursor-grab touch-none place-items-center text-muted-foreground active:cursor-grabbing"
                 >
                   <IconeAlca />
                 </span>
@@ -206,12 +204,12 @@ export function EditorBarra({ config, lado, personalizada, onConfig, onRestaurar
         </ul>
         <p aria-live="polite" className="sr-only">{aviso}</p>
 
-        <div className="mt-1 border-t border-(--color-ink)/10 pt-1">
+        <div className="mt-1 border-t border-foreground/10 pt-1">
           <button
             type="button"
             disabled={!personalizada}
             onClick={onRestaurar}
-            className="flex min-h-9 w-full items-center rounded-[10px] px-2 text-left text-[13px] font-medium text-(--color-ink-2) hover:bg-(--color-ink)/8 hover:text-(--color-ink) disabled:opacity-40 disabled:hover:bg-transparent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-focus)"
+            className="flex min-h-9 w-full items-center rounded-[10px] px-2 text-left text-[13px] font-medium text-muted-foreground hover:bg-foreground/8 hover:text-foreground disabled:opacity-40 disabled:hover:bg-transparent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             Restaurar padrão
           </button>
